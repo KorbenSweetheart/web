@@ -9,7 +9,7 @@ import (
 const (
 	defaultSrvTimeout         = 4 * time.Second
 	defaultSrvIdleTimeout     = 60 * time.Second
-	defaultSrvShutdownTimeout = 5 * time.Second
+	defaultSrvShutdownTimeout = 10 * time.Second
 )
 
 type Config struct {
