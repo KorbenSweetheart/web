@@ -12,10 +12,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
 )
 
 func main() {
+	_ = godotenv.Load()
+
 	shutdownCtx, shutdown := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer shutdown()
 

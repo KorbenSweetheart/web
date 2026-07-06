@@ -43,7 +43,7 @@ func MustLoad() *Config {
 
 	cfg.JWTSecret = os.Getenv("JWT_SECRET")
 	if cfg.JWTSecret == "" {
-		log.Fatal("JWT_SECRET enviroment variable is required")
+		log.Fatal("JWT_SECRET environment variable is required")
 	}
 
 	// DB Env load
@@ -64,7 +64,7 @@ func MustLoad() *Config {
 
 	cfg.DB.Pass = os.Getenv("DB_PASS")
 	if cfg.DB.Pass == "" {
-		log.Fatal("DB_PASS enviroment variable is required")
+		log.Fatal("DB_PASS environment variable is required")
 	}
 
 	// Server Env load
@@ -73,29 +73,23 @@ func MustLoad() *Config {
 		cfg.HTTPServer.Address = "localhost:8080"
 	}
 
-	srvTimeoutStr := os.Getenv("SERVER_TIMEOUT")
-	srvTimeout, err := time.ParseDuration(srvTimeoutStr)
-	if err != nil {
-		cfg.HTTPServer.Timeout = defaultSrvTimeout
-	} else {
-		cfg.HTTPServer.Timeout = srvTimeout
-	}
-
-	srvIdleTimeoutStr := os.Getenv("SERVER_IDLE_TIMEOUT")
-	srvIdleTimeout, err := time.ParseDuration(srvIdleTimeoutStr)
-	if err != nil {
-		cfg.HTTPServer.Timeout = defaultSrvIdleTimeout
-	} else {
-		cfg.HTTPServer.Timeout = srvIdleTimeout
-	}
-
-	srvShutdownTimeoutStr := os.Getenv("SERVER_SHUTDOWN_TIMEOUT")
-	srvShutdownTimeout, err := time.ParseDuration(srvShutdownTimeoutStr)
-	if err != nil {
-		cfg.HTTPServer.Timeout = defaultSrvShutdownTimeout
-	} else {
-		cfg.HTTPServer.Timeout = srvShutdownTimeout
-	}
+	cfg.HTTPServer.Timeout = parseDurationEnv("SERVER_TIMEOUT", defaultSrvTimeout)
+	cfg.HTTPServer.IdleTimeout = parseDurationEnv("SERVER_IDLE_TIMEOUT", defaultSrvIdleTimeout)
+	cfg.HTTPServer.ShutdownTimeout = parseDurationEnv("SERVER_SHUTDOWN_TIMEOUT", defaultSrvShutdownTimeout)
 
 	return &cfg
+}
+
+func parseDurationEnv(envKey string, defaultVal time.Duration) time.Duration {
+	valStr := os.Getenv(envKey)
+	if valStr == "" {
+		return defaultVal
+	}
+
+	val, err := time.ParseDuration(valStr)
+	if err != nil {
+		return defaultVal
+	}
+
+	return val
 }

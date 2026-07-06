@@ -3,6 +3,7 @@ package restapi
 import (
 	"context"
 	"log/slog"
+	"net/http"
 
 	echojwt "github.com/labstack/echo-jwt/v5"
 	"github.com/labstack/echo/v5"
@@ -48,7 +49,10 @@ func SetupRouter(log *slog.Logger, JWTSecret string) *echo.Echo {
 	e.Use(middleware.Recover())
 
 	// public routes
-	// public := e.Group("")
+	public := e.Group("")
+	public.GET("/", func(c *echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
+	})
 	// public.POST("/auth/register", authHandler.SignUp)
 	// public.POST("/auth/login", authHandler.SignIn)
 
