@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+const (
+	defaultSrvTimeout         = 4 * time.Second
+	defaultSrvIdleTimeout     = 60 * time.Second
+	defaultSrvShutdownTimeout = 5 * time.Second
+)
+
 type Config struct {
 	Env        string
 	JWTSecret  string
@@ -28,25 +34,6 @@ type HTTPServer struct {
 }
 
 func MustLoad() *Config {
-	/*
-		ENVIRONMENT=dev
-		JWT_SECRET=super-secure-random-string
-
-		# DB variables
-		DB_NAME=postgres
-		DB_PORT=5432
-		DB_USER=dbuser
-		DB_PASS=my_db_password
-
-		# Server variables
-		SERVER_ADDRESS=localhost:8080
-		# Timeout in seconds
-		SERVER_TIMEOUT=4
-		SERVER_IDLE_TIMEOUT=60
-		SERVER_SHUTDOWN_TIMEOUT=5
-
-	*/
-
 	var cfg Config
 
 	cfg.Env = os.Getenv("ENVIRONMENT")
@@ -81,11 +68,6 @@ func MustLoad() *Config {
 	}
 
 	// Server Env load
-	// SERVER_ADDRESS=localhost:8080
-	// SERVER_TIMEOUT=4
-	// 	SERVER_IDLE_TIMEOUT=60
-	// 	SERVER_SHUTDOWN_TIMEOUT=5
-
 	cfg.HTTPServer.Address = os.Getenv("SERVER_ADDRESS")
 	if cfg.HTTPServer.Address == "" {
 		cfg.HTTPServer.Address = "localhost:8080"
@@ -94,9 +76,25 @@ func MustLoad() *Config {
 	srvTimeoutStr := os.Getenv("SERVER_TIMEOUT")
 	srvTimeout, err := time.ParseDuration(srvTimeoutStr)
 	if err != nil {
-		cfg.HTTPServer.Timeout = 4 * time.Second
+		cfg.HTTPServer.Timeout = defaultSrvTimeout
 	} else {
 		cfg.HTTPServer.Timeout = srvTimeout
+	}
+
+	srvIdleTimeoutStr := os.Getenv("SERVER_IDLE_TIMEOUT")
+	srvIdleTimeout, err := time.ParseDuration(srvIdleTimeoutStr)
+	if err != nil {
+		cfg.HTTPServer.Timeout = defaultSrvIdleTimeout
+	} else {
+		cfg.HTTPServer.Timeout = srvIdleTimeout
+	}
+
+	srvShutdownTimeoutStr := os.Getenv("SERVER_SHUTDOWN_TIMEOUT")
+	srvShutdownTimeout, err := time.ParseDuration(srvShutdownTimeoutStr)
+	if err != nil {
+		cfg.HTTPServer.Timeout = defaultSrvShutdownTimeout
+	} else {
+		cfg.HTTPServer.Timeout = srvShutdownTimeout
 	}
 
 	return &cfg
