@@ -34,7 +34,7 @@ func main() {
 
 	// create usecases
 
-	// setup router (Echo)
+	// setup router/server (Echo)
 	e := restapi.SetupRouter(log, cfg.JWTSecret)
 
 	// start server
