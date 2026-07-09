@@ -3,6 +3,7 @@ package restapi
 import (
 	"context"
 	"log/slog"
+	"match-me-api/internal/controller/restapi/handlers"
 	"net/http"
 
 	echojwt "github.com/labstack/echo-jwt/v5"
@@ -16,9 +17,14 @@ func SetupRouter(log *slog.Logger, JWTSecret string) *echo.Echo {
 
 	// 		add middleware
 	e.Use(middleware.RequestID())
+	skipper := func(c *echo.Context) bool {
+		// Skip the health check endpoint.
+		return c.Request().URL.Path == "/health"
+	}
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogMethod:    true,
 		LogURI:       true,
+		Skipper:      skipper,
 		LogStatus:    true,
 		LogRequestID: true,
 		LogLatency:   true,
@@ -53,6 +59,7 @@ func SetupRouter(log *slog.Logger, JWTSecret string) *echo.Echo {
 	public.GET("/", func(c *echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
 	})
+	public.GET("/health", handlers.CheckHealth)
 	// public.POST("/auth/register", authHandler.SignUp)
 	// public.POST("/auth/login", authHandler.SignIn)
 

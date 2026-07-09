@@ -1,5 +1,24 @@
 package domain
 
+// Domain:
+// 	- Recommendation board
+//	- Business language:
+//		- find something (find a friend, find a ride, find a group of people)
+//		- change profile (update profile), add image, update image
+//		- hide profile, add friend, delete friend, ban user
+//	- Bounded Context:
+//		- Recommendation board:
+//			- Profile: publish, update, hide, delete, update preferences
+// 			- Users: seaker, recommendation
+// 		- Chat:
+// 			- Messages: send, get, update?, delete?, archive
+// 			- Users: sender, receiver
+// 		- Profile...
+//		- Search...
+
+// Domain:
+// - Recommendation Service <- userRepo interface <- UserRepoDB struct
+
 type Account struct {
 	ID    string // maybe use UUID?
 	Email string
