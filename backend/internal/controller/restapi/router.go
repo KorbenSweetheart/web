@@ -1,9 +1,9 @@
 package restapi
 
 import (
-	"context"
 	"log/slog"
 	"match-me-api/internal/controller/restapi/handlers"
+	"match-me-api/internal/controller/restapi/utils"
 	"net/http"
 
 	echojwt "github.com/labstack/echo-jwt/v5"
@@ -15,46 +15,13 @@ func SetupRouter(log *slog.Logger, JWTSecret string) *echo.Echo {
 
 	e := echo.New()
 
-	// 		add middleware
+	// Middleware
 	e.Use(middleware.RequestID())
-	skipper := func(c *echo.Context) bool {
-		// Skip the health check endpoint.
-		return c.Request().URL.Path == "/health"
-	}
-	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogMethod:    true,
-		LogURI:       true,
-		Skipper:      skipper,
-		LogStatus:    true,
-		LogRequestID: true,
-		LogLatency:   true,
-		HandleError:  true,
-		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
-			attrs := []slog.Attr{
-				slog.String("method", v.Method),
-				slog.String("uri", v.URI),
-				slog.Int("status", v.Status),
-				slog.String("requestid", v.RequestID),
-				slog.Duration("duration", v.Latency),
-			}
-
-			level := slog.LevelInfo
-			msg := "REQUEST"
-
-			if v.Error != nil {
-				level = slog.LevelError
-				msg = "REQUEST_ERROR"
-				attrs = append(attrs, slog.String("err", v.Error.Error()))
-			}
-
-			log.LogAttrs(context.Background(), level, msg, attrs...)
-
-			return nil
-		},
-	}))
+	e.Use(middleware.RequestLoggerWithConfig(utils.LoggerConfig(log)))
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORS("localhost:8080", "localhost:8080"))
 
-	// public routes
+	// Public routes
 	public := e.Group("")
 	public.GET("/", func(c *echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
@@ -63,9 +30,9 @@ func SetupRouter(log *slog.Logger, JWTSecret string) *echo.Echo {
 	// public.POST("/auth/register", authHandler.SignUp)
 	// public.POST("/auth/login", authHandler.SignIn)
 
-	// private routes
+	// Private routes
 	private := e.Group("")
-	private.Use(echojwt.JWT([]byte(JWTSecret)))
+	private.Use(echojwt.JWT([]byte(JWTSecret))) // JWT Middleware
 
 	// Users
 	// private.GET("/users/:id", userHandler.GetBaseInfo)        // /users/{id}
