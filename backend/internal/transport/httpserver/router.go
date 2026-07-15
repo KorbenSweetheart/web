@@ -1,9 +1,9 @@
-package restapi
+package httpserver
 
 import (
 	"log/slog"
-	"match-me-api/internal/controller/restapi/handlers"
-	"match-me-api/internal/controller/restapi/utils"
+	"match-me-api/internal/transport/httpserver/handlers"
+	"match-me-api/internal/transport/httpserver/utils"
 	"net/http"
 
 	echojwt "github.com/labstack/echo-jwt/v5"

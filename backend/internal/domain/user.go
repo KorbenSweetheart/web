@@ -1,5 +1,7 @@
 package domain
 
+import "context"
+
 // Domain:
 // 	- Recommendation board
 //	- Business language:
@@ -21,19 +23,21 @@ package domain
 // Domain:
 // - Recommendation Service <- userRepo interface <- UserRepoDB struct
 
-type AcID string // maybe just to test???
-type Account struct {
-	ID     AcID // maybe use UUID? Implement generation via factory or inside the repo as an interface, just to have a capability to swap it if needed.
-	Email  string
-	UserID string
+type UserRepository interface {
+	UserByID(ctx context.Context, id string) (*User, error)
+	UpdateUser(ctx context.Context, user *User) error
+	GetRecommendations(ctx context.Context, userID string, limit int) ([]*User, error)
 }
 
-type UserProfile struct {
+type User struct {
 	ID          string // maybe use UUID? or maybe skip it?
+	Email       string
+	Password    string
 	UserName    string
-	Avatar      string // path to the file
-	Bio         string
+	AvatarURL   string // path to the file
+	AboutMe     string
 	Location    Location
+	Interests   []string // one option of matching
 	LookingFor  map[string]string
 	CanOffer    map[string]string // Maybe just go with 1 entity "LookingFor" and match based on this.
 	FriendsList []string

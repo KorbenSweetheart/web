@@ -1,0 +1,56 @@
+services:
+
+  db:
+    image: postgres:18.4-alpine3.24
+    container_name: matchme-db
+    restart: unless-stopped
+    environment:
+      # Configuration for the first db lauch
+      POSTGRES_DB: postgres
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: my_db_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbuser -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: matchme-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - /app/tmp
+    environment:
+      - ENVIRONMENT=dev
+      - JWT_SECRET=super-secure-random-key
+      
+      # Server variables
+      - SERVER_ADDRESS=0.0.0.0:8080
+      - SERVER_TIMEOUT=4s
+      - SERVER_IDLE_TIMEOUT=60s
+      - SERVER_SHUTDOWN_TIMEOUT=10s
+      
+      # DB variables
+      - DB_USER=dbuser
+      - DB_PASS=my_db_password
+      - DB_NAME=postgres
+      - DB_PORT=5432
+      # Important: to connect with DB inside a Docker — 'db'
+      - DB_HOST=db
+    depends_on:
+      db:
+        # backend launches only when PostgreSQL pass healthcheck
+        condition: service_healthy
+
+volumes:
+  postgres_data:

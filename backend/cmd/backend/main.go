@@ -5,8 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"match-me-api/internal/config"
-	"match-me-api/internal/controller/restapi"
 	"match-me-api/internal/logger"
+	"match-me-api/internal/transport/httpserver"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,7 +35,7 @@ func main() {
 	// create usecases
 
 	// setup router/server (Echo)
-	e := restapi.SetupRouter(log, cfg.JWTSecret)
+	e := httpserver.SetupRouter(log, cfg.JWTSecret)
 
 	// start server
 	sc := echo.StartConfig{
