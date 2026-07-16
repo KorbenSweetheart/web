@@ -3,6 +3,7 @@ package handlers
 import (
 	"match-me-api/internal/service"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v5"
 )
@@ -27,26 +28,29 @@ func (h *UserHandler) User(c *echo.Context) error {
 
 	// /users/{id} (id, name, avatar)
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"id":         user.ID,
-		"name":       user.UserName,
+		"id":         user.UserID,
+		"name":       user.Name,
 		"avatar_url": user.AvatarURL,
 	})
 }
 
 // /users/{id}/profile
-func (h *UserHandler) UserProfile(c *echo.Context) error {
-	id := c.Param("id")
+func (h *UserHandler) Profile(c *echo.Context) error {
+	// TODO: make a validation helper func
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid id"})
+	}
 	ctx := c.Request().Context()
 
-	user, err := h.userService.GetProfile(ctx, id)
+	user, err := h.userService.GetProfile(ctx, int64(id))
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Profile not found"})
 	}
 
-	// Возвращаем "about me" информацию
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"id":       user.ID,
-		"about_me": user.AboutMe,
+		"id":       user.UserID,
+		"about_me": user.Bio,
 	})
 }
 
@@ -61,7 +65,7 @@ func (h *UserHandler) AboutUser(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"id":        user.ID,
+		"id":        user.UserID,
 		"interests": user.Interests,
 		// other logic to match users
 	})

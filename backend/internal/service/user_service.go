@@ -13,7 +13,7 @@ func NewUserService(repo domain.UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (us *UserService) GetProfile(ctx context.Context, id string) (*domain.User, error) {
+func (us *UserService) GetProfile(ctx context.Context, id int64) (*domain.Profile, error) {
 	// some logic here
-	return us.repo.UserByID(ctx, id)
+	return us.repo.ProfileByID(ctx, id)
 }

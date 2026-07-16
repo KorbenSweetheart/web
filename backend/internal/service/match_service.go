@@ -14,7 +14,7 @@ func NewSwipeHandler(repo domain.UserRepository) *MatchService {
 	return &MatchService{repo: repo}
 }
 
-func (ms *MatchService) Recommendations(ctx context.Context, userID string, limit int) ([]*domain.User, error) {
+func (ms *MatchService) Recommendations(ctx context.Context, userID string, limit int) ([]*domain.Profile, error) {
 	return ms.repo.GetRecommendations(ctx, userID, limit)
 
 	// type request struct {
