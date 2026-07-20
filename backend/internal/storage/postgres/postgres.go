@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"match-me-api/internal/config"
+	"match-me-api/internal/domain"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -48,4 +49,14 @@ func NewPostgresDB(dbCfg config.Database, log *slog.Logger) (*Storage, error) {
 		db:  db,
 		log: log,
 	}, nil
+}
+
+func (s *Storage) AutoMigrate() error {
+	const op = "storage.postgres.AutoMigrate"
+
+	if err := s.db.AutoMigrate(&domain.User{}, &domain.Profile{}); err != nil {
+		return fmt.Errorf("failed to migrate structs using gorm: %s, %w", op, err)
+	}
+
+	return nil
 }
