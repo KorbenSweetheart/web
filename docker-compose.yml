@@ -7,6 +7,7 @@ services:
     environment:
       # Configuration for the first db lauch
       POSTGRES_DB: postgres
+      POSTGRES_HOST: localhost
       POSTGRES_USER: dbuser
       POSTGRES_PASSWORD: my_db_password
     ports:

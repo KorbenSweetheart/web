@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"match-me-api/internal/config"
 	"match-me-api/internal/logger"
+	"match-me-api/internal/storage/postgres"
 	"match-me-api/internal/transport/httpserver"
 	"net/http"
 	"os"
@@ -28,16 +29,21 @@ func main() {
 	// setup logger
 	log := logger.SetupLogger(cfg.Env)
 
-	log.Info("Setup API server", slog.String("env", cfg.Env))
+	log.Info("setup api server", slog.String("env", cfg.Env))
 
 	// init repository
+	db, err := postgres.NewPostgresDB(cfg.DB, log)
+	if err != nil {
+		log.Error("database connection failed", logger.Err(err))
+		os.Exit(1)
+	}
 
 	// create usecases
 
 	// setup router/server (Echo)
 	e := httpserver.SetupRouter(log, cfg.JWTSecret)
 
-	// start server
+	// server config
 	sc := echo.StartConfig{
 		Address:         cfg.HTTPServer.Address,
 		GracefulTimeout: cfg.HTTPServer.ShutdownTimeout,
@@ -49,19 +55,19 @@ func main() {
 		},
 	}
 
-	log.Info("Starting API server", slog.String("addr", cfg.HTTPServer.Address))
+	log.Info("starting api server", slog.String("addr", cfg.HTTPServer.Address))
 
 	if err := sc.Start(shutdownCtx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Error("API server stopped with error", logger.Err(err))
+		log.Error("api server stopped with error", logger.Err(err))
 		// db.Close()
 		os.Exit(1)
 	}
 
-	log.Info("HTTP server stopped, cleaning up resources...")
+	log.Info("http server stopped, cleaning up resources...")
 
 	// if err := db.Close(); err != nil {
 	//     log.Error("Error during database shutdown", logger.Err(err))
 	// }
 
-	log.Info("API server shutdown completed successfully")
+	log.Info("api server shutdown completed successfully")
 }

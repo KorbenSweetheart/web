@@ -3,6 +3,8 @@ package domain
 import (
 	"context"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // Domain:
@@ -42,6 +44,7 @@ const (
 )
 
 type User struct {
+	gorm.Model
 	ID           int64  // Postgres SERIAL/BIGSERIAL
 	Email        string // unique, private
 	PasswordHash string // bcrypt + salt

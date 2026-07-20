@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"log/slog"
 	"match-me-api/internal/service"
 	"net/http"
 	"strconv"
@@ -10,16 +12,21 @@ import (
 
 type UserHandler struct {
 	userService *service.UserService
+	log         *slog.Logger
 }
 
-func NewUserHandler(us *service.UserService) *UserHandler {
-	return &UserHandler{userService: us}
+func NewUserHandler(us *service.UserService, logger *slog.Logger) *UserHandler {
+	return &UserHandler{userService: us, log: logger}
 }
 
 // /users/{id}
 func (h *UserHandler) User(c *echo.Context) error {
-	id := c.Param("id")
 	ctx := c.Request().Context()
+
+	id, err := idValidation(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID: NAN"})
+	}
 
 	user, err := h.userService.GetProfile(ctx, id)
 	if err != nil {
@@ -30,20 +37,20 @@ func (h *UserHandler) User(c *echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"id":         user.UserID,
 		"name":       user.Name,
-		"avatar_url": user.AvatarURL,
+		"avatar_url": user.PictureURL,
 	})
 }
 
 // /users/{id}/profile
 func (h *UserHandler) Profile(c *echo.Context) error {
-	// TODO: make a validation helper func
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid id"})
-	}
 	ctx := c.Request().Context()
 
-	user, err := h.userService.GetProfile(ctx, int64(id))
+	id, err := idValidation(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID: NAN"})
+	}
+
+	user, err := h.userService.GetProfile(ctx, id)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Profile not found"})
 	}
@@ -56,8 +63,12 @@ func (h *UserHandler) Profile(c *echo.Context) error {
 
 // GET /users/{id}/bio
 func (h *UserHandler) AboutUser(c *echo.Context) error {
-	id := c.Param("id")
 	ctx := c.Request().Context()
+
+	id, err := idValidation(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID: NAN"})
+	}
 
 	user, err := h.userService.GetProfile(ctx, id)
 	if err != nil {
@@ -66,7 +77,16 @@ func (h *UserHandler) AboutUser(c *echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"id":        user.UserID,
-		"interests": user.Interests,
+		"interests": user.Activities,
 		// other logic to match users
 	})
+}
+
+func idValidation(idStr string) (int64, error) {
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse userID, error: %w", err)
+	}
+
+	return int64(id), nil
 }

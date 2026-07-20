@@ -21,6 +21,7 @@ type Config struct {
 
 type Database struct {
 	Name string
+	Host string
 	Port string
 	User string
 	Pass string
@@ -50,6 +51,11 @@ func MustLoad() *Config {
 	cfg.DB.Name = os.Getenv("DB_NAME")
 	if cfg.DB.Name == "" {
 		cfg.DB.Name = "postgres"
+	}
+
+	cfg.DB.Host = os.Getenv("DB_HOST")
+	if cfg.DB.Host == "" {
+		cfg.DB.Host = "localhost"
 	}
 
 	cfg.DB.Port = os.Getenv("DB_PORT")
