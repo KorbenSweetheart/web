@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"context"
 	"time"
 )
 
@@ -25,13 +24,6 @@ import (
 
 // Domain:
 // - Recommendation Service <- userRepo interface <- UserRepoDB struct
-
-// TODO: update repo methods
-type UserRepository interface {
-	ProfileByID(ctx context.Context, userID int64) (*Profile, error)
-	UpdateProfile(ctx context.Context, profile *Profile) error // maybe use int64 instead of the pointer on an userProfile?
-	Recommendations(ctx context.Context, userID int64, limit int) ([]*Profile, error)
-}
 
 type ConnectionStatus string
 

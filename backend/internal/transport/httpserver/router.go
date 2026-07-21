@@ -11,7 +11,11 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 )
 
-func SetupRouter(log *slog.Logger, JWTSecret string) *echo.Echo {
+func SetupRouter(
+	JWTSecret string,
+	as handlers.AuthService,
+	log *slog.Logger,
+) *echo.Echo {
 
 	e := echo.New()
 
@@ -21,14 +25,18 @@ func SetupRouter(log *slog.Logger, JWTSecret string) *echo.Echo {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS("http://localhost:8080", "http://localhost:5173")) // TODO: move to config vars
 
+	//
+	authHandler := handlers.NewAuthHandler(as, log)
+	// userHandler := handlers.NewUserHandler(us, log)
+
 	// Public routes
 	public := e.Group("")
 	public.GET("/", func(c *echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
 	})
 	public.GET("/health", handlers.CheckHealth)
-	// public.POST("/auth/register", authHandler.SignUp)
-	// public.POST("/auth/login", authHandler.SignIn)
+	public.POST("/auth/register", authHandler.Register)
+	// public.POST("/auth/login", authHandler.Login)
 
 	// Private routes
 	private := e.Group("")

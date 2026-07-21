@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"match-me-api/internal/config"
 	"match-me-api/internal/logger"
+	"match-me-api/internal/service"
 	"match-me-api/internal/storage/postgres"
 	"match-me-api/internal/transport/httpserver"
 	"net/http"
@@ -43,10 +44,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// create usecases
+	// create services
+	userService := service.NewUserService(storage, log)
 
 	// setup router/server (Echo)
-	e := httpserver.SetupRouter(log, cfg.JWTSecret)
+	e := httpserver.SetupRouter(cfg.JWTSecret, userService, log)
 
 	// server config
 	sc := echo.StartConfig{

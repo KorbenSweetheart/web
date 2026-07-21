@@ -2,19 +2,24 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"match-me-api/internal/domain"
 )
 
-// approximate realization
+type RecommendationProvider interface {
+	Recomendations(ctx context.Context, id int64) ([]domain.Profile, error)
+}
+
 type MatchService struct {
-	repo domain.UserRepository
+	storage RecommendationProvider
+	log     *slog.Logger
 }
 
-func NewSwipeHandler(repo domain.UserRepository) *MatchService {
-	return &MatchService{repo: repo}
+func NewSwipeHandler(rp RecommendationProvider, logger *slog.Logger) *MatchService {
+	return &MatchService{storage: rp, log: logger}
 }
 
-func (ms *MatchService) Recommendations(ctx context.Context, userID string, limit int) ([]*domain.Profile, error) {
+func (ms *MatchService) Recommendations(ctx context.Context, userID string, limit int) ([]int64, error) {
 	return nil, nil
 	// ms.repo.GetRecommendations(ctx, userID, limit)
 
