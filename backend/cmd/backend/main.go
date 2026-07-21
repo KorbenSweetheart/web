@@ -31,10 +31,15 @@ func main() {
 
 	log.Info("setup api server", slog.String("env", cfg.Env))
 
-	// init repository
-	db, err := postgres.NewPostgresDB(cfg.DB, log)
+	// init storage/repo
+	storage, err := postgres.NewPostgresDB(cfg.DB, log)
 	if err != nil {
 		log.Error("database connection failed", logger.Err(err))
+		os.Exit(1)
+	}
+
+	if err := storage.AutoMigrate(); err != nil {
+		log.Error("migration failed", logger.Err(err))
 		os.Exit(1)
 	}
 

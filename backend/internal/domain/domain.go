@@ -49,16 +49,24 @@ type User struct {
 }
 
 type Profile struct {
-	UserID     int64             `gorm:"primaryKey;column:user_id" json:"user_id"`
-	Name       string            `gorm:"type:varchar(255);not null;column:name" json:"name"`
-	Age        int               `gorm:"column:age" json:"age"`
-	PictureURL string            `gorm:"type:text;default:https://placehold.net/avatar.svg;column:picture_url" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
-	Bio        string            `gorm:"type:text;column:bio" json:"bio"`                                                          // Bio
-	Activities []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID" json:"activities"`
-	MaxRadius  float64           `gorm:"default:10;column:max_radius" json:"max_radius"`
-	Lat        float64           `gorm:"-" json:"lat"` // Latitude from the browser API
-	Lon        float64           `gorm:"-" json:"lon"` // Longitude from the browser API
-	IsOnline   bool              `gorm:"-" json:"is_online"`
+	UserID            int64             `gorm:"primaryKey;column:user_id" json:"user_id"`
+	Name              string            `gorm:"type:varchar(255);not null;column:name" json:"name"`
+	Age               int               `gorm:"column:age" json:"age"`
+	PictureURL        string            `gorm:"type:text;default:https://placehold.net/avatar.svg;column:picture_url" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
+	Bio               string            `gorm:"type:text;column:bio" json:"bio"`                                                          // Bio
+	InteractionModeID int64             `gorm:"column:interaction_mode_id;default:4" json:"interaction_mode_id"`
+	InteractionMode   InteractionMode   `gorm:"foreignKey:InteractionModeID;references:ID" json:"interaction_mode,omitzero"` // To Preload Activity id and name. "Silent", "Social", "Someone Special / Dating" "Open to anything / Don't care" Mode
+	Activities        []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID" json:"activities"`
+	MaxRadius         float64           `gorm:"default:10;column:max_radius" json:"max_radius"`
+	Lat               float64           `gorm:"-" json:"lat"` // Latitude from the browser API
+	Lon               float64           `gorm:"-" json:"lon"` // Longitude from the browser API
+	IsOnline          bool              `gorm:"-" json:"is_online"`
+}
+
+// InteractionMode directory
+type InteractionMode struct {
+	ID    int64  `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	Title string `gorm:"uniqueIndex;not null;column:title" json:"title"` // e.g.: "Silent", "Social", "Someone Special / Dating" "Open to anything / Don't care" Mode...
 }
 
 // Activily directory
@@ -71,9 +79,9 @@ type Activity struct {
 type ProfileActivity struct {
 	ProfileUserID int64    `gorm:"primaryKey;column:profile_user_id"`
 	ActivityID    int64    `gorm:"primaryKey;column:activity_id"`
-	Experience    int      `gorm:"column:experience;default:1" json:"experience"`                 // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel int      `gorm:"column:interest_level;default:3" json:"interest_level"`         // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
-	Activity      Activity `gorm:"foreignKey:ActivityID;references:ID" json:"activity,omitempty"` // Позволит подгрузить название спорта через Preload
+	Experience    int      `gorm:"column:experience;default:1" json:"experience"`                // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel int      `gorm:"column:interest_level;default:3" json:"interest_level"`        // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+	Activity      Activity `gorm:"foreignKey:ActivityID;references:ID" json:"activity,omitzero"` // To Preload Activity id and name
 }
 
 // Provides GORM exact table name

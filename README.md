@@ -15,18 +15,24 @@ Is a full-stack recommendation application, to connect users based on their prof
 
 ## Key Learnings & Skills Acquired
 
-Through this module, I have learned and practically applied the following concepts:
+Through this task, we have learned and practically applied the following concepts:
 
-- Working with NodeJS and building console-based scripts.
-- Manipulating date objects and complex data classifications.
-- Traversing and dynamically manipulating the Document Object Model (DOM).
-- Building real-time web applications.
-- Developing logic for user matchmaking capabilities.
-- Creating and consuming GraphQL APIs.
-- Designing and implementing a basic frontend framework from scratch.
-- Developing multiplayer web-based games.
+<!-- TODO: update before submitting -->
+
+- REST
+- Full stack application
+- React
+- Typescript
+- Uploading images
+- Recommendations
+- Realtime programming
+- Security
+- JWT
+- Responsive web apps
 
 ## Project Scope & Development Constraints
+
+<!-- TODO: update before submitting -->
 
 These projects were built under specific course constraints to ensure mastery of the fundamentals:
 
@@ -40,6 +46,91 @@ These projects were built under specific course constraints to ensure mastery of
 - **Hello JS:** Start with NodeJS by creating `hello-world.js` to output "Hello, world!" into the console.
 - **Real JS:** Build `ancient-history.js` to classify dates and define time.
 - **Browser JS:** Use `get-el.js` to master element retrieval by tag, class, ID, or attribute, becoming an HTML navigator!
+
+---
+
+## Installation
+
+### Prerequisites
+
+<!-- TODO: update before submitting -->
+
+- **Docker:** Version 29.6.1 or higher.
+<!-- - **Go:** Version 1.24.0 or higher.
+- **Node.js:** Version 20.6.0 or higher (required for native `--env-file` support in scripts; Node.js v22.x+ recommended for `--watch` stability).
+- **npm:** Version 10.0.0 or higher. -->
+
+## Quick Start
+
+### 1. Clone the project
+
+```bash
+git clone https://gitea.kood.tech/ivanandreev/web
+cd web
+```
+
+### 2. Create .env Files
+
+Create a `.env` file inside the `backend/` and `frontend/` directories and configure the variables if you need:
+For simplicity, you can rename the prepared-for-you file `.env.example` into `.env`.
+
+```env
+# Global variables
+ENVIRONMENT=dev
+JWT_SECRET=super-secure-random-key
+...
+```
+
+### 3. Build the Dev Container
+
+```bash
+docker compose up --build
+```
+
+#### Docker useful commands
+
+```bash
+# Builds, (re)creates, starts, and attaches to containers for a service.
+docker compose up
+
+#Stops running containers without removing them.
+docker compose stop
+
+# Stops containers and removes containers, networks, volumes, and images created by up.
+docker compose down
+# Remove named volumes declared in the "volumes" section of the Compose file and anonymous volumes attached to containers
+docker compose down -v
+
+# Lists containers for a Compose project, with current status and exposed ports.
+docker compose ps
+```
+
+### 4. Access the application
+
+<!-- TODO: update before submitting -->
+
+Open the following URL in your browser:
+
+```
+http://localhost:8080
+```
+
+[!INFO]
+
+> To comply with the test case **"The interfaces are reachable by devices on other networks (not just localhost)."** We can launch an ngrok tunnel.
+> Please contact the submitter when it is needed, since the app should be run on a local machine.
+
+### 6. Testing and Examples files
+
+<!-- TODO: update before submitting -->
+
+We have prepared testing users for you that can use to speed up the testing process.
+
+---
+
+## User Guide
+
+<!-- TODO: update before submitting -->
 
 ---
 

@@ -7,13 +7,12 @@ services:
     environment:
       # Configuration for the first db lauch
       POSTGRES_DB: postgres
-      POSTGRES_HOST: localhost
       POSTGRES_USER: dbuser
       POSTGRES_PASSWORD: my_db_password
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dbuser -d postgres"]
       interval: 5s

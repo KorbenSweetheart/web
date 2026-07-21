@@ -19,7 +19,7 @@ func SetupRouter(log *slog.Logger, JWTSecret string) *echo.Echo {
 	e.Use(middleware.RequestID())
 	e.Use(middleware.RequestLoggerWithConfig(utils.LoggerConfig(log)))
 	e.Use(middleware.Recover())
-	e.Use(middleware.CORS("localhost:8080", "localhost:8080"))
+	e.Use(middleware.CORS("http://localhost:8080", "http://localhost:5173")) // TODO: move to config vars
 
 	// Public routes
 	public := e.Group("")

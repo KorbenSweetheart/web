@@ -9,6 +9,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Storage struct {
@@ -16,19 +17,32 @@ type Storage struct {
 	log *slog.Logger
 }
 
-// New creates a new Postgres storage object.
+// NewPostgresDB creates a new Postgres storage object.
 func NewPostgresDB(dbCfg config.Database, log *slog.Logger) (*Storage, error) {
 	const op = "storage.postgres.New"
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/Helsinki",
 		dbCfg.Host, dbCfg.User, dbCfg.Pass, dbCfg.Name, dbCfg.Port)
 
+	// Wrap our logger for GORM
+	// https://gorm.io/docs/logger.html
+	gormLogger := logger.New(
+		slog.NewLogLogger(log.Handler(), slog.LevelInfo), // info, just to simplify things
+		logger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  logger.Warn, // Log slow queries & errors
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  false,
+		},
+	)
+
 	// Note: AutomaticPing: true
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: gormLogger})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to postgres: %s, %w", op, err)
 	}
 
+	// For additional DB configuration
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get sql.DB from gorm: %s, %w", op, err)
@@ -54,9 +68,24 @@ func NewPostgresDB(dbCfg config.Database, log *slog.Logger) (*Storage, error) {
 func (s *Storage) AutoMigrate() error {
 	const op = "storage.postgres.AutoMigrate"
 
-	if err := s.db.AutoMigrate(&domain.User{}, &domain.Profile{}); err != nil {
-		return fmt.Errorf("failed to migrate structs using gorm: %s, %w", op, err)
+	log := s.log.With(
+		slog.String("op", op),
+	)
+
+	if err := s.db.AutoMigrate(
+		&domain.User{},
+		&domain.InteractionMode{},
+		&domain.Activity{},
+		&domain.Profile{},
+		&domain.ProfileActivity{},
+		&domain.Connection{},
+		&domain.Chat{},
+		&domain.Message{},
+	); err != nil {
+		return fmt.Errorf("failed to auto-migrate: %s, %w", op, err)
 	}
+
+	log.Info("database auto-migration completed successfully")
 
 	return nil
 }

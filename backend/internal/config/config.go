@@ -55,7 +55,7 @@ func MustLoad() *Config {
 
 	cfg.DB.Host = os.Getenv("DB_HOST")
 	if cfg.DB.Host == "" {
-		cfg.DB.Host = "localhost"
+		cfg.DB.Host = "db"
 	}
 
 	cfg.DB.Port = os.Getenv("DB_PORT")
