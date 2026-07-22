@@ -8,7 +8,7 @@ import (
 
 func CheckHealth(c *echo.Context) error {
 	// if err := db.Ping(c.Request().Context()); err != nil {
-	// 	return c.JSON(http.StatusInternalServerError, map[string]string{
+	// 	return c.JSON(http.StatusInternalServerError, map[string]any{
 	// 		"status":   "error",
 	// 		"database": "unhealthy",
 	// 	})

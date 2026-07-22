@@ -41,9 +41,9 @@ type User struct {
 }
 
 type Profile struct {
-	UserID            int64             `gorm:"primaryKey;column:user_id" json:"user_id"`
+	UserID            int64             `gorm:"primaryKey;column:user_id;constraint:OnDelete:CASCADE" json:"user_id"`
 	Name              string            `gorm:"type:varchar(255);not null;column:name" json:"name"`
-	Age               int               `gorm:"column:age" json:"age"`
+	Age               int64             `gorm:"column:age" json:"age"`
 	PictureURL        string            `gorm:"type:text;default:https://placehold.net/avatar.svg;column:picture_url" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
 	Bio               string            `gorm:"type:text;column:bio" json:"bio"`                                                          // Bio
 	InteractionModeID int64             `gorm:"column:interaction_mode_id;default:4" json:"interaction_mode_id"`

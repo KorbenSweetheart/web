@@ -44,11 +44,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := storage.SeedData(); err != nil {
+		log.Error("seeding failed", logger.Err(err))
+		os.Exit(1)
+	}
+
 	// create services
+	authService := service.NewAuthService(storage, log)
 	userService := service.NewUserService(storage, log)
 
 	// setup router/server (Echo)
-	e := httpserver.SetupRouter(cfg.JWTSecret, userService, log)
+	e := httpserver.SetupRouter(cfg.JWTSecret, authService, userService, log)
 
 	// server config
 	sc := echo.StartConfig{

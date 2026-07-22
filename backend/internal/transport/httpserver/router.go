@@ -6,6 +6,7 @@ import (
 	"match-me-api/internal/transport/httpserver/utils"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	echojwt "github.com/labstack/echo-jwt/v5"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
@@ -14,6 +15,7 @@ import (
 func SetupRouter(
 	JWTSecret string,
 	as handlers.AuthService,
+	us handlers.UserService,
 	log *slog.Logger,
 ) *echo.Echo {
 
@@ -25,9 +27,10 @@ func SetupRouter(
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS("http://localhost:8080", "http://localhost:5173")) // TODO: move to config vars
 
+	validate := validator.New(validator.WithRequiredStructEnabled())
 	//
-	authHandler := handlers.NewAuthHandler(as, log)
-	// userHandler := handlers.NewUserHandler(us, log)
+	authHandler := handlers.NewAuthHandler(as, validate, log)
+	userHandler := handlers.NewUserHandler(us, validate, log)
 
 	// Public routes
 	public := e.Group("")
@@ -37,6 +40,8 @@ func SetupRouter(
 	public.GET("/health", handlers.CheckHealth)
 	public.POST("/auth/register", authHandler.Register)
 	// public.POST("/auth/login", authHandler.Login)
+
+	public.GET("/users/:id", userHandler.User) // /users/{id}
 
 	// Private routes
 	private := e.Group("")

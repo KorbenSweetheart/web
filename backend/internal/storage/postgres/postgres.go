@@ -65,6 +65,7 @@ func NewPostgresDB(dbCfg config.Database, log *slog.Logger) (*Storage, error) {
 	}, nil
 }
 
+// AutoMigrate
 func (s *Storage) AutoMigrate() error {
 	const op = "storage.postgres.AutoMigrate"
 
@@ -86,6 +87,41 @@ func (s *Storage) AutoMigrate() error {
 	}
 
 	log.Info("database auto-migration completed successfully")
+
+	return nil
+}
+
+// SeedData adds dictionary elements and default values to the tables
+func (s *Storage) SeedData() error {
+	const op = "storage.postgres.SeedData"
+
+	// Interaction Modes
+	modes := []domain.InteractionMode{
+		{ID: 1, Title: "Silent"},
+		{ID: 2, Title: "Social"},
+		{ID: 3, Title: "Dating"},
+		{ID: 4, Title: "Open to anything"},
+	}
+
+	for _, mode := range modes {
+		if err := s.db.FirstOrCreate(&mode, domain.InteractionMode{ID: mode.ID}).Error; err != nil {
+			return fmt.Errorf("failed to seed interaction mode: %d:, op: %s, error: %w", mode.ID, op, err)
+		}
+	}
+
+	// Activities
+	activities := []domain.Activity{
+		{ID: 1, Title: "Running"},
+		{ID: 2, Title: "Padel"},
+		{ID: 3, Title: "Gym"},
+		{ID: 4, Title: "Cycling"},
+	}
+
+	for _, act := range activities {
+		if err := s.db.FirstOrCreate(&act, domain.Activity{ID: act.ID}).Error; err != nil {
+			return fmt.Errorf("failed to seed activity, op: %s, id: %d, error: %w", op, act.ID, err)
+		}
+	}
 
 	return nil
 }
