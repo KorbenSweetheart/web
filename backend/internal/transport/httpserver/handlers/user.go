@@ -14,10 +14,10 @@ import (
 )
 
 type UserService interface {
-	User(ctx context.Context, id int64) (*domain.User, error)
+	Account(ctx context.Context, id int64) (*domain.Account, error)
 	Profile(ctx context.Context, id int64) (*domain.Profile, error)
 	// UpdateProfile(ctx context.Context, profile *domain.Profile) error
-	// UserByEmail(ctx context.Context, email string) (*domain.User, error)
+	// AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
 }
 
 type UserHandler struct {

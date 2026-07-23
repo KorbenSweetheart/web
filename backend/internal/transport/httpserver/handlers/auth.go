@@ -11,7 +11,7 @@ import (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, email, password string) (*domain.User, error)
+	Register(ctx context.Context, email, password string) (*domain.Account, error)
 	Login(ctx context.Context, email, password string) (*domain.Profile, error)
 }
 
@@ -46,15 +46,15 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 	email := req.Email
 	password := req.Password
 
-	u, err := h.authService.Register(ctx, email, password)
+	account, err := h.authService.Register(ctx, email, password)
 	if err != nil {
 		// TODO: maybe add switch for different types of error, to return different statuses.
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, map[string]any{
-		"id":      u.ID,
-		"email":   u.Email,
+		"id":      account.ID,
+		"email":   account.Email,
 		"message": "user registered successfully",
 	})
 }

@@ -22,8 +22,8 @@ var (
 )
 
 type AuthProvider interface {
-	CreateUser(ctx context.Context, user *domain.User) error
-	UserByEmail(ctx context.Context, email string) (*domain.User, error)
+	CreateAccount(ctx context.Context, user *domain.Account) error
+	AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
 	IsEmailTaken(ctx context.Context, email string) (bool, error)
 }
 
@@ -36,8 +36,8 @@ func NewAuthService(ap AuthProvider, logger *slog.Logger) *AuthService {
 	return &AuthService{storage: ap, log: logger}
 }
 
-// Register creates a user profile, adds a record to the db table, prepopulates the ID, and returns it to the caller.
-func (as *AuthService) Register(ctx context.Context, email, password string) (*domain.User, error) {
+// Register creates a user account and profile, adds a record to the db table, prepopulates the ID, and returns it to the caller.
+func (as *AuthService) Register(ctx context.Context, email, password string) (*domain.Account, error) {
 	const op = "service.Register"
 	log := as.log.With(slog.String("op", op))
 
@@ -51,22 +51,22 @@ func (as *AuthService) Register(ctx context.Context, email, password string) (*d
 		return nil, fmt.Errorf("failed to generate hash from password: %w", err)
 	}
 
-	u := &domain.User{
+	u := &domain.Account{
 		Email:        email,
 		PasswordHash: string(hash),
 	}
 
-	log.Info("registering user")
+	log.Info("creating account")
 
-	if err := as.storage.CreateUser(ctx, u); err != nil {
+	if err := as.storage.CreateAccount(ctx, u); err != nil {
 		if errors.Is(err, storage.ErrEmailIsTaken) {
 			log.Debug("email already taken")
 			return nil, err
 		}
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, fmt.Errorf("failed to create account: %w", err)
 	}
 
-	log.Info("user registered successfully")
+	log.Info("account created successfully")
 
 	return u, nil
 }
@@ -79,7 +79,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (*doma
 
 	email = strings.ToLower(strings.TrimSpace(email))
 
-	user, err := as.storage.UserByEmail(ctx, email)
+	user, err := as.storage.AccountByEmail(ctx, email)
 	if err != nil {
 		log.Debug("login failed", "email", email, "error", logger.Err(err))
 		return nil, storage.ErrInvalidCreds

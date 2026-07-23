@@ -8,9 +8,9 @@ import (
 )
 
 type UserProvider interface {
-	UserByEmail(ctx context.Context, email string) (*domain.User, error)
+	AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
 	IsEmailTaken(ctx context.Context, email string) (bool, error)
-	UserByID(ctx context.Context, id int64) (*domain.User, error)
+	AccountByID(ctx context.Context, id int64) (*domain.Account, error)
 	ProfileByID(ctx context.Context, id int64) (*domain.Profile, error)
 	// UpdateProfile(ctx context.Context, profile *domain.Profile) error
 }
@@ -24,14 +24,14 @@ func NewUserService(up UserProvider, logger *slog.Logger) *UserService {
 	return &UserService{storage: up, log: logger}
 }
 
-// User returns a user data struct from db.
-func (us *UserService) User(ctx context.Context, id int64) (*domain.User, error) {
-	const op = "service.User"
+// Account returns a user account data struct from db.
+func (us *UserService) Account(ctx context.Context, id int64) (*domain.Account, error) {
+	const op = "service.Account"
 	log := us.log.With(slog.String("op", op))
 
-	user, err := us.storage.UserByID(ctx, id)
+	user, err := us.storage.AccountByID(ctx, id)
 	if err != nil {
-		log.Debug("failed to get user by id", "id", id, "error", logger.Err(err))
+		log.Debug("failed to get account by id", "id", id, "error", logger.Err(err))
 		return nil, err
 	}
 

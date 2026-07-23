@@ -74,9 +74,9 @@ func (s *Storage) AutoMigrate() error {
 	)
 
 	if err := s.db.AutoMigrate(
-		&domain.User{},
 		&domain.InteractionMode{},
 		&domain.Activity{},
+		&domain.Account{},
 		&domain.Profile{},
 		&domain.ProfileActivity{},
 		&domain.Connection{},
