@@ -1,0 +1,335 @@
+/* ============================================
+   PULSE — Landing Page Styles
+   Uses tokens & components from the shared
+   design system (design-system.css). Do not
+   redefine .btn, .avatar, .tag, .pill, .card,
+   .match-score, .online-dot, .hide-mobile here
+   — they already live in the shared file.
+   ============================================ */
+
+/* --- Page Layout --- */
+.landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Navbar --- */
+.landing__nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: clamp(0.625rem, 1vw, 0.75rem) clamp(1rem, 3vw, 1.5rem);
+  border-bottom: 1px solid var(--border);
+}
+
+.landing__logo {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 0.8vw, 0.625rem);
+}
+
+.landing__logo-mark {
+  width: clamp(1.875rem, 3vw, 2.125rem);
+  height: clamp(1.875rem, 3vw, 2.125rem);
+  border-radius: var(--r-lg);
+  background-color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing__logo-letter {
+  font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+  font-weight: 800;
+  font-style: italic;
+  color: var(--bg);
+  letter-spacing: -1px;
+}
+
+.landing__logo-text {
+  font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+  font-weight: 800;
+  color: var(--text-1);
+  letter-spacing: -0.5px;
+}
+
+.landing__nav-actions {
+  display: flex;
+  gap: clamp(0.5rem, 0.8vw, 0.625rem);
+  align-items: center;
+}
+
+/* Buttons (.btn, .btn-primary, .btn-outline, .btn-large, .btn-full)
+   come from the shared design system — no local overrides needed. */
+
+/* --- Hero Section --- */
+.landing__hero {
+  display: flex;
+  flex: 1;
+  min-height: min(70vh, 500px);
+}
+
+.landing__hero-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 3vw, 1.5rem);
+  max-width: min(100%, 640px);
+}
+
+.landing__headline {
+  font-size: clamp(2.5rem, 5vw + 1rem, 3.5rem);
+  font-weight: 800;
+  color: var(--text-1);
+  line-height: 1.05;
+  letter-spacing: -2px;
+}
+
+.landing__headline-accent {
+  color: var(--accent);
+}
+
+.landing__tagline {
+  font-size: clamp(1rem, 1.2vw + 0.3rem, 1.25rem);
+  color: var(--text-2);
+  margin-top: clamp(0.75rem, 1.2vw, 1rem);
+  line-height: 1.6;
+  max-width: 420px;
+}
+
+.landing__cta {
+  margin-top: clamp(1.5rem, 3vw, 2rem);
+}
+
+/* --- Stats --- */
+.landing__stats {
+  display: flex;
+  gap: clamp(1.5rem, 3vw, 2rem);
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding-top: clamp(1rem, 2vw, 1.5rem);
+  border-top: 1px solid var(--border);
+}
+
+.landing__stat-value {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: 800;
+}
+
+.landing__stat-value--accent { color: var(--accent); }
+.landing__stat-value--white  { color: var(--text-1); }
+
+.landing__stat-label {
+  font-size: clamp(0.625rem, 0.5vw + 0.2rem, 0.75rem);
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* --- Preview Panel (Desktop only) ---
+   Uses the dedicated --preview-* tokens from the
+   design system instead of one-off hex values. */
+.landing__preview {
+  width: min(320px, 35%);
+  background-color: var(--preview-bg);
+  padding: clamp(1.5rem, 3vw, 2rem) clamp(1rem, 3vw, 1.5rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 1px solid var(--preview-border);
+  flex-shrink: 0;
+}
+
+/* Structural wrapper on top of the shared .card / .card-bordered look,
+   just swapped to the preview tokens so it reads as "inside the panel". */
+.preview-card {
+  background-color: var(--preview-surface);
+  border: 1px solid var(--preview-border);
+  border-radius: var(--r-2xl);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border-left: 4px solid var(--accent);
+}
+
+.preview-card__label {
+  font-size: clamp(0.625rem, 0.5vw + 0.2rem, 0.75rem);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: clamp(0.75rem, 1.2vw, 1rem);
+}
+
+.preview-card__user {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 0.8vw, 0.625rem);
+  margin-bottom: clamp(0.75rem, 1.2vw, 1rem);
+}
+
+/* Tints the shared .avatar background to match the preview panel */
+.preview-card__avatar {
+  background-color: var(--preview-bg);
+}
+
+.preview-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-card__name {
+  font-size: clamp(0.9375rem, 1vw + 0.2rem, 1.0625rem);
+  font-weight: 700;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.preview-card__sport {
+  font-size: clamp(0.8125rem, 0.8vw + 0.2rem, 0.9375rem);
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+.preview-card__tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: clamp(0.75rem, 1.2vw, 1rem);
+}
+
+/* Sport Pills in Preview */
+.preview-sports {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: clamp(0.75rem, 1.2vw, 1rem);
+}
+
+/* --- Features Section --- */
+.landing__features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--border);
+}
+
+.feature {
+  padding: clamp(1rem, 2vw, 1.5rem) clamp(1.5rem, 3vw, 2rem);
+  border-right: 1px solid var(--border);
+}
+
+.feature:last-child {
+  border-right: none;
+}
+
+.feature__header {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 0.8vw, 0.625rem);
+  margin-bottom: clamp(0.5rem, 0.8vw, 0.625rem);
+}
+
+.feature__icon {
+  width: clamp(1.75rem, 2.5vw, 2rem);
+  height: clamp(1.75rem, 2.5vw, 2rem);
+  border-radius: var(--r-md);
+  background-color: var(--surface-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.9375rem, 1vw + 0.2rem, 1.0625rem);
+  flex-shrink: 0;
+}
+
+.feature__title {
+  font-size: clamp(0.9375rem, 1vw + 0.2rem, 1.0625rem);
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.feature__description {
+  font-size: clamp(0.8125rem, 0.8vw + 0.2rem, 0.9375rem);
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+/* ============================================
+   RESPONSIVE — Mobile First Overrides
+   ============================================ */
+
+/* Tablet and below */
+@media (max-width: 900px) {
+  .landing__hero {
+    flex-direction: column;
+  }
+
+  .landing__preview {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--preview-border);
+    padding: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .preview-card {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .landing__features {
+    grid-template-columns: 1fr;
+  }
+
+  .feature {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .feature:last-child {
+    border-bottom: none;
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .landing__nav {
+    padding: clamp(0.5rem, 1vw, 0.625rem) clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .landing__hero-content {
+    padding: clamp(1.5rem, 3vw, 2rem) clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .landing__headline {
+    letter-spacing: -1.5px;
+  }
+
+  .landing__preview {
+    display: none;
+  }
+
+  .landing__stats {
+    gap: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .landing__features {
+    grid-template-columns: 1fr;
+  }
+
+  .feature {
+    padding: clamp(0.75rem, 1.2vw, 1rem);
+    display: flex;
+    gap: clamp(0.75rem, 1.2vw, 1rem);
+    align-items: flex-start;
+  }
+
+  .feature__header {
+    flex-direction: column;
+    margin-bottom: 0;
+  }
+
+  .feature__description {
+    flex: 1;
+  }
+
+  /* .hide-mobile already handles the "Log in" button at this breakpoint */
+}
