@@ -59,8 +59,9 @@ ul, ol { list-style: none; }
   --surface:          #111110;
   --surface-elevated: #1A1A18;
   --surface-hover:    #1E1E1C;
-  --accent:           #DAF665;
-  --accent-hover:     #c8e055;
+  --accent:           #F97316; 
+  --accent-hover:     #755395;
+  --on-accent:        #FFFFFF;
 
   /* ---- Preview panel ---- */
   --preview-bg:       #141413;
@@ -255,14 +256,21 @@ body {
   color: var(--bg);
   font-weight: 700;
 }
-.btn-primary:hover { background-color: var(--accent-hover); }
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+  color: var(--on-accent);
+}
 
 .btn-outline {
   background-color: transparent;
-  border-color: var(--border-light);
+  border-color: var(--accent-hover);
   color: var(--text-1);
 }
-.btn-outline:hover { border-color: var(--text-3); }
+.btn-outline:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+}
 
 .btn-ghost {
   background-color: transparent;
@@ -270,7 +278,7 @@ body {
   padding-left: 0;
   padding-right: 0;
 }
-.btn-ghost:hover { color: var(--text-1); }
+.btn-ghost:hover { color: var(--accent); }
 
 .btn-danger {
   background-color: var(--error-surface);
@@ -291,9 +299,10 @@ body {
   color: var(--text-3);
   font-size: clamp(0.75rem, 0.8vw, 0.875rem);
 }
+
 .btn-icon:hover {
-  background-color: var(--surface-hover);
-  color: var(--text-2);
+  background-color: var(--accent-hover);
+  color: var(--on-accent);
 }
 
 .btn-large {
