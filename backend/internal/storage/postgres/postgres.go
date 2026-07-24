@@ -30,7 +30,7 @@ func NewPostgresDB(dbCfg config.Database, log *slog.Logger) (*Storage, error) {
 		slog.NewLogLogger(log.Handler(), slog.LevelInfo), // info, just to simplify things
 		logger.Config{
 			SlowThreshold:             200 * time.Millisecond,
-			LogLevel:                  logger.Warn, // Log slow queries & errors
+			LogLevel:                  logger.Info, // Log slow queries & errors
 			IgnoreRecordNotFoundError: true,
 			Colorful:                  false,
 		},

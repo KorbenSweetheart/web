@@ -7,14 +7,17 @@ import (
 	"log/slog"
 	"match-me-api/internal/domain"
 	"match-me-api/internal/logger"
-	"match-me-api/internal/storage"
 	"regexp"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-const bcryptCostFactor = 12
+const (
+	bcryptCostFactor = 12
+	tokenTTL         = 24 * time.Hour
+)
 
 var (
 	usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
@@ -27,25 +30,30 @@ type AuthProvider interface {
 	IsEmailTaken(ctx context.Context, email string) (bool, error)
 }
 
-type AuthService struct {
-	storage AuthProvider
-	log     *slog.Logger
+type TokenProvider interface {
+	GenerateToken(userID int64, ttl time.Duration) (string, error)
 }
 
-func NewAuthService(ap AuthProvider, logger *slog.Logger) *AuthService {
-	return &AuthService{storage: ap, log: logger}
+type AuthService struct {
+	storage  AuthProvider
+	tokenMgr TokenProvider
+	log      *slog.Logger
+}
+
+func NewAuthService(ap AuthProvider, tp TokenProvider, logger *slog.Logger) *AuthService {
+	return &AuthService{storage: ap, tokenMgr: tp, log: logger}
 }
 
 // Register creates a user account and profile, adds a record to the db table, prepopulates the ID, and returns it to the caller.
 func (as *AuthService) Register(ctx context.Context, email, password string) (*domain.Account, error) {
-	const op = "service.Register"
+	const op = "service.authService.Register"
 	log := as.log.With(slog.String("op", op))
 
 	if err := validateRegistrationInput(email, password); err != nil {
 		log.Debug("invalid registration input")
 		return nil, err
 	}
-	// TODO: add salt
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCostFactor) // Rounds (Cost Factor): 12
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate hash from password: %w", err)
@@ -54,12 +62,15 @@ func (as *AuthService) Register(ctx context.Context, email, password string) (*d
 	u := &domain.Account{
 		Email:        email,
 		PasswordHash: string(hash),
+		Profile: domain.Profile{
+			Name: "User Name", // TODO: maybe add it during registration
+		},
 	}
 
 	log.Info("creating account")
 
 	if err := as.storage.CreateAccount(ctx, u); err != nil {
-		if errors.Is(err, storage.ErrEmailIsTaken) {
+		if errors.Is(err, domain.ErrEmailIsTaken) {
 			log.Debug("email already taken")
 			return nil, err
 		}
@@ -71,39 +82,48 @@ func (as *AuthService) Register(ctx context.Context, email, password string) (*d
 	return u, nil
 }
 
-func (as *AuthService) Login(ctx context.Context, email, password string) (*domain.Profile, error) {
-	const op = "service.Login"
+// Login verifies the login attempt; on success, generate a JWT token and return it to the caller.
+func (as *AuthService) Login(ctx context.Context, email, password string) (string, error) {
+	const op = "service.authService.Login"
 	log := as.log.With(slog.String("op", op))
 
 	log.Info("starting login")
 
 	email = strings.ToLower(strings.TrimSpace(email))
 
-	user, err := as.storage.AccountByEmail(ctx, email)
+	account, err := as.storage.AccountByEmail(ctx, email)
 	if err != nil {
-		log.Debug("login failed", "email", email, "error", logger.Err(err))
-		return nil, storage.ErrInvalidCreds
+		log.Debug("failed to get account by email", "email", email, "error", logger.ErrValue(err))
+		return "", fmt.Errorf("failed to get account by email: %w", err)
 	}
 
-	// TODO: Add salt mandatory part
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		log.Debug("login failed", "email", email, "error", logger.Err(err))
-		return nil, storage.ErrInvalidCreds
+	if err := bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(password)); err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			log.Debug("failed to login: a password and hash do not match", "email", email, "error", logger.ErrValue(err))
+			return "", domain.ErrInvalidCreds
+		} else {
+			log.Debug("failed to compare hash and password", "email", email, "error", logger.ErrValue(err))
+			return "", fmt.Errorf("failed to compare hash and password: %w", err)
+		}
 	}
 
-	log.Info("creating JWT token") // Is it so?
+	log.Debug("generating JWT token")
 
-	// TODO: JWT logic here
+	token, err := as.tokenMgr.GenerateToken(account.ID, tokenTTL)
+	if err != nil {
+		log.Debug("failed to generate jwt token", "user:", account.ID, "error", logger.ErrValue(err))
+		return "", fmt.Errorf("failed to generate jwt token: %w", err)
+	}
 
-	log.Info("JWT token created successfully")
+	log.Debug("JWT token generated successfully")
 
 	log.Info("login completed successfully")
 
-	return nil, nil
+	return token, nil
 }
 
 // func (us *UserService) Logout(ctx context.Context, JWT string) error {
-// 	const op = "service.Logout"
+// 	const op = "service.authService.Logout"
 // 	log := us.log.With(slog.String("op", op))
 
 // 	log.Info("starting logout")
@@ -133,11 +153,11 @@ func validateRegistrationInput(email, pw string) error {
 
 	email = strings.ToLower(strings.TrimSpace(email))
 	if !emailRegex.MatchString(email) {
-		errs = append(errs, storage.ErrInvalidEmailFormat)
+		errs = append(errs, domain.ErrInvalidEmailFormat)
 	}
 
 	if len(pw) < 8 {
-		errs = append(errs, storage.ErrInvalidPassFormat)
+		errs = append(errs, domain.ErrInvalidPassFormat)
 	}
 
 	return errors.Join(errs...)

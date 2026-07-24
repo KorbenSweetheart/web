@@ -13,9 +13,10 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-type AuthResponse struct {
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expires_at"`
+type TokenResponse struct {
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
 }
 
 // UserHandler DTO

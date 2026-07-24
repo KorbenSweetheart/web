@@ -7,16 +7,18 @@ import (
 )
 
 const (
+	tokenIssuer               = "match-me-api"
 	defaultSrvTimeout         = 4 * time.Second
 	defaultSrvIdleTimeout     = 60 * time.Second
 	defaultSrvShutdownTimeout = 10 * time.Second
 )
 
 type Config struct {
-	Env        string
-	JWTSecret  string
-	DB         Database
-	HTTPServer HTTPServer
+	Env          string
+	JWTSecretKey string
+	TokenIssuer  string
+	DB           Database
+	HTTPServer   HTTPServer
 }
 
 type Database struct {
@@ -42,9 +44,14 @@ func MustLoad() *Config {
 		cfg.Env = "dev"
 	}
 
-	cfg.JWTSecret = os.Getenv("JWT_SECRET")
-	if cfg.JWTSecret == "" {
+	cfg.JWTSecretKey = os.Getenv("JWT_SECRET")
+	if cfg.JWTSecretKey == "" {
 		log.Fatal("JWT_SECRET environment variable is required")
+	}
+
+	cfg.TokenIssuer = tokenIssuer
+	if cfg.DB.Name == "" {
+		cfg.DB.Name = "match-me-api"
 	}
 
 	// DB Env load

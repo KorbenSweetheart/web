@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"match-me-api/internal/domain"
-	"match-me-api/internal/storage"
 	"net/http"
 	"strconv"
 
@@ -43,8 +42,11 @@ func (h *UserHandler) User(c *echo.Context) error {
 
 	profile, err := h.userService.Profile(ctx, userID)
 	if err != nil {
-		if errors.Is(err, storage.ErrUserNotFound) {
-			return c.JSON(http.StatusNotFound, map[string]any{"error": "User not found"})
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{
+				"id":    userID,
+				"error": "User not found",
+			})
 		} else {
 			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
 		}

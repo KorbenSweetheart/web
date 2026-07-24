@@ -29,26 +29,20 @@ func SetupLogger(env string) *slog.Logger {
 	return log
 }
 
-// Err safely wraps an error and deeply unwraps it to find structured logs.
-func Err(err error) slog.Attr {
+// ErrValue converts an error into a slog.Value for use in key-value logging pairs.
+// TODO: Rethink or just get rid of it and user slog.Attr
+func ErrValue(err error) slog.Value {
 	if err == nil {
-		return slog.Attr{}
+		return slog.StringValue("")
 	}
 
-	// Traverse the error chain looking for a slog.LogValuer
 	var valuer slog.LogValuer
 	if errors.As(err, &valuer) {
-		return slog.Attr{
-			Key: "error",
-			// We still log the full error string to preserve the "wrap:" context,
-			// but we append the structured data from the inner error as well.
-			Value: slog.GroupValue(
-				slog.String("msg", err.Error()),
-				slog.Any("details", valuer.LogValue()),
-			),
-		}
+		return slog.GroupValue(
+			slog.String("msg", err.Error()),
+			slog.Any("details", valuer.LogValue()),
+		)
 	}
 
-	// Maximum Performance Path for standard errors
-	return slog.String("error", err.Error())
+	return slog.StringValue(err.Error())
 }

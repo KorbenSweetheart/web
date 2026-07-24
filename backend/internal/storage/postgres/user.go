@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"match-me-api/internal/domain"
-	"match-me-api/internal/storage"
 
 	"gorm.io/gorm"
 )
@@ -17,7 +16,7 @@ func (s *Storage) CreateAccount(ctx context.Context, account *domain.Account) er
 
 	if err := s.db.WithContext(ctx).Create(account).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return storage.ErrEmailIsTaken
+			return domain.ErrEmailIsTaken
 		}
 		return fmt.Errorf("failed to create account: %w", err)
 	}
@@ -36,7 +35,7 @@ func (s *Storage) AccountByID(ctx context.Context, id int64) (*domain.Account, e
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, storage.ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		} else {
 			return nil, fmt.Errorf("failed to get account by id: %w", err)
 		}
@@ -56,7 +55,7 @@ func (s *Storage) AccountByEmail(ctx context.Context, email string) (*domain.Acc
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, storage.ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		} else {
 			return nil, fmt.Errorf("failed to get account by email: %w", err)
 		}
@@ -75,7 +74,7 @@ func (s *Storage) ProfileByID(ctx context.Context, id int64) (*domain.Profile, e
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, storage.ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		} else {
 			return nil, fmt.Errorf("failed to get profile by id: %w", err)
 		}

@@ -1,8 +1,6 @@
-package storage
+package domain
 
-import (
-	"errors"
-)
+import "errors"
 
 var (
 	ErrInvalidEmailFormat    = errors.New("invalid email format")
