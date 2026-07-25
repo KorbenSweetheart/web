@@ -75,7 +75,7 @@ ul, ol { list-style: none; }
 
   /* ---- Text (4 levels) ---- */
   --text-1:           #F0EDE8;
-  --text-2:           #7A7A74;
+  --text-2:           #7a7a7a;
   --text-3:           #555550;
   --text-4:           #3A3A38;
 
@@ -765,7 +765,7 @@ body {
   align-items: center;
   gap: 2px;
   font-size: clamp(1.125rem, 1.5vw, 1.25rem);
-  color: var(--text-4);
+  color: var(--text-2);
   cursor: pointer;
   position: relative;
 }
