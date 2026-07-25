@@ -32,3 +32,33 @@
 .sidebar__logout:hover {
   color: var(--error);
 }
+
+/* Mobile header (logo + logout) */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(0.75rem, 3vw, 1rem) clamp(1rem, 4vw, 1.5rem);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background-color: var(--bg);
+  z-index: 50;
+}
+
+.app-header__logout {
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  transition: color var(--speed-fast);
+}
+.app-header__logout:hover {
+  color: var(--error);
+}
+
+/* On mobile, stack header above content */
+@media (max-width: 640px) {
+  .app-layout {
+    flex-direction: column;
+  }
+}

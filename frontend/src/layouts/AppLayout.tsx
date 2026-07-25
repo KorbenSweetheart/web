@@ -20,6 +20,16 @@ export default function AppLayout() {
 
   return (
     <div className="app-layout">
+       {/* Mobile: top header (logo + logout) */}
+      <header className="app-header hide-desktop">
+        <div className="logo">
+          <div className="logo-mark">P</div>
+        </div>
+        <button className="app-header__logout" onClick={handleLogout} title="Log out">
+          <LogOut size={22} strokeWidth={2.5} />
+        </button>
+      </header>
+
       {/* Desktop: sidebar */}
       <aside className="sidebar hide-mobile">
         {/* Logo */}
