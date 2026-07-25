@@ -1,17 +1,17 @@
-import { useState, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { loginUser } from '../../services/auth';
 import './AuthPage.css';
 
-interface LoginPageProps {
-  onSwitchToRegister?: () => void;
-}
-
-export default function LoginPage({ onSwitchToRegister }: LoginPageProps) {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
 
@@ -20,8 +20,18 @@ export default function LoginPage({ onSwitchToRegister }: LoginPageProps) {
       return;
     }
 
-    // TODO: hook up to auth API
-    console.log('Logging in with', { email, password });
+    setLoading(true);
+    try {
+      const data = await loginUser(email, password);
+      localStorage.setItem('token', data.token);
+      // Existing user → app if profile is done, otherwise profile setup
+      navigate(data.profileCompleted ? '/app/discover' : '/app/profile');
+    } catch (err) {
+      setError('Invalid email or password.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -48,6 +58,7 @@ export default function LoginPage({ onSwitchToRegister }: LoginPageProps) {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
               />
             </div>
 
@@ -65,12 +76,14 @@ export default function LoginPage({ onSwitchToRegister }: LoginPageProps) {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
               {error && <p className="form-error-msg">{error}</p>}
             </div>
 
-            <button type="submit" className="btn btn-primary btn-full btn-large mt-md">
-              Log in
+            <button type="submit" className="btn btn-primary btn-full btn-large mt-md" disabled={loading}>
+              {loading ? 'Logging in...' : 'Log in'}
+
             </button>
           </form>
 
