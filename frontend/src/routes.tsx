@@ -4,6 +4,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import AppLayout from './layouts/AppLayout';
 import PrivateRoute from './components/PrivateRoute';
+import ProfileSetupPage from './pages/ProfileSetupPage';
 
 
 export default function AppRoutes() {
@@ -21,7 +22,7 @@ export default function AppRoutes() {
           <Route path="discover" element={<div className="text-hero" style={{ color: 'var(--text-1)' }}>🔥 Discover</div>} />
           <Route path="connections" element={<div className="text-hero" style={{ color: 'var(--text-1)' }}>👥 Connections</div>} />
           <Route path="chats" element={<div className="text-hero" style={{ color: 'var(--text-1)' }}>💬 Chats</div>} />
-          <Route path="profile" element={<div className="text-hero" style={{ color: 'var(--text-1)' }}>👤 Profile</div>} />
+          <Route path="profile" element={<ProfileSetupPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
