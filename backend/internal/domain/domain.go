@@ -41,6 +41,15 @@ type Account struct {
 	Profile      Profile   `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"profile,omitzero"`
 }
 
+type RefreshToken struct {
+	ID        int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	AccountID int64     `gorm:"index;not null" json:"account_id"`
+	TokenHash string    `gorm:"uniqueIndex;not null" json:"-"` // hashedRefreshToken
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
+	ExpiresAt time.Time `gorm:"index;not null" json:"expires_at"` // e.g., time.Now().Add(30 * 24 * time.Hour),
+	Account   Account   `gorm:"foreignKey:AccountID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
 type Profile struct {
 	UserID            int64             `gorm:"primaryKey" json:"id"`
 	Name              string            `gorm:"type:varchar(255);not null" json:"name"`

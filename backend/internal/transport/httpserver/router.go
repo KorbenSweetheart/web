@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"log/slog"
+	"match-me-api/internal/config"
 	"match-me-api/internal/transport/httpserver/handlers"
 	"match-me-api/internal/transport/httpserver/utils"
 
@@ -11,10 +12,10 @@ import (
 )
 
 func SetupRouter(
-	jwtSecret string,
+	cfg *config.Config,
+	log *slog.Logger,
 	as handlers.AuthService,
 	us handlers.UserService,
-	log *slog.Logger,
 ) *echo.Echo {
 
 	e := echo.New()
@@ -28,7 +29,7 @@ func SetupRouter(
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	// Handlers
-	authHandler := handlers.NewAuthHandler(as, validate, log)
+	authHandler := handlers.NewAuthHandler(as, validate, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	userHandler := handlers.NewUserHandler(us, validate, log)
 
 	// Public routes
@@ -36,11 +37,12 @@ func SetupRouter(
 	public.GET("/health", handlers.CheckHealth)
 	public.POST("/auth/register", authHandler.Register)
 	public.POST("/auth/login", authHandler.Login)
+	// public.POST("/auth/refresh", authHandler.Refresh)
 	// public.POST("/auth/logout", authHandler.Logout)
 
 	// Private routes
 	private := e.Group("")
-	private.Use(utils.JWTMiddlewareWithConfig(jwtSecret))
+	private.Use(utils.JWTMiddlewareWithConfig(cfg.TM.JWTSecretKey))
 	private.GET("/users/:id", userHandler.User) // /users/{id}
 
 	// Users

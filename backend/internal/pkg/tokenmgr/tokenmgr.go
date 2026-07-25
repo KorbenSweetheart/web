@@ -1,6 +1,9 @@
 package tokenmgr
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -44,6 +47,24 @@ func (tm *TokenManager) GenerateToken(userID int64, ttl time.Duration) (string, 
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(tm.secretKey)
+}
+
+// GenerateRawToken generates a random cryptographic string of 32 bytes (64 hex symbols)
+// Used during login/registration/rotation to send to the client
+func (tm *TokenManager) GenerateRefreshToken() (string, error) {
+	token := make([]byte, 32)
+	_, err := rand.Read(token)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate raw token: %w", err)
+	}
+
+	return hex.EncodeToString(token), nil
+}
+
+// HashToken calculates the SHA-256 hash of a string
+func (tm *TokenManager) HashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
 }
 
 // ParseToken validates JWT token

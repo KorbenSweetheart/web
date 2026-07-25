@@ -31,7 +31,7 @@ func (us *UserService) Account(ctx context.Context, id int64) (*domain.Account, 
 
 	user, err := us.storage.AccountByID(ctx, id)
 	if err != nil {
-		log.Debug("failed to get account by id", "id", id, "error", logger.ErrValue(err))
+		log.Debug("failed to get account by id", "id", id, "error", logger.Err(err))
 		return nil, err
 	}
 
@@ -45,7 +45,7 @@ func (us *UserService) Profile(ctx context.Context, id int64) (*domain.Profile, 
 
 	profile, err := us.storage.ProfileByID(ctx, id)
 	if err != nil {
-		log.Debug("failed to get profile by id", "id", id, "error", logger.ErrValue(err))
+		log.Debug("failed to get profile by id", "id", id, "error", logger.Err(err))
 		return nil, err
 	}
 

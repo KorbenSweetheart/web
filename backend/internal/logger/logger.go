@@ -29,20 +29,33 @@ func SetupLogger(env string) *slog.Logger {
 	return log
 }
 
-// ErrValue converts an error into a slog.Value for use in key-value logging pairs.
-// TODO: Rethink or just get rid of it and user slog.Attr
-func ErrValue(err error) slog.Value {
+// Err creates a standardized slog.Attr for errors, including unwrapped cause chains.
+func Err(err error) slog.Attr {
 	if err == nil {
-		return slog.StringValue("")
+		return slog.Attr{}
 	}
 
+	attrs := []slog.Attr{
+		slog.String("msg", err.Error()),
+	}
+
+	// Unroll error chain if cause exists
+	if cause := errors.Unwrap(err); cause != nil {
+		var chain []string
+		for curr := cause; curr != nil; curr = errors.Unwrap(curr) {
+			chain = append(chain, curr.Error())
+		}
+		attrs = append(attrs, slog.Any("cause_chain", chain))
+	}
+
+	// Capture LogValuer details if supported anywhere in the chain
 	var valuer slog.LogValuer
 	if errors.As(err, &valuer) {
-		return slog.GroupValue(
-			slog.String("msg", err.Error()),
-			slog.Any("details", valuer.LogValue()),
-		)
+		attrs = append(attrs, slog.Any("details", valuer.LogValue()))
 	}
 
-	return slog.StringValue(err.Error())
+	return slog.Attr{
+		Key:   "error",
+		Value: slog.GroupValue(attrs...),
+	}
 }

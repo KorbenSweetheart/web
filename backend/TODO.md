@@ -12,7 +12,11 @@
     - [ ] Add Login in or redirect to login upon successful registration
   - [x] Login
     - [x] Add JWT and session cookies
-    - [ ] Add refresh token endpoint
+    - [x] Add refresh token and RT cookie
+    - [x] Add save refresh token to db
+    - [ ] Add delete refresh token from db
+    - [ ] Add refresh token endpoint for refresh
+    - [ ] Add renew JWT token based on RT
   - [ ] Logout???
 - [ ] Add Private Handlers
   - [x] Add /users/{id}

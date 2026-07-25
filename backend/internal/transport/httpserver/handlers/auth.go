@@ -12,21 +12,26 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-const cookieName = "access_token"
+const (
+	accessTokenCookieName  = "access_token"
+	refreshTokenCookieName = "refresh_token"
+)
 
 type AuthService interface {
-	Register(ctx context.Context, email, password string) (*domain.Account, error)
-	Login(ctx context.Context, email, password string) (string, error)
+	Register(ctx context.Context, name, email, password string) (*domain.Account, error)
+	Login(ctx context.Context, email, password string) (string, string, error)
 }
 
 type AuthHandler struct {
-	authService AuthService
-	validator   *validator.Validate
-	log         *slog.Logger
+	authService      AuthService
+	validator        *validator.Validate
+	accessCookieTTL  time.Duration
+	refreshCookieTTL time.Duration
+	log              *slog.Logger
 }
 
-func NewAuthHandler(as AuthService, v *validator.Validate, logger *slog.Logger) *AuthHandler {
-	return &AuthHandler{authService: as, validator: v, log: logger}
+func NewAuthHandler(as AuthService, v *validator.Validate, atTTL, rtTTL time.Duration, logger *slog.Logger) *AuthHandler {
+	return &AuthHandler{authService: as, validator: v, accessCookieTTL: atTTL, refreshCookieTTL: rtTTL, log: logger}
 }
 
 // Register handler
@@ -47,14 +52,12 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 		})
 	}
 
-	email := req.Email
-	password := req.Password
-
-	account, err := h.authService.Register(ctx, email, password)
+	account, err := h.authService.Register(ctx, req.Name, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailIsTaken) {
 			return c.JSON(http.StatusBadRequest, map[string]any{
-				"email":   email,
+				"email":   req.Email,
+				"name":    req.Name,
 				"error":   domain.ErrEmailIsTaken,
 				"message": "An account with this email already exists.",
 			})
@@ -68,6 +71,7 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 	return c.JSON(http.StatusCreated, map[string]any{
 		"id":      account.ID,
 		"email":   account.Email,
+		"name":    account.Profile.Name,
 		"message": "user registered successfully",
 	})
 }
@@ -89,7 +93,7 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 		})
 	}
 
-	tokenString, err := h.authService.Login(ctx, req.Email, req.Password)
+	accessToken, refreshToken, err := h.authService.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidCreds) {
 			return c.JSON(http.StatusUnauthorized, map[string]any{
@@ -102,36 +106,58 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 		}
 	}
 
-	// Issue cookie
-	cookie := &http.Cookie{
-		Name:     cookieName,
-		Value:    tokenString,
-		Expires:  time.Now().Add(24 * time.Hour),
+	// Issue access token cookie
+	accessCookie := &http.Cookie{
+		Name:     accessTokenCookieName,
+		Value:    accessToken,
+		Expires:  time.Now().Add(h.accessCookieTTL),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   false, // true в production (HTTPS)
 		SameSite: http.SameSiteLaxMode,
 	}
-	c.SetCookie(cookie)
+	c.SetCookie(accessCookie)
+
+	// Issue refresh token cookie
+	refreshCookie := &http.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    refreshToken,
+		Expires:  time.Now().Add(h.refreshCookieTTL),
+		Path:     "/auth/refresh",
+		HttpOnly: true,
+		Secure:   false, // true в production (HTTPS)
+		SameSite: http.SameSiteLaxMode,
+	}
+	c.SetCookie(refreshCookie)
 
 	return c.JSON(http.StatusOK, map[string]any{
 		"message":      "success",
-		"access_token": tokenString,
+		"access_token": accessToken,
 	})
 }
 
 func (h *AuthHandler) Logout(c *echo.Context) error {
-	cookie := &http.Cookie{
-		Name:     cookieName,
+	c.SetCookie(&http.Cookie{
+		Name:     accessTokenCookieName,
 		Value:    "",
 		Path:     "/",
 		Expires:  time.Unix(0, 0),
 		MaxAge:   -1,
 		HttpOnly: true,
-	}
-	c.SetCookie(cookie)
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    "",
+		Path:     "/auth/refresh",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+
+	// TODO: Delete refresh token from DB
 
 	return c.JSON(http.StatusOK, map[string]any{
-		"message": "Logged out successfully",
+		"message": "Logged out",
 	})
 }

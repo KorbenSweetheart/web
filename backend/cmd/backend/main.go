@@ -36,28 +36,31 @@ func main() {
 	// init storage/repo
 	storage, err := postgres.NewPostgresDB(cfg.DB, log)
 	if err != nil {
-		log.Error("database connection failed", logger.ErrValue(err))
+		log.Error("database connection failed", logger.Err(err))
 		os.Exit(1)
 	}
 
 	if err := storage.AutoMigrate(); err != nil {
-		log.Error("migration failed", logger.ErrValue(err))
+		log.Error("migration failed", logger.Err(err))
 		os.Exit(1)
 	}
 
 	if err := storage.SeedData(); err != nil {
-		log.Error("seeding failed", logger.ErrValue(err))
+		log.Error("seeding failed", logger.Err(err))
 		os.Exit(1)
 	}
 
-	tm := tokenmgr.NewTokenManager(cfg.JWTSecretKey, cfg.TokenIssuer)
+	tm := tokenmgr.NewTokenManager(
+		cfg.TM.JWTSecretKey,
+		cfg.TM.TokenIssuer,
+	)
 
 	// create services
-	authService := service.NewAuthService(storage, tm, log)
+	authService := service.NewAuthService(storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	userService := service.NewUserService(storage, log)
 
 	// setup router/server (Echo)
-	e := httpserver.SetupRouter(cfg.JWTSecretKey, authService, userService, log)
+	e := httpserver.SetupRouter(cfg, log, authService, userService)
 
 	// server config
 	sc := echo.StartConfig{
@@ -74,7 +77,7 @@ func main() {
 	log.Info("starting api server", slog.String("addr", cfg.HTTPServer.Address))
 
 	if err := sc.Start(shutdownCtx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Error("api server stopped with error", logger.ErrValue(err))
+		log.Error("api server stopped with error", logger.Err(err))
 		// db.Close()
 		os.Exit(1)
 	}

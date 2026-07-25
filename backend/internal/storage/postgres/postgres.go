@@ -78,6 +78,7 @@ func (s *Storage) AutoMigrate() error {
 		&domain.Activity{},
 		&domain.Account{},
 		&domain.Profile{},
+		&domain.RefreshToken{},
 		&domain.ProfileActivity{},
 		&domain.Connection{},
 		&domain.Chat{},

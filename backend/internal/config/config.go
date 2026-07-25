@@ -8,17 +8,18 @@ import (
 
 const (
 	tokenIssuer               = "match-me-api"
+	accessTokenTTL            = 15 * time.Minute    // 15 min
+	refreshTokenTTL           = 30 * 24 * time.Hour // 30 days
 	defaultSrvTimeout         = 4 * time.Second
 	defaultSrvIdleTimeout     = 60 * time.Second
 	defaultSrvShutdownTimeout = 10 * time.Second
 )
 
 type Config struct {
-	Env          string
-	JWTSecretKey string
-	TokenIssuer  string
-	DB           Database
-	HTTPServer   HTTPServer
+	Env        string
+	TM         TokenMgr
+	DB         Database
+	HTTPServer HTTPServer
 }
 
 type Database struct {
@@ -36,6 +37,13 @@ type HTTPServer struct {
 	ShutdownTimeout time.Duration
 }
 
+type TokenMgr struct {
+	JWTSecretKey    string
+	TokenIssuer     string
+	AccessTokenTTL  time.Duration
+	RefreshTokenTTL time.Duration
+}
+
 func MustLoad() *Config {
 	var cfg Config
 
@@ -44,15 +52,15 @@ func MustLoad() *Config {
 		cfg.Env = "dev"
 	}
 
-	cfg.JWTSecretKey = os.Getenv("JWT_SECRET")
-	if cfg.JWTSecretKey == "" {
+	// Token Manager
+	cfg.TM.JWTSecretKey = os.Getenv("JWT_SECRET")
+	if cfg.TM.JWTSecretKey == "" {
 		log.Fatal("JWT_SECRET environment variable is required")
 	}
 
-	cfg.TokenIssuer = tokenIssuer
-	if cfg.DB.Name == "" {
-		cfg.DB.Name = "match-me-api"
-	}
+	cfg.TM.TokenIssuer = tokenIssuer
+	cfg.TM.AccessTokenTTL = accessTokenTTL
+	cfg.TM.RefreshTokenTTL = refreshTokenTTL
 
 	// DB Env load
 	cfg.DB.Name = os.Getenv("DB_NAME")
