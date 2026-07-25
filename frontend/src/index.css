@@ -691,7 +691,7 @@ body {
   width: clamp(1.875rem, 3vw, 2.125rem);
   height: clamp(1.875rem, 3vw, 2.125rem);
   border-radius: var(--r-lg);
-  background-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   display: flex;
   align-items: center;
   justify-content: center;

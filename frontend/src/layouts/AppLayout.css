@@ -13,3 +13,21 @@
 @media (min-width: 641px) {
   .app-main { padding-bottom: clamp(1rem, 3vw, 2rem); }
 }
+
+/* Sidebar: logo top, nav center, logout bottom */
+.sidebar .logo-mark {
+  margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar__logout {
+  margin-top: auto; /* empuja el botón hasta abajo */
+}
+.sidebar__logout:hover {
+  color: var(--error);
+}
