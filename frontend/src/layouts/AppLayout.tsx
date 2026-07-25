@@ -43,7 +43,7 @@ export default function AppLayout() {
 
         {/* Logout (pushed to bottom) */}
         <button className="nav-item sidebar__logout" onClick={handleLogout} title="Log out">
-          <LogOut size={22} strokeWidth={2.5} />
+          <LogOut size={28} strokeWidth={2.5} />
         </button>
       </aside>
 
