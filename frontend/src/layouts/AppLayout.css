@@ -16,18 +16,19 @@
 
 /* Sidebar: logo top, nav center, logout bottom */
 .sidebar .logo-mark {
-  margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+  width: clamp(2.75rem, 4.5vw, 3.25rem);
+  height: clamp(2.75rem, 4.5vw, 3.25rem);
+  font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+  margin-bottom: 0;
 }
 
 .sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: clamp(1rem, 2.5vw, 1.75rem);
+  margin: auto 0;
 }
 
-.sidebar__logout {
-  margin-top: auto; /* empuja el botón hasta abajo */
-}
 .sidebar__logout:hover {
   color: var(--error);
 }

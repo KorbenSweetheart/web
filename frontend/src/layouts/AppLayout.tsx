@@ -36,7 +36,7 @@ export default function AppLayout() {
               }
               title={label}
             >
-              <Icon size={22} strokeWidth={2.5} />
+              <Icon size={28} strokeWidth={2.5} />
             </NavLink>
           ))}
         </div>
