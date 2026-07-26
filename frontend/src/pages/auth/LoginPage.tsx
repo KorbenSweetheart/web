@@ -23,9 +23,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await loginUser(email, password);
-      localStorage.setItem('token', data.token);
-      // Existing user → app if profile is done, otherwise profile setup
-      navigate(data.profileCompleted ? '/app/discover' : '/app/profile');
+      localStorage.setItem('token', data.access_token);
+      // Profile-completed flag isn't ready on the backend yet,
+      // so for now we always go to profile setup.
+      navigate('/app/profile');
     } catch (err) {
       setError('Invalid email or password.');
       console.error(err);

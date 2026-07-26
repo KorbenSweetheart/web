@@ -5,47 +5,48 @@
    backend about authentication.
 
    WHY THIS FILE EXISTS:
-   Pages should not call fetch() directly. They
-   just call registerUser() / loginUser() and
-   don't care how the request is made.
-   If the API changes, only this file changes.
+   Pages call registerUser() / loginUser() and
+   don't care how the request is made. If the API
+   changes, only this file changes.
 
-   MOCK MODE:
-   While the backend auth endpoints are still in
-   progress, MOCK returns fake responses so the
-   frontend flow can be built and tested.
-   Set MOCK = false once /auth/login is live.
+   AUTH APPROACH (header):
+   Login returns access_token in the JSON body.
+   We store it and send it as
+   "Authorization: Bearer <token>" on protected
+   requests. The backend also accepts a cookie,
+   but we use the header for simplicity.
+
+   Register does NOT return a token — the user is
+   sent to /login afterwards.
    ============================================ */
 
-const MOCK = true;
-
-export async function registerUser(email: string, password: string) {
-  if (MOCK) {
-    return { token: 'fake-token-123', profileCompleted: false };
-  }
-
+// Register a new account. Backend needs name, email, password.
+// Returns { id, email, name, message } — no token.
+export async function registerUser(name: string, email: string, password: string) {
   const res = await fetch('/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ name, email, password }),
   });
 
-  if (!res.ok) throw new Error('Registration failed');
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Registration failed');
+  }
   return res.json();
 }
 
+// Log in. Backend returns { message, access_token }.
 export async function loginUser(email: string, password: string) {
-  if (MOCK) {
-    return { token: 'fake-token-123', profileCompleted: true };
-  }
-
   const res = await fetch('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
 
-  if (!res.ok) throw new Error('Login failed');
+  if (!res.ok) {
+    throw new Error('Invalid email or password');
+  }
   return res.json();
 }
 

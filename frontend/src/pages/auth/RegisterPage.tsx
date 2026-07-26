@@ -34,12 +34,11 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const data = await registerUser(email, password);
-      localStorage.setItem('token', data.token);
-      // New user → must complete profile first
-      navigate('/app/profile');
+      await registerUser(name, email, password);
+      // Register doesn't return a token → send user to log in
+      navigate('/login');
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       console.error(err);
     } finally {
       setLoading(false);
