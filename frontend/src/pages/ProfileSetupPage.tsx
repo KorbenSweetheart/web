@@ -113,7 +113,7 @@ export default function ProfileSetupPage() {
         <div className="form-group">
           <label className="form-label">Sports &amp; your level</label>
           <p className="form-helper mb-sm">Pick the sports you do. Set your level for each.</p>
-          <div className="flex flex-col gap-sm">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(0.5rem, 1vw, 0.75rem)' }}>
             {SPORTS.map((sport) => (
               <div key={sport.id} className="card" style={{ padding: '0.75rem' }}>
                 <label className="checkbox-item">

@@ -1,13 +1,15 @@
 .app-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .app-main {
   flex: 1;
   min-width: 0;
+  overflow-y: auto;
   padding: clamp(1rem, 3vw, 2rem);
-  padding-bottom: clamp(5rem, 10vw, 6rem); /* espacio para bottom-nav */
+  padding-bottom: clamp(5rem, 10vw, 6rem);
 }
 
 @media (min-width: 641px) {
