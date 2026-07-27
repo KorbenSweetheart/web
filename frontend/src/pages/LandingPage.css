@@ -219,14 +219,10 @@
   flex-shrink: 0;
 }
 
-.feature-icon--match {
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(168, 85, 247, 0.15));
-}
-.feature-icon--chat {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(236, 72, 153, 0.15));
-}
+.feature-icon--match,
+.feature-icon--chat,
 .feature-icon--location {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(45, 212, 191, 0.15));
+  background: var(--accent-hover);
 }
 
 .feature-title {

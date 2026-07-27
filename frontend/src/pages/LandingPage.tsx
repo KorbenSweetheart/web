@@ -1,5 +1,6 @@
 import './LandingPage.css';
 import { Link } from "react-router-dom";
+import { Target, MessageCircle, MapPin } from 'lucide-react';
 
 function MatchScoreRing({ score, size = 44 }: { score: number; size?: number }) {
   const radius = (size / 2) - 4;
@@ -42,8 +43,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-body mt-md landing-tagline">
-            Connect with athletes who match your sport, level, and vibe.
-            Whether you want focused silence or someone to grab coffee with after — we've got you.
+            It's like dating apps, but the only thing you're committing to is a 6am run. Matched on sport, level, and vibe.
           </p>
 
           <div className="landing-hero__cta">
@@ -106,34 +106,40 @@ export default function LandingPage() {
       <section className="landing-features">
         <div className="feature">
           <div className="feature-header">
-            <div className="feature-icon feature-icon--match">🎯</div>
-            <h3 className="feature-title">Matched by what matters</h3>
+            <div className="feature-icon feature-icon--match">
+              <Target size={22} strokeWidth={2.5} />
+            </div>
+            <h3 className="feature-title">Matched on what matters</h3>
           </div>
           <p className="feature-desc">
-            Sport, skill level, training mode, location, and commitment.
-            Five data points working together so you don't waste time scrolling.
+            Sport, skill, training mode, location, commitment. Five signals
+            working together — so every match is someone you'd actually train with.
           </p>
         </div>
 
         <div className="feature">
           <div className="feature-header">
-            <div className="feature-icon feature-icon--chat">💬</div>
+            <div className="feature-icon feature-icon--chat">
+              <MessageCircle size={22} strokeWidth={2.5} />
+            </div>
             <h3 className="feature-title">Chat in real time</h3>
           </div>
           <p className="feature-desc">
-            Once you connect, coordinate sessions instantly.
-            No page refreshing, no waiting. Messages appear the second they're sent.
+            Connected? Start talking. Plan your next session, swap routes, or just
+            hype each other up. Messages land the instant they're sent.
           </p>
         </div>
 
         <div className="feature">
           <div className="feature-header">
-            <div className="feature-icon feature-icon--location">📍</div>
-            <h3 className="feature-title">Athletes near you</h3>
+            <div className="feature-icon feature-icon--location">
+              <MapPin size={22} strokeWidth={2.5} />
+            </div>
+            <h3 className="feature-title">People near you</h3>
           </div>
           <p className="feature-desc">
-            Only see people close enough to actually train with.
-            No impractical matches from the other side of the country.
+            Set your radius and only meet people close enough to actually show up.
+            No matches stranded on the other side of the map.
           </p>
         </div>
       </section>
