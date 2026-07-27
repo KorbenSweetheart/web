@@ -29,9 +29,9 @@ func NewUserHandler(us UserService, v *validator.Validate, logger *slog.Logger) 
 	return &UserHandler{userService: us, validator: v, log: logger}
 }
 
-// User returns the user's name and link to the profile picture.
+// User returns the user's id, name, and link to the profile picture.
 // /users/{id}
-func (h *UserHandler) User(c *echo.Context) error {
+func (h *UserHandler) UserSummary(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	userIDStr := c.Param("id")
@@ -53,53 +53,90 @@ func (h *UserHandler) User(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, UserSummaryResponse{
+		ID:         profile.UserID,
 		Name:       profile.Name,
 		PictureURL: profile.PictureURL,
 	})
 }
 
-// // Profile returns the users "about me" type information.
+// // Profile returns the user's id and "about me" type information.
 // // /users/{id}/profile
-// func (h *UserHandler) UserProfile(c *echo.Context) error {
-// 	ctx := c.Request().Context()
+func (h *UserHandler) UserProfile(c *echo.Context) error {
+	ctx := c.Request().Context()
 
-// 	id, err := idValidation(c.Param("id"))
-// 	if err != nil {
-// 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID: NAN"})
-// 	}
+	userIDStr := c.Param("id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+	}
 
-// 	user, err := h.userService.GetProfile(ctx, id)
-// 	if err != nil {
-// 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Profile not found"})
-// 	}
+	profile, err := h.userService.Profile(ctx, userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{
+				"id":    userID,
+				"error": "User not found",
+			})
+		} else {
+			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+		}
+	}
 
-// 	return c.JSON(http.StatusOK, map[string]interface{}{
-// 		"id":       user.UserID,
-// 		"about_me": user.Bio,
-// 	})
-// }
+	return c.JSON(http.StatusOK, ProfileResponse{
+		ID:         profile.UserID,
+		Name:       profile.Name,
+		Age:        profile.Age,
+		PictureURL: profile.PictureURL,
+		Bio:        profile.Bio,
+		IsOnline:   profile.IsOnline,
+	})
+}
 
-// // UserBio returns the users biographical data (the data used to power recommendations).
-// // /users/{id}/bio
-// func (h *UserHandler) UserBio(c *echo.Context) error {
-// 	ctx := c.Request().Context()
+// UserBio returns the user's id and biographical data (the data used to power recommendations).
+// /users/{id}/bio
+func (h *UserHandler) UserBio(c *echo.Context) error {
+	ctx := c.Request().Context()
 
-// 	id, err := idValidation(c.Param("id"))
-// 	if err != nil {
-// 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID: NAN"})
-// 	}
+	userIDStr := c.Param("id")
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+	}
 
-// 	user, err := h.userService.GetProfile(ctx, id)
-// 	if err != nil {
-// 		return c.JSON(http.StatusNotFound, map[string]string{"error": "About Me information is not found"})
-// 	}
+	profile, err := h.userService.Profile(ctx, userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{
+				"id":    userID,
+				"error": "User not found",
+			})
+		} else {
+			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+		}
+	}
 
-// 	return c.JSON(http.StatusOK, map[string]interface{}{
-// 		"id":        user.UserID,
-// 		"interests": user.Activities,
-// 		// other logic to match users
-// 	})
-// }
+	activitiesResponce := []ActivityResp{}
+
+	if len(profile.Activities) > 0 {
+		for _, a := range profile.Activities {
+			activity := ActivityResp{
+				ID:            a.Activity.ID,
+				Title:         a.Activity.Title,
+				Experience:    a.Experience,
+				InterestLevel: a.InterestLevel,
+			}
+			activitiesResponce = append(activitiesResponce, activity)
+		}
+	}
+
+	return c.JSON(http.StatusOK, ProfileResponse{
+		ID:                   profile.UserID,
+		MaxRadius:            profile.MaxRadius,
+		InteractionModeID:    profile.InteractionModeID,
+		InteractionModeTitle: profile.InteractionMode.Title,
+		Activities:           activitiesResponce,
+	})
+}
 
 // // UpdateProfile
 // func (h *UserHandler) UpdateProfile(c *echo.Context) error {
@@ -122,6 +159,7 @@ func (h *UserHandler) User(c *echo.Context) error {
 // 	// Build domain model out of DTO
 // 	profile := &domain.Profile{
 // 		Name:      req.Name,
+//		PictureURL req.Picture // add/remove/change their profile picture
 // 		Age:       req.Age,
 // 		Bio:       req.Bio,
 // 		MaxRadius: req.MaxRadius,

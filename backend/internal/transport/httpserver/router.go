@@ -42,13 +42,12 @@ func SetupRouter(
 
 	// Private routes
 	private := e.Group("")
-	private.Use(utils.JWTMiddlewareWithConfig(cfg.TM.JWTSecretKey))
-	private.GET("/users/:id", userHandler.User) // /users/{id}
+	private.Use(utils.JWTMiddlewareWithConfig(cfg.TM.JWTSecretKey, handlers.AccessTokenCookieName))
 
 	// Users
-	// private.GET("/users/:id", userHandler.GetBaseInfo)        // /users/{id}
-	// private.GET("/users/:id/profile", userHandler.GetProfile) // /users/{id}/profile
-	// private.GET("/users/:id/bio", userHandler.GetBio)         // /users/{id}/bio
+	private.GET("/users/:id", userHandler.UserSummary)         // /users/{id}
+	private.GET("/users/:id/profile", userHandler.UserProfile) // /users/{id}/profile
+	private.GET("/users/:id/bio", userHandler.UserBio)         // /users/{id}/bio
 
 	// Shortcuts
 	// private.GET("/me", userHandler.GetMyBaseInfo)        // /me

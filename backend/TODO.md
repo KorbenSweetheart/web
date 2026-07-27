@@ -9,6 +9,7 @@
   - [x] Registration
     - [x] Add bcrypt (salt is the part of the algorithm)
     - [x] Add switch for different types of error, to return different statuses.
+    - [ ] Add location request for lat/lon during registration, front should pass it to backend
     - [ ] Add Login in or redirect to login upon successful registration
   - [x] Login
     - [x] Add JWT and session cookies
@@ -17,6 +18,15 @@
     - [ ] Add delete refresh token from db
     - [ ] Add refresh token endpoint for refresh
     - [ ] Add renew JWT token based on RT
+    - [ ] Decide when to mark user Online, when he logged in, or when he sends messages?
   - [ ] Logout???
 - [ ] Add Private Handlers
-  - [x] Add /users/{id}
+    <!-- remember now you can get userID from context of the request -->
+  - [x] `/users/{id}` - returns the user's id, name, and link to the profile picture.
+  - [x] `/users/{id}/profile` - returns the user's id and "about me" type information.
+  - [x] `/users/{id}/bio` - returns the user's id and biographical data (the data used to power recommendations).
+  - [ ] `/me` - a shortcut to `/users/{id}` for the authenticated user.
+  - [ ] `/me/profile` - a shortcut to `/users/{id}/profile` for the authenticated user.
+  - [ ] `/me/bio` - a shortcut to `/users/{id}/bio` for the authenticated user.
+  - [ ] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
+  - [ ] `/connections` - returns a list connected profiles, containing only the `id` and nothing else.

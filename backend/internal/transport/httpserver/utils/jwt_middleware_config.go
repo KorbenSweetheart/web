@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"match-me-api/internal/pkg/tokenmgr"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -9,17 +10,18 @@ import (
 )
 
 // JWTMiddleware creates Echo JWT middleware with config and returns it.
-func JWTMiddlewareWithConfig(secretKey string) echo.MiddlewareFunc {
+func JWTMiddlewareWithConfig(secretKey, cookieName string) echo.MiddlewareFunc {
 	return echojwt.WithConfig(echojwt.Config{
 		SigningKey:  []byte(secretKey),
-		TokenLookup: "header:Authorization:Bearer ,cookie:access_token",
+		TokenLookup: fmt.Sprintf("header:Authorization:Bearer ,cookie:%s", cookieName),
+		// ContextKey:  "jwt_token", // changes "user" to "jwt_token", don't forget to change it belov
 
 		NewClaimsFunc: func(c *echo.Context) jwt.Claims {
 			return new(tokenmgr.CustomClaims)
 		},
 
 		SuccessHandler: func(c *echo.Context) error {
-			token, ok := c.Get("user").(*jwt.Token) // ContextKey:  "jwt_token", // changes "user" to "jwt_token"
+			token, ok := c.Get("user").(*jwt.Token) // if we want to change the name, uncomment ContextKey:  "jwt_token" above,
 			if !ok || token == nil {
 				return nil
 			}

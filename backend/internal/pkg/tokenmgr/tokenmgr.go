@@ -69,5 +69,5 @@ func (tm *TokenManager) HashToken(token string) string {
 
 // ParseToken validates JWT token
 // func (tm *TokenManager) ParseToken(accessToken string) (int64, error) {
-// 	// ... парсинг и валидация ...
+// 	// parsing and validation logic
 // }

@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	accessTokenCookieName  = "access_token"
-	refreshTokenCookieName = "refresh_token"
+	AccessTokenCookieName  = "access_token"
+	RefreshTokenCookieName = "refresh_token"
 )
 
 type AuthService interface {
@@ -108,7 +108,7 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 
 	// Issue access token cookie
 	accessCookie := &http.Cookie{
-		Name:     accessTokenCookieName,
+		Name:     AccessTokenCookieName,
 		Value:    accessToken,
 		Expires:  time.Now().Add(h.accessCookieTTL),
 		Path:     "/",
@@ -120,7 +120,7 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 
 	// Issue refresh token cookie
 	refreshCookie := &http.Cookie{
-		Name:     refreshTokenCookieName,
+		Name:     RefreshTokenCookieName,
 		Value:    refreshToken,
 		Expires:  time.Now().Add(h.refreshCookieTTL),
 		Path:     "/auth/refresh",
@@ -138,7 +138,7 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 
 func (h *AuthHandler) Logout(c *echo.Context) error {
 	c.SetCookie(&http.Cookie{
-		Name:     accessTokenCookieName,
+		Name:     AccessTokenCookieName,
 		Value:    "",
 		Path:     "/",
 		Expires:  time.Unix(0, 0),
@@ -147,7 +147,7 @@ func (h *AuthHandler) Logout(c *echo.Context) error {
 	})
 
 	c.SetCookie(&http.Cookie{
-		Name:     refreshTokenCookieName,
+		Name:     RefreshTokenCookieName,
 		Value:    "",
 		Path:     "/auth/refresh",
 		Expires:  time.Unix(0, 0),

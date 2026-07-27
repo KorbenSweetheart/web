@@ -4,27 +4,6 @@ import (
 	"time"
 )
 
-// Domain:
-// 	- Recommendation board
-//	- Business language:
-//		- find something (find a friend, find a ride, find a group of people)
-//		- change profile (update profile), add image, update image
-//		- hide profile, add friend, delete friend, ban user
-//	- Bounded Context:
-//		- Recommendation service:
-//			- Profile: publish, hide, update (update preferences)
-// 			- Users: seaker, recommendation
-// 		- Chat service:
-// 			- Messages: send, get, archive, update?, delete?
-// 			- Users: sender, receiver
-// 		- Account service:
-// 			- Account: create (register), login, update, delete
-//		- Search...
-//		- ...
-
-// Domain:
-// - Recommendation Service <- userRepo interface <- UserRepoDB struct
-
 type ConnectionStatus string
 
 const (
@@ -93,6 +72,15 @@ func (ProfileActivity) TableName() string {
 	return "profile_activities"
 }
 
+// Connections
+// When a user sees a recommendation that they find interesting, they can request to connect with them.
+// Users must be able to see a list of connection requests, where they can accept or dismiss requests.
+// It must be possible to disconnect with a user, if they are no longer interesting.
+//
+// Profiles are viewable by other users, only if:
+// - They are recommended
+// - There is an outstanding connection request
+// - They are connected
 type Connection struct {
 	FromUserID int64            `gorm:"primaryKey" json:"from_user_id"`
 	ToUserID   int64            `gorm:"primaryKey" json:"to_user_id"`

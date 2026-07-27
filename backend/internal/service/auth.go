@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
+	usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_ -]{3,32}$`)
 	emailRegex    = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 )
 
