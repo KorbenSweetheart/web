@@ -78,8 +78,7 @@
 
 /* --- Preview Panel — SVG pattern background --- */
 .landing-preview {
-  background: linear-gradient(160deg, var(--accent-hover) 0%, var(--bg) 100%);
-  padding: clamp(2rem, 4vw, 3rem) clamp(1.5rem, 3vw, 2.5rem);
+  background: linear-gradient(160deg, var(--accent-hover) 0%, var(--accent-3) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
