@@ -35,7 +35,7 @@ type Profile struct {
 	Age               int64             `gorm:"column:age" json:"age"`
 	PictureURL        string            `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
 	Bio               string            `gorm:"type:text" json:"bio"`                                                  // Bio
-	InteractionModeID int64             `gorm:"default:4" json:"interaction_mode_id"`
+	InteractionModeID int64             `gorm:"default:4;check:interaction_mode_id >= 1 AND interaction_mode_id <= 4" json:"interaction_mode_id"`
 	InteractionMode   InteractionMode   `gorm:"foreignKey:InteractionModeID;references:ID;constraint:OnDelete:SET NULL" json:"interaction_mode,omitzero"` // To Preload Activity id and name. "Silent", "Social", "Someone Special / Dating" "Open to anything / Don't care" Mode
 	Activities        []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
 	MaxRadius         float64           `gorm:"default:10" json:"max_radius"`
@@ -60,8 +60,8 @@ type Activity struct {
 type ProfileActivity struct {
 	ProfileUserID int64    `gorm:"primaryKey" json:"profile_user_id"`
 	ActivityID    int64    `gorm:"primaryKey" json:"activity_id"`
-	Experience    int      `gorm:"default:1" json:"experience"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel int      `gorm:"default:3" json:"interest_level"` // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+	Experience    int      `gorm:"default:1;check:experience >= 1 AND experience <= 5" json:"experience"`             // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel int      `gorm:"default:3;check:interest_level >= 1 AND interest_level <= 5" json:"interest_level"` // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 	Profile       Profile  `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	Activity      Activity `gorm:"foreignKey:ActivityID;references:ID;constraint:OnDelete:CASCADE" json:"activity,omitzero"` // To Preload Activity id and name
 }

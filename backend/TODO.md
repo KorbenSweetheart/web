@@ -30,3 +30,6 @@
   - [ ] `/me/bio` - a shortcut to `/users/{id}/bio` for the authenticated user.
   - [ ] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
   - [ ] `/connections` - returns a list connected profiles, containing only the `id` and nothing else.
+        Additional:
+  - [ ] `POST /users/{id}/profile` - profile update,
+  - [ ] `/activities` - list of activities to display on a profile page

@@ -116,6 +116,14 @@ func (s *Storage) SeedData() error {
 		{ID: 2, Title: "Padel"},
 		{ID: 3, Title: "Gym"},
 		{ID: 4, Title: "Cycling"},
+		{ID: 4, Title: "Football"},
+		{ID: 6, Title: "Tennis"},
+		{ID: 7, Title: "Swimming"},
+		{ID: 8, Title: "CrossFit"},
+		{ID: 9, Title: "Yoga"},
+		{ID: 10, Title: "Basketball"},
+		{ID: 11, Title: "Climbing"},
+		{ID: 12, Title: "Boxing"},
 	}
 
 	for _, act := range activities {

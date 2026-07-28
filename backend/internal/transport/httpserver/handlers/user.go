@@ -115,11 +115,11 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 		}
 	}
 
-	activitiesResponce := []ActivityResp{}
+	activitiesResponce := []ActivityResponse{}
 
 	if len(profile.Activities) > 0 {
 		for _, a := range profile.Activities {
-			activity := ActivityResp{
+			activity := ActivityResponse{
 				ID:            a.Activity.ID,
 				Title:         a.Activity.Title,
 				Experience:    a.Experience,
