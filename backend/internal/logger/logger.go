@@ -29,26 +29,33 @@ func SetupLogger(env string) *slog.Logger {
 	return log
 }
 
-// Err safely wraps an error and deeply unwraps it to find structured logs.
+// Err creates a standardized slog.Attr for errors, including unwrapped cause chains.
 func Err(err error) slog.Attr {
 	if err == nil {
 		return slog.Attr{}
 	}
 
-	// Traverse the error chain looking for a slog.LogValuer
-	var valuer slog.LogValuer
-	if errors.As(err, &valuer) {
-		return slog.Attr{
-			Key: "error",
-			// We still log the full error string to preserve the "wrap:" context,
-			// but we append the structured data from the inner error as well.
-			Value: slog.GroupValue(
-				slog.String("msg", err.Error()),
-				slog.Any("details", valuer.LogValue()),
-			),
-		}
+	attrs := []slog.Attr{
+		slog.String("msg", err.Error()),
 	}
 
-	// Maximum Performance Path for standard errors
-	return slog.String("error", err.Error())
+	// Unroll error chain if cause exists
+	if cause := errors.Unwrap(err); cause != nil {
+		var chain []string
+		for curr := cause; curr != nil; curr = errors.Unwrap(curr) {
+			chain = append(chain, curr.Error())
+		}
+		attrs = append(attrs, slog.Any("cause_chain", chain))
+	}
+
+	// Capture LogValuer details if supported anywhere in the chain
+	var valuer slog.LogValuer
+	if errors.As(err, &valuer) {
+		attrs = append(attrs, slog.Any("details", valuer.LogValue()))
+	}
+
+	return slog.Attr{
+		Key:   "error",
+		Value: slog.GroupValue(attrs...),
+	}
 }

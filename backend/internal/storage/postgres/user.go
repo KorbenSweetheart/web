@@ -5,96 +5,109 @@ import (
 	"errors"
 	"fmt"
 	"match-me-api/internal/domain"
-	"match-me-api/internal/storage"
 
 	"gorm.io/gorm"
 )
 
-// CreateUser adds a single user record to database.
-func (s *Storage) CreateUser(ctx context.Context, user *domain.User) error {
+// CreateAccount adds a single user account record to database.
+func (s *Storage) CreateAccount(ctx context.Context, account *domain.Account) error {
+	const op = "storage.postgres.CreateAccount"
+	// log := s.log.With(slog.String("op", op))
 
-	err := s.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.WithContext(ctx).Create(user).Error; err != nil {
-			if errors.Is(err, gorm.ErrDuplicatedKey) {
-				return storage.ErrEmailIsTaken
-			}
-			return fmt.Errorf("failed to create user record: %w", err)
+	if err := s.db.WithContext(ctx).Create(account).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return domain.ErrEmailIsTaken
 		}
-
-		profile := &domain.Profile{
-			UserID: user.ID,
-			// Name:   "",
-			// MaxRadius:         10,
-			// InteractionModeID: 4,
-		}
-
-		if err := tx.WithContext(ctx).Create(profile).Error; err != nil {
-			return fmt.Errorf("failed to create profile record: %w", err)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("failed to execute the user creation transaction: %w", err)
+		return fmt.Errorf("failed to create account, op: %s, error: %w", op, err)
 	}
 
 	return nil
 }
 
-// UserByID returns a single user record if it exists in the database.
-func (s *Storage) UserByID(ctx context.Context, id int64) (*domain.User, error) {
+func (s *Storage) SaveRefreshToken(ctx context.Context, rtRecord *domain.RefreshToken) error {
+	const op = "storage.postgres.SaveRefreshToken"
+	// log := s.log.With(slog.String("op", op))
 
-	var user domain.User
+	if err := s.db.WithContext(ctx).Create(rtRecord).Error; err != nil {
+		return fmt.Errorf("failed to create refresh token, op: %s, error: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteRefreshTokenByAccountID(ctx context.Context, id int64) error {
+	const op = "storage.postgres.DeleteRefreshToken"
+
+	err := s.db.WithContext(ctx).
+		Where("account_id = ?", id).
+		Delete(&domain.RefreshToken{}).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to delete refresh token, op: %s, error: %w", op, err)
+	}
+
+	return nil
+}
+
+// AccountByID returns a single account record if it exists in the database.
+func (s *Storage) AccountByID(ctx context.Context, id int64) (*domain.Account, error) {
+	const op = "storage.postgres.AccountByID"
+
+	var account domain.Account
 
 	err := s.db.WithContext(ctx).
 		Where("id = ?", id).
-		First(&user).Error
+		First(&account).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, storage.ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		} else {
-			return nil, fmt.Errorf("failed to get user by id: %w", err)
+			return nil, fmt.Errorf("failed to get account by id, op: %s, error: %w", op, err)
 		}
 	}
 
-	return &user, nil
+	return &account, nil
 }
 
-// UserByEmail returns a single user record if it exists in the database.
-func (s *Storage) UserByEmail(ctx context.Context, email string) (*domain.User, error) {
+// AccountByEmail returns a single account record if it exists in the database.
+func (s *Storage) AccountByEmail(ctx context.Context, email string) (*domain.Account, error) {
+	const op = "storage.postgres.AccountByEmail"
 
-	var user domain.User
+	var account domain.Account
 
 	err := s.db.WithContext(ctx).
 		Where("email = ?", email).
-		First(&user).Error
+		First(&account).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, storage.ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		} else {
-			return nil, fmt.Errorf("failed to get user by email: %w", err)
+			return nil, fmt.Errorf("failed to get account by email, op: %s, error: %w", op, err)
 		}
 	}
 
-	return &user, nil
+	return &account, nil
 }
 
 // ProfileByID returns a single user profile record if it exists in the database.
 func (s *Storage) ProfileByID(ctx context.Context, id int64) (*domain.Profile, error) {
+	const op = "storage.postgres.ProfileByID"
+
 	var profile domain.Profile
 
 	err := s.db.WithContext(ctx).
+		Preload("InteractionMode").
+		Preload("Activities.Activity").
 		Where("user_id = ?", id).
 		First(&profile).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, storage.ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		} else {
-			return nil, fmt.Errorf("failed to get profile by id: %w", err)
+			return nil, fmt.Errorf("failed to get profile by id, op: %s, error: %w", op, err)
 		}
 	}
 
@@ -104,16 +117,18 @@ func (s *Storage) ProfileByID(ctx context.Context, id int64) (*domain.Profile, e
 // func (s *Storage) UpdateProfile(ctx context.Context, profile *domain.Profile) error
 
 // IsEmailTaken checks whether the email is already taken.
+// Currently not used anywhere
 func (s *Storage) IsEmailTaken(ctx context.Context, email string) (bool, error) {
+	const op = "storage.postgres.IsEmailTaken"
 
 	var count int64
 
-	err := s.db.Model(&domain.User{}).
+	err := s.db.Model(&domain.Account{}).
 		Where("email = ?", email).
 		Count(&count).Error
 
 	if err != nil {
-		return false, fmt.Errorf("failed to check email existence: %w", err)
+		return false, fmt.Errorf("failed to check email existence, op: %s, error: %w", op, err)
 	}
 
 	return count > 0, nil

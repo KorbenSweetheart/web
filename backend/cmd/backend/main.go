@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"match-me-api/internal/config"
 	"match-me-api/internal/logger"
+	"match-me-api/internal/pkg/tokenmgr"
 	"match-me-api/internal/service"
 	"match-me-api/internal/storage/postgres"
 	"match-me-api/internal/transport/httpserver"
@@ -39,22 +40,33 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Info("database connection established successfully")
+
 	if err := storage.AutoMigrate(); err != nil {
 		log.Error("migration failed", logger.Err(err))
 		os.Exit(1)
 	}
+
+	log.Info("migration completed successfully")
 
 	if err := storage.SeedData(); err != nil {
 		log.Error("seeding failed", logger.Err(err))
 		os.Exit(1)
 	}
 
+	log.Info("seeding completed successfully")
+
+	tm := tokenmgr.NewTokenManager(
+		cfg.TM.JWTSecretKey,
+		cfg.TM.TokenIssuer,
+	)
+
 	// create services
-	authService := service.NewAuthService(storage, log)
+	authService := service.NewAuthService(storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	userService := service.NewUserService(storage, log)
 
 	// setup router/server (Echo)
-	e := httpserver.SetupRouter(cfg.JWTSecret, authService, userService, log)
+	e := httpserver.SetupRouter(cfg, log, authService, userService)
 
 	// server config
 	sc := echo.StartConfig{

@@ -1,8 +1,6 @@
-package storage
+package domain
 
-import (
-	"errors"
-)
+import "errors"
 
 var (
 	ErrInvalidEmailFormat    = errors.New("invalid email format")
@@ -11,7 +9,7 @@ var (
 	ErrUserNotFound          = errors.New("user not found")
 	ErrInvalidCreds          = errors.New("invalid credentials")
 	ErrInvalidUsernameFormat = errors.New("invalid username format")
+	ErrInvalidOrExpiredToken = errors.New("invalid or expired token")
 	// ErrUsernameIsTaken       = errors.New("username is taken")
-	// ErrSessionNotFound       = errors.New("session not found")
 	// ErrInvalidSession        = errors.New("invalid or expired session")
 )

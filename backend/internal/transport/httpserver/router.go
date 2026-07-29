@@ -2,21 +2,20 @@ package httpserver
 
 import (
 	"log/slog"
+	"match-me-api/internal/config"
 	"match-me-api/internal/transport/httpserver/handlers"
 	"match-me-api/internal/transport/httpserver/utils"
-	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	echojwt "github.com/labstack/echo-jwt/v5"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
 
 func SetupRouter(
-	JWTSecret string,
+	cfg *config.Config,
+	log *slog.Logger,
 	as handlers.AuthService,
 	us handlers.UserService,
-	log *slog.Logger,
 ) *echo.Echo {
 
 	e := echo.New()
@@ -28,38 +27,38 @@ func SetupRouter(
 	e.Use(middleware.CORS("http://localhost:8080", "http://localhost:5173")) // TODO: move to config vars
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	//
-	authHandler := handlers.NewAuthHandler(as, validate, log)
+
+	// Handlers
+	authHandler := handlers.NewAuthHandler(as, validate, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	userHandler := handlers.NewUserHandler(us, validate, log)
 
 	// Public routes
 	public := e.Group("")
-	public.GET("/", func(c *echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
-	})
 	public.GET("/health", handlers.CheckHealth)
 	public.POST("/auth/register", authHandler.Register)
-	// public.POST("/auth/login", authHandler.Login)
-
-	public.GET("/users/:id", userHandler.User) // /users/{id}
+	public.POST("/auth/login", authHandler.Login)
+	// public.POST("/auth/refresh", authHandler.Refresh)
+	// public.POST("/auth/logout", authHandler.Logout)
 
 	// Private routes
 	private := e.Group("")
-	private.Use(echojwt.JWT([]byte(JWTSecret))) // JWT Middleware
+	private.Use(utils.JWTMiddlewareWithConfig(cfg.TM.JWTSecretKey, handlers.AccessTokenCookieName))
 
 	// Users
-	// private.GET("/users/:id", userHandler.GetBaseInfo)        // /users/{id}
-	// private.GET("/users/:id/profile", userHandler.GetProfile) // /users/{id}/profile
-	// private.GET("/users/:id/bio", userHandler.GetBio)         // /users/{id}/bio
+	private.GET("/users/:id", userHandler.UserSummary)         // /users/{id}
+	private.GET("/users/:id/profile", userHandler.UserProfile) // /users/{id}/profile
+	private.GET("/users/:id/bio", userHandler.UserBio)         // /users/{id}/bio
+	// private.POST("/users/:id/profile", userHandler.UpdateProfile)         // /users/{id}/profile
 
 	// Shortcuts
-	// private.GET("/me", userHandler.GetMyBaseInfo)        // /me
-	// private.GET("/me/profile", userHandler.GetMyProfile) // /me/profile
-	// private.GET("/me/bio", userHandler.GetMyBio)         // /me/bio
+	private.GET("/me", userHandler.MySummary)         // /me
+	private.GET("/me/profile", userHandler.MyProfile) // /me/profile
+	private.GET("/me/bio", userHandler.MyBio)         // /me/bio
+	// private.PATCH("/me/location", userHandler.UpdateLocation)
 
 	// Recommendations
-	// private.GET("/recommendations", matchHandler.GetRecommendations)
 	// private.GET("/connections", matchHandler.GetConnections)
+	// private.GET("/recommendations", matchHandler.GetRecommendations)
 
 	return e
 }
