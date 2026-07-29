@@ -1,0 +1,66 @@
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: clamp(1rem, 3vw, 2rem);
+  padding-bottom: clamp(5rem, 10vw, 6rem);
+}
+
+@media (min-width: 641px) {
+  .app-main { padding-bottom: clamp(1rem, 3vw, 2rem); }
+}
+
+/* Sidebar: logo top, nav center, logout bottom */
+.sidebar .logo-mark {
+  width: clamp(2.75rem, 4.5vw, 3.25rem);
+  height: clamp(2.75rem, 4.5vw, 3.25rem);
+  font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+  margin-bottom: 0;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.5vw, 1.75rem);
+  margin: auto 0;
+}
+
+.sidebar__logout:hover {
+  color: var(--error);
+}
+
+/* Mobile header (logo + logout) */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(0.75rem, 3vw, 1rem) clamp(1rem, 4vw, 1.5rem);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background-color: var(--bg);
+  z-index: 50;
+}
+
+.app-header__logout {
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  transition: color var(--speed-fast);
+}
+.app-header__logout:hover {
+  color: var(--error);
+}
+
+/* On mobile, stack header above content */
+@media (max-width: 640px) {
+  .app-layout {
+    flex-direction: column;
+  }
+}

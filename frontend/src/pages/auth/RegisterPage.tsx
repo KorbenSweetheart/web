@@ -1,19 +1,21 @@
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { registerUser } from '../../services/auth';
 import './AuthPage.css';
 
-interface RegisterPageProps {
-  onSwitchToLogin?: () => void;
-}
 
-export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
+export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
 
@@ -30,8 +32,17 @@ export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
       return;
     }
 
-    // TODO: hook up to auth API
-    console.log('Registering', { name, email, password });
+    setLoading(true);
+    try {
+      await registerUser(name, email, password);
+      // Register doesn't return a token → send user to log in
+      navigate('/login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -58,6 +69,7 @@ export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
                 placeholder="Marcus K."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={loading}
               />
             </div>
 
@@ -70,6 +82,7 @@ export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
               />
             </div>
 
@@ -82,6 +95,7 @@ export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
               <p className="form-helper">At least 8 characters.</p>
             </div>
@@ -95,6 +109,7 @@ export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
               />
             </div>
 
@@ -104,6 +119,7 @@ export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
                   type="checkbox"
                   checked={acceptedTerms}
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
+                   disabled={loading}
                 />
                 <span className="text-caption">
                   I agree to the Terms of Service and Privacy Policy
@@ -112,16 +128,14 @@ export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
               {error && <p className="form-error-msg">{error}</p>}
             </div>
 
-            <button type="submit" className="btn btn-primary btn-full btn-large mt-md">
-              Sign up
+            <button type="submit" className="btn btn-primary btn-full btn-large mt-md" disabled={loading}>
+              {loading ? 'Creating account...' : 'Sign up'}
             </button>
           </form>
 
           <div className="auth__footer">
             Already have an account?{' '}
-            <span className="auth__link" onClick={onSwitchToLogin}>
-              Log in
-            </span>
+            <Link to="/login" className="auth__link">Log in</Link>
           </div>
         </div>
       </div>
