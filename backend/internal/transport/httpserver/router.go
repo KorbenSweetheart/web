@@ -54,6 +54,7 @@ func SetupRouter(
 	private.GET("/me", userHandler.MySummary)         // /me
 	private.GET("/me/profile", userHandler.MyProfile) // /me/profile
 	private.GET("/me/bio", userHandler.MyBio)         // /me/bio
+	// private.PATCH("/me/location", userHandler.UpdateLocation)
 
 	// Recommendations
 	// private.GET("/connections", matchHandler.GetConnections)

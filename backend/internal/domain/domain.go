@@ -12,6 +12,33 @@ const (
 	StatusRejected ConnectionStatus = "rejected"
 )
 
+type InteractionMode int
+type ExperienceLevel int
+type InterestLevel int
+
+const (
+	OpenToAnything InteractionMode = iota + 1 // 1
+	Social                                    // 2
+	Silent                                    // 3
+	Dating                                    // 4
+)
+
+const (
+	Beginner     ExperienceLevel = iota + 1 // 1
+	ActiveNovice                            // 2
+	Intermediate                            // 3
+	Advanced                                // 4
+	Professional                            // 5
+)
+
+const (
+	NotInterested InterestLevel = iota + 1 // 1
+	OpenToIt                               // 2
+	Interested                             // 3
+	Highly                                 // 4
+	ActivelyLook                           // 5
+)
+
 type Account struct {
 	ID           int64     `gorm:"primaryKey;autoIncrement" json:"id"` // Postgres SERIAL/BIGSERIAL
 	Email        string    `gorm:"uniqueIndex;not null" json:"email"`  // unique, private
@@ -30,24 +57,17 @@ type RefreshToken struct {
 }
 
 type Profile struct {
-	UserID            int64             `gorm:"primaryKey" json:"id"`
-	Name              string            `gorm:"type:varchar(255);not null" json:"name"`
-	Age               int64             `gorm:"column:age" json:"age"`
-	PictureURL        string            `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
-	Bio               string            `gorm:"type:text" json:"bio"`                                                  // Bio
-	InteractionModeID int64             `gorm:"default:4;check:interaction_mode_id >= 1 AND interaction_mode_id <= 4" json:"interaction_mode_id"`
-	InteractionMode   InteractionMode   `gorm:"foreignKey:InteractionModeID;references:ID;constraint:OnDelete:SET NULL" json:"interaction_mode,omitzero"` // To Preload Activity id and name. "Silent", "Social", "Someone Special / Dating" "Open to anything / Don't care" Mode
-	Activities        []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
-	MaxRadius         float64           `gorm:"default:10" json:"max_radius"`
-	Lat               float64           `gorm:"-" json:"lat"` // Latitude from the browser API
-	Lon               float64           `gorm:"-" json:"lon"` // Longitude from the browser API
-	IsOnline          bool              `gorm:"-" json:"is_online"`
-}
-
-// InteractionMode dictionary
-type InteractionMode struct {
-	ID    int64  `gorm:"primaryKey;autoIncrement" json:"id"`
-	Title string `gorm:"uniqueIndex;not null" json:"title"` // e.g.: "Silent", "Social", "Dating" "Open to anything" Mode...
+	UserID          int64             `gorm:"primaryKey" json:"id"`
+	Name            string            `gorm:"type:varchar(255);not null" json:"name"`
+	Age             int64             `gorm:"column:age" json:"age"`
+	PictureURL      string            `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
+	Bio             string            `gorm:"type:text" json:"bio"`                                                  // Bio
+	InteractionMode InteractionMode   `gorm:"default:1" json:"interaction_mode"`                                     // "Open to anything", "Silent", "Social", "Dating" Mode
+	Activities      []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
+	MaxRadius       float64           `gorm:"default:10" json:"max_radius"`
+	Lat             float64           `gorm:"-" json:"lat"` // Latitude from the browser API
+	Lon             float64           `gorm:"-" json:"lon"` // Longitude from the browser API
+	IsOnline        bool              `gorm:"-" json:"is_online"`
 }
 
 // Activily dictionary
@@ -58,13 +78,12 @@ type Activity struct {
 
 // Particular activity in connection to user
 type ProfileActivity struct {
-	ProfileUserID int64 `gorm:"primaryKey" json:"profile_user_id"`
-	ActivityID    int64 `gorm:"primaryKey" json:"activity_id"`
-	// TODO: move experience and interest into dictionary
-	Experience    int      `gorm:"default:1;check:experience >= 1 AND experience <= 5" json:"experience"`             // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel int      `gorm:"default:3;check:interest_level >= 1 AND interest_level <= 5" json:"interest_level"` // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
-	Profile       Profile  `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
-	Activity      Activity `gorm:"foreignKey:ActivityID;references:ID;constraint:OnDelete:CASCADE" json:"activity,omitzero"` // To Preload Activity id and name
+	ProfileUserID int64           `gorm:"primaryKey" json:"profile_user_id"`
+	ActivityID    int64           `gorm:"primaryKey" json:"activity_id"`
+	Experience    ExperienceLevel `gorm:"default:1" json:"experience"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel InterestLevel   `gorm:"default:3" json:"interest_level"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+	Profile       Profile         `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	Activity      Activity        `gorm:"foreignKey:ActivityID;references:ID;constraint:OnDelete:CASCADE" json:"activity,omitzero"` // To Preload Activity id and name
 }
 
 // Provides GORM exact table name

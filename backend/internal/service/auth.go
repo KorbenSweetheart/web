@@ -26,6 +26,7 @@ var (
 type AuthProvider interface {
 	CreateAccount(ctx context.Context, user *domain.Account) error
 	SaveRefreshToken(ctx context.Context, rt *domain.RefreshToken) error
+	DeleteRefreshTokenByAccountID(ctx context.Context, id int64) error
 	AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
 	IsEmailTaken(ctx context.Context, email string) (bool, error)
 }
@@ -146,26 +147,23 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 	return accessToken, rawRefreshToken, nil
 }
 
-// func (us *UserService) Logout(ctx context.Context, JWT string) error {
-// 	const op = "service.authService.Logout"
-// 	log := us.log.With(slog.String("op", op))
+func (as *AuthService) Logout(ctx context.Context, userID int64) error {
+	const op = "service.authService.Logout"
+	log := as.log.With(slog.String("op", op))
 
-// 	log.Info("starting logout")
+	log.Info("starting logout")
 
-// 	// Delete refresh token from DB
+	// Delete refresh token from DB
 
-// 	err := us.storage.DeleteSession(ctx, UUID)
-// 	if err != nil {
-// 		if errors.Is(err, domain.ErrSessionNotFound) {
-// 			return fmt.Errorf("failed to delete session: %w", err)
-// 		}
-// 		return fmt.Errorf("unexpected error: %w", err)
-// 	}
+	err := as.storage.DeleteRefreshTokenByAccountID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete refresh token: %w", err)
+	}
 
-// 	log.Info("logout completed successfully")
+	log.Info("logout completed successfully")
 
-// 	return nil
-// }
+	return nil
+}
 
 // validateRegistrationInput is a helper function that validates the registration input data.
 func validateRegistrationInput(username, email, pw string) error {

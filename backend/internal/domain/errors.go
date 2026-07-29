@@ -11,6 +11,5 @@ var (
 	ErrInvalidUsernameFormat = errors.New("invalid username format")
 	ErrInvalidOrExpiredToken = errors.New("invalid or expired token")
 	// ErrUsernameIsTaken       = errors.New("username is taken")
-	// ErrSessionNotFound       = errors.New("session not found")
 	// ErrInvalidSession        = errors.New("invalid or expired session")
 )

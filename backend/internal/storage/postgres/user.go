@@ -35,6 +35,20 @@ func (s *Storage) SaveRefreshToken(ctx context.Context, rtRecord *domain.Refresh
 	return nil
 }
 
+func (s *Storage) DeleteRefreshTokenByAccountID(ctx context.Context, id int64) error {
+	const op = "storage.postgres.DeleteRefreshToken"
+
+	err := s.db.WithContext(ctx).
+		Where("account_id = ?", id).
+		Delete(&domain.RefreshToken{}).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to delete refresh token, op: %s, error: %w", op, err)
+	}
+
+	return nil
+}
+
 // AccountByID returns a single account record if it exists in the database.
 func (s *Storage) AccountByID(ctx context.Context, id int64) (*domain.Account, error) {
 	const op = "storage.postgres.AccountByID"

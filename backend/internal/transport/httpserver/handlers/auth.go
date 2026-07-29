@@ -20,6 +20,7 @@ const (
 type AuthService interface {
 	Register(ctx context.Context, name, email, password string) (*domain.Account, error)
 	Login(ctx context.Context, email, password string) (string, string, error)
+	Logout(ctx context.Context, userID int64) error
 }
 
 type AuthHandler struct {
@@ -137,6 +138,17 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 }
 
 func (h *AuthHandler) Logout(c *echo.Context) error {
+	ctx := c.Request().Context()
+
+	userID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	if err := h.authService.Logout(ctx, userID); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+
 	c.SetCookie(&http.Cookie{
 		Name:     AccessTokenCookieName,
 		Value:    "",
@@ -154,8 +166,6 @@ func (h *AuthHandler) Logout(c *echo.Context) error {
 		MaxAge:   -1,
 		HttpOnly: true,
 	})
-
-	// TODO: Delete refresh token from DB
 
 	return c.JSON(http.StatusOK, map[string]any{
 		"message": "Logged out",

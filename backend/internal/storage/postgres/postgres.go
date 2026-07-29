@@ -75,7 +75,6 @@ func (s *Storage) AutoMigrate() error {
 	)
 
 	if err := s.db.AutoMigrate(
-		&domain.InteractionMode{},
 		&domain.Activity{},
 		&domain.Account{},
 		&domain.Profile{},
@@ -96,21 +95,6 @@ func (s *Storage) AutoMigrate() error {
 // SeedData adds dictionary elements and default values to the tables
 func (s *Storage) SeedData() error {
 	const op = "storage.postgres.SeedData"
-
-	// Interaction Modes
-	modes := []domain.InteractionMode{
-		{ID: 1, Title: "Silent"},
-		{ID: 2, Title: "Social"},
-		{ID: 3, Title: "Dating"},
-		{ID: 4, Title: "Open to anything"},
-	}
-
-	if err := s.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "id"}},
-		DoNothing: true,
-	}).Create(&modes).Error; err != nil {
-		return fmt.Errorf("failed to seed interaction modes: op: %s, error: %w", op, err)
-	}
 
 	// Activities
 	activities := []domain.Activity{
@@ -139,14 +123,13 @@ func (s *Storage) SeedData() error {
 	}
 
 	// Reset Postgres serial sequences so dynamic INSERTs don't crash on primary key conflicts
-	tables := []string{
-		"interaction_modes",
-		"activities",
-		// "experiences",
-		// "interest_levels",
-	}
-	if err := s.resetSequences(tables...); err != nil {
-		return fmt.Errorf("failed to reset sequences, op: %s, error: %w", op, err)
+	table := "activities"
+	query := fmt.Sprintf(
+		"SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE(MAX(id), 1)) FROM %s;",
+		table, table,
+	)
+	if err := s.db.Exec(query).Error; err != nil {
+		return fmt.Errorf("failed to execute reset sequences for table %s: %w", table, err)
 	}
 
 	// Seed users
@@ -174,20 +157,6 @@ func (s *Storage) SeedData() error {
 	return nil
 }
 
-func (s *Storage) resetSequences(tables ...string) error {
-	for _, table := range tables {
-		// Sets sequence to MAX(id). If table is empty, defaults sequence to 1.
-		query := fmt.Sprintf(
-			"SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE(MAX(id), 1)) FROM %s;",
-			table, table,
-		)
-		if err := s.db.Exec(query).Error; err != nil {
-			return fmt.Errorf("failed to execute reset sequences for table %s: %w", table, err)
-		}
-	}
-	return nil
-}
-
 func generateSeedUsers() []domain.Account {
 	users := make([]domain.Account, 0, 100)
 
@@ -199,8 +168,8 @@ func generateSeedUsers() []domain.Account {
 			Age:  35,
 			Bio: `A disciplined mind, a patient approach, and a good cup of tea are my essentials.
 			I value loyalty, strategy, and staying calm in chaos. Always down for a witty debate or a long walk.`,
-			MaxRadius:         10,
-			InteractionModeID: 2,
+			MaxRadius:       10,
+			InteractionMode: 2,
 			Activities: []domain.ProfileActivity{
 				{
 					ActivityID:    1, // Running
@@ -228,8 +197,8 @@ func generateSeedUsers() []domain.Account {
 			Bio: `I live for speed, high stakes, and pushing limits.
 			I trust my gut, speak my mind, and never back down from a challenge.
 			If it's fast, intense, or "impossible", count me in.`,
-			MaxRadius:         20,
-			InteractionModeID: 2,
+			MaxRadius:       20,
+			InteractionMode: 2,
 			Activities: []domain.ProfileActivity{
 				{
 					ActivityID:    13, // Running
