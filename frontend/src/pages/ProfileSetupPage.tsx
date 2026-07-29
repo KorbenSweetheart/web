@@ -95,9 +95,9 @@ export default function ProfileSetupPage() {
   }
 
   const MODE_ICONS: Record<number, typeof Headphones> = {
-    1: Headphones, // Silent
-    2: Users,      // Social
-    3: Sparkles,   // Open to anything
+    1: Sparkles,    // Open to anything
+    2: Users,       // Social
+    3: Headphones,  // Silent
   };
 
   return (

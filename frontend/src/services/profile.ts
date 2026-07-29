@@ -36,12 +36,12 @@ export const SPORTS = [
   { id: 15, name: 'Jiu-Jitsu' },
 ];
 
-// Training modes — ids match Iván's interaction_modes table.
-// "Dating" (id 3) is intentionally left out for now.
+// Training modes — ids match Iván's InteractionMode enum.
+// "Dating" (id 4) intentionally left out — Pulse is about
 export const MODES = [
-  { id: 1, title: 'Silent',           desc: 'Train side by side, no chit-chat' },
+  { id: 1, title: 'Open to anything', desc: 'Whatever works' },
   { id: 2, title: 'Social',           desc: 'Make it fun and social' },
-  { id: 4, title: 'Open to anything', desc: 'Whatever works' },
+  { id: 3, title: 'Silent',           desc: 'Train side by side, no chit-chat' },
 ];
 
 // Experience levels (1-5, matching Iván's model)
