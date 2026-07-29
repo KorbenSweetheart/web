@@ -9,6 +9,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -104,10 +105,11 @@ func (s *Storage) SeedData() error {
 		{ID: 4, Title: "Open to anything"},
 	}
 
-	for _, mode := range modes {
-		if err := s.db.FirstOrCreate(&mode, domain.InteractionMode{ID: mode.ID}).Error; err != nil {
-			return fmt.Errorf("failed to seed interaction mode: %d:, op: %s, error: %w", mode.ID, op, err)
-		}
+	if err := s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoNothing: true,
+	}).Create(&modes).Error; err != nil {
+		return fmt.Errorf("failed to seed interaction modes: op: %s, error: %w", op, err)
 	}
 
 	// Activities
@@ -116,7 +118,7 @@ func (s *Storage) SeedData() error {
 		{ID: 2, Title: "Padel"},
 		{ID: 3, Title: "Gym"},
 		{ID: 4, Title: "Cycling"},
-		{ID: 4, Title: "Football"},
+		{ID: 5, Title: "Football"},
 		{ID: 6, Title: "Tennis"},
 		{ID: 7, Title: "Swimming"},
 		{ID: 8, Title: "CrossFit"},
@@ -124,13 +126,131 @@ func (s *Storage) SeedData() error {
 		{ID: 10, Title: "Basketball"},
 		{ID: 11, Title: "Climbing"},
 		{ID: 12, Title: "Boxing"},
+		{ID: 13, Title: "MMA"},
+		{ID: 14, Title: "Aikido"},
+		{ID: 15, Title: "Jiu-Jitsu"},
 	}
 
-	for _, act := range activities {
-		if err := s.db.FirstOrCreate(&act, domain.Activity{ID: act.ID}).Error; err != nil {
-			return fmt.Errorf("failed to seed activity, op: %s, id: %d, error: %w", op, act.ID, err)
-		}
+	if err := s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoNothing: true,
+	}).Create(&activities).Error; err != nil {
+		return fmt.Errorf("failed to seed activities: op: %s, error: %w", op, err)
+	}
+
+	// Reset Postgres serial sequences so dynamic INSERTs don't crash on primary key conflicts
+	tables := []string{
+		"interaction_modes",
+		"activities",
+		// "experiences",
+		// "interest_levels",
+	}
+	if err := s.resetSequences(tables...); err != nil {
+		return fmt.Errorf("failed to reset sequences, op: %s, error: %w", op, err)
+	}
+
+	// Seed users
+
+	// Checking do we already have any seeded users
+	var count int64
+	if err := s.db.Model(&domain.Account{}).Count(&count).Error; err != nil {
+		return fmt.Errorf("failed to count existing accounts: op: %s, error: %w", op, err)
+	}
+
+	// If we have users then skip seeding
+	if count > 0 {
+		return nil
+	}
+
+	users := generateSeedUsers()
+
+	if err := s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "email"}},
+		DoNothing: true,
+	}).Create(&users).Error; err != nil {
+		return fmt.Errorf("failed to seed users, op: %s, error: %w", op, err)
 	}
 
 	return nil
+}
+
+func (s *Storage) resetSequences(tables ...string) error {
+	for _, table := range tables {
+		// Sets sequence to MAX(id). If table is empty, defaults sequence to 1.
+		query := fmt.Sprintf(
+			"SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE(MAX(id), 1)) FROM %s;",
+			table, table,
+		)
+		if err := s.db.Exec(query).Error; err != nil {
+			return fmt.Errorf("failed to execute reset sequences for table %s: %w", table, err)
+		}
+	}
+	return nil
+}
+
+func generateSeedUsers() []domain.Account {
+	users := make([]domain.Account, 0, 100)
+
+	user1 := domain.Account{
+		Email:        "obiwan@matchme.com",
+		PasswordHash: "$2a$12$15dw2.nyH6xOf10DjQezcOIDY.PL.Jkr6ZjJOjpmqcL3xHtVeTWIq", // 12345678
+		Profile: domain.Profile{
+			Name: "Obi-Wan Kenobi", // TODO: maybe add it during registration
+			Age:  35,
+			Bio: `A disciplined mind, a patient approach, and a good cup of tea are my essentials.
+			I value loyalty, strategy, and staying calm in chaos. Always down for a witty debate or a long walk.`,
+			MaxRadius:         10,
+			InteractionModeID: 2,
+			Activities: []domain.ProfileActivity{
+				{
+					ActivityID:    1, // Running
+					Experience:    3, // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+					InterestLevel: 5,
+				},
+				{
+					ActivityID:    14,
+					Experience:    5, // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+					InterestLevel: 4, // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+				},
+			},
+			Lat:      60.1699,
+			Lon:      24.9384,
+			IsOnline: false,
+		},
+	}
+
+	user2 := domain.Account{
+		Email:        "anakin@matchme.com",
+		PasswordHash: "$2a$12$15dw2.nyH6xOf10DjQezcOIDY.PL.Jkr6ZjJOjpmqcL3xHtVeTWIq", // 12345678
+		Profile: domain.Profile{
+			Name: "Anakin Skywalker", // TODO: maybe add it during registration
+			Age:  19,
+			Bio: `I live for speed, high stakes, and pushing limits.
+			I trust my gut, speak my mind, and never back down from a challenge.
+			If it's fast, intense, or "impossible", count me in.`,
+			MaxRadius:         20,
+			InteractionModeID: 2,
+			Activities: []domain.ProfileActivity{
+				{
+					ActivityID:    13, // Running
+					Experience:    4,  // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+					InterestLevel: 4,
+				},
+				{
+					ActivityID:    1,
+					Experience:    3, // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+					InterestLevel: 5, // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+				},
+			},
+			Lat:      60.1699,
+			Lon:      24.9384,
+			IsOnline: false,
+		},
+	}
+
+	// TODO: add 100 randomly generated users
+
+	users = append(users, user1, user2)
+
+	return users
 }

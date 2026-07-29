@@ -48,15 +48,16 @@ func SetupRouter(
 	private.GET("/users/:id", userHandler.UserSummary)         // /users/{id}
 	private.GET("/users/:id/profile", userHandler.UserProfile) // /users/{id}/profile
 	private.GET("/users/:id/bio", userHandler.UserBio)         // /users/{id}/bio
+	// private.POST("/users/:id/profile", userHandler.UpdateProfile)         // /users/{id}/profile
 
 	// Shortcuts
-	// private.GET("/me", userHandler.GetMyBaseInfo)        // /me
-	// private.GET("/me/profile", userHandler.GetMyProfile) // /me/profile
-	// private.GET("/me/bio", userHandler.GetMyBio)         // /me/bio
+	private.GET("/me", userHandler.MySummary)         // /me
+	private.GET("/me/profile", userHandler.MyProfile) // /me/profile
+	private.GET("/me/bio", userHandler.MyBio)         // /me/bio
 
 	// Recommendations
-	// private.GET("/recommendations", matchHandler.GetRecommendations)
 	// private.GET("/connections", matchHandler.GetConnections)
+	// private.GET("/recommendations", matchHandler.GetRecommendations)
 
 	return e
 }

@@ -44,13 +44,13 @@ type Profile struct {
 	IsOnline          bool              `gorm:"-" json:"is_online"`
 }
 
-// InteractionMode directory
+// InteractionMode dictionary
 type InteractionMode struct {
 	ID    int64  `gorm:"primaryKey;autoIncrement" json:"id"`
-	Title string `gorm:"uniqueIndex;not null" json:"title"` // e.g.: "Silent", "Social", "Someone Special / Dating" "Open to anything / Don't care" Mode...
+	Title string `gorm:"uniqueIndex;not null" json:"title"` // e.g.: "Silent", "Social", "Dating" "Open to anything" Mode...
 }
 
-// Activily directory
+// Activily dictionary
 type Activity struct {
 	ID    int64  `gorm:"primaryKey;autoIncrement" json:"id"`
 	Title string `gorm:"uniqueIndex;not null" json:"title"` // e.g.: "Running", "Paddle", "Gym", "Cycling", "CrossFit", "Football"...
@@ -58,8 +58,9 @@ type Activity struct {
 
 // Particular activity in connection to user
 type ProfileActivity struct {
-	ProfileUserID int64    `gorm:"primaryKey" json:"profile_user_id"`
-	ActivityID    int64    `gorm:"primaryKey" json:"activity_id"`
+	ProfileUserID int64 `gorm:"primaryKey" json:"profile_user_id"`
+	ActivityID    int64 `gorm:"primaryKey" json:"activity_id"`
+	// TODO: move experience and interest into dictionary
 	Experience    int      `gorm:"default:1;check:experience >= 1 AND experience <= 5" json:"experience"`             // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
 	InterestLevel int      `gorm:"default:3;check:interest_level >= 1 AND interest_level <= 5" json:"interest_level"` // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 	Profile       Profile  `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`

@@ -29,7 +29,7 @@ func NewUserHandler(us UserService, v *validator.Validate, logger *slog.Logger) 
 	return &UserHandler{userService: us, validator: v, log: logger}
 }
 
-// User returns the user's id, name, and link to the profile picture.
+// UserSummary returns the user's id, name, and link to the profile picture.
 // /users/{id}
 func (h *UserHandler) UserSummary(c *echo.Context) error {
 	ctx := c.Request().Context()
@@ -59,7 +59,7 @@ func (h *UserHandler) UserSummary(c *echo.Context) error {
 	})
 }
 
-// // Profile returns the user's id and "about me" type information.
+// // UserProfile returns the user's id and "about me" type information.
 // // /users/{id}/profile
 func (h *UserHandler) UserProfile(c *echo.Context) error {
 	ctx := c.Request().Context()
@@ -129,7 +129,113 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 		}
 	}
 
+	return c.JSON(http.StatusOK, UserBioResponse{
+		ID:                   profile.UserID,
+		MaxRadius:            profile.MaxRadius,
+		InteractionModeID:    profile.InteractionModeID,
+		InteractionModeTitle: profile.InteractionMode.Title,
+		Activities:           activitiesResponce,
+	})
+}
+
+// MySummary returns the user's id, name, and link to the profile picture for the authorized user.
+// /me
+func (h *UserHandler) MySummary(c *echo.Context) error {
+	ctx := c.Request().Context()
+
+	myID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	profile, err := h.userService.Profile(ctx, myID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{
+				"id":    myID,
+				"error": "User not found",
+			})
+		} else {
+			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+		}
+	}
+
+	return c.JSON(http.StatusOK, UserSummaryResponse{
+		ID:         profile.UserID,
+		Name:       profile.Name,
+		PictureURL: profile.PictureURL,
+	})
+}
+
+// MyProfile returns the user's id and "about me" type information for the authorized user.
+// /me/profile
+func (h *UserHandler) MyProfile(c *echo.Context) error {
+	ctx := c.Request().Context()
+
+	myID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	profile, err := h.userService.Profile(ctx, myID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{
+				"id":    myID,
+				"error": "User not found",
+			})
+		} else {
+			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+		}
+	}
+
 	return c.JSON(http.StatusOK, ProfileResponse{
+		ID:         profile.UserID,
+		Name:       profile.Name,
+		Age:        profile.Age,
+		PictureURL: profile.PictureURL,
+		Bio:        profile.Bio,
+		IsOnline:   profile.IsOnline,
+	})
+}
+
+// MyBio returns the user's id and biographical data (the data used to power recommendations) for the authorized user.
+// /me/bio
+func (h *UserHandler) MyBio(c *echo.Context) error {
+	ctx := c.Request().Context()
+
+	myID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	profile, err := h.userService.Profile(ctx, myID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{
+				"id":    myID,
+				"error": "User not found",
+			})
+		} else {
+			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+		}
+	}
+
+	activitiesResponce := []ActivityResponse{}
+
+	if len(profile.Activities) > 0 {
+		for _, a := range profile.Activities {
+			activity := ActivityResponse{
+				ID:            a.Activity.ID,
+				Title:         a.Activity.Title,
+				Experience:    a.Experience,
+				InterestLevel: a.InterestLevel,
+			}
+			activitiesResponce = append(activitiesResponce, activity)
+		}
+	}
+
+	return c.JSON(http.StatusOK, UserBioResponse{
 		ID:                   profile.UserID,
 		MaxRadius:            profile.MaxRadius,
 		InteractionModeID:    profile.InteractionModeID,

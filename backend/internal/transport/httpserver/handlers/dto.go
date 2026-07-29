@@ -36,7 +36,7 @@ type ProfileResponse struct {
 	Age                  int64              `json:"age,omitzero"`
 	PictureURL           string             `json:"picture_url"`
 	Bio                  string             `json:"bio,omitzero"`
-	MaxRadius            float64            `json:"max_radius"`
+	MaxRadius            float64            `json:"max_radius,omitzero"`
 	InteractionModeID    int64              `json:"interaction_mode_id,omitzero"`
 	InteractionModeTitle string             `json:"interaction_mode_title,omitzero"`
 	Activities           []ActivityResponse `json:"activities,omitzero"`

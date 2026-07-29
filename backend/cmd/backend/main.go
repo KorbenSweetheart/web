@@ -40,15 +40,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Info("database connection established successfully")
+
 	if err := storage.AutoMigrate(); err != nil {
 		log.Error("migration failed", logger.Err(err))
 		os.Exit(1)
 	}
 
+	log.Info("migration completed successfully")
+
 	if err := storage.SeedData(); err != nil {
 		log.Error("seeding failed", logger.Err(err))
 		os.Exit(1)
 	}
+
+	log.Info("seeding completed successfully")
 
 	tm := tokenmgr.NewTokenManager(
 		cfg.TM.JWTSecretKey,
