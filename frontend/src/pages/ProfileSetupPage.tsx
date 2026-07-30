@@ -7,7 +7,9 @@ import { User, Dumbbell, SlidersHorizontal, MapPin, Headphones, Users, Sparkles 
 
 export default function ProfileSetupPage() {
   const [name, setName] = useState('');
-  const [birthDate, setBirthDate] = useState('');  const [bio, setBio] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [bio, setBio] = useState('');
+  const [pictureUrl, setPictureUrl] = useState('');
   const [modeId, setModeId] = useState<number | null>(null);
   const [maxRadius, setMaxRadius] = useState(10);
   const [activities, setActivities] = useState<ProfileActivity[]>([]);
@@ -76,7 +78,7 @@ export default function ProfileSetupPage() {
       name,
       age: calculateAge(birthDate),
       bio,
-      picture_url: '',
+      picture_url: pictureUrl,
       interaction_mode_id: modeId,
       activities,
       max_radius: maxRadius,
@@ -117,6 +119,30 @@ export default function ProfileSetupPage() {
           <label className="form-label" htmlFor="name">Name</label>
           <input id="name" type="text" className="input" placeholder="Marcus K."
             value={name} onChange={(e) => setName(e.target.value)} disabled={loading} />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Profile photo</label>
+          <div className="flex items-center gap-md">
+            {/* Avatar preview: photo or placeholder */}
+            <div className="avatar avatar-lg" style={{ overflow: 'hidden', width: '96px', height: '96px' }}>
+              {pictureUrl ? (
+                <img src={pictureUrl} alt="Profile preview"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              ) : (
+                <span style={{ fontSize: '2.5rem' }}>👤</span>
+              )}
+            </div>
+
+            {/* URL input */}
+            <div style={{ flex: 1 }}>
+              <input type="url" className="input" placeholder="Paste an image URL"
+                value={pictureUrl} onChange={(e) => setPictureUrl(e.target.value)}
+                disabled={loading} />
+              <p className="form-helper mt-xs">Optional — leave empty to use a placeholder.</p>
+            </div>
+          </div>
         </div>
 
         <div className="form-group">
