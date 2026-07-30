@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { SPORTS, MODES, LEVELS, saveProfile } from '../services/profile';
 import type { Profile, ProfileActivity } from '../types';
 import { User, Dumbbell, SlidersHorizontal, MapPin, Headphones, Users, Sparkles } from 'lucide-react';
+import './ProfileSetupPage.css';
 
 export default function ProfileSetupPage() {
   const [name, setName] = useState('');
@@ -103,11 +104,15 @@ export default function ProfileSetupPage() {
   };
 
   return (
-    <div className="container" style={{ maxWidth: 640, paddingTop: '2rem', paddingBottom: '2rem' }}>
-      <h1 className="text-title">Set up your profile</h1>
-      <p className="text-body mt-xs">Tell us a bit about you so we can find your training partners.</p>
+    <div className="profile-setup">
+      {/* Sticky floating header */}
+      <div className="profile-setup__header">
+        <h1 className="text-title">Set up your profile</h1>
+        <p className="text-body mt-xs">Tell us a bit about you so we can find your training partners.</p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-xl">
+      {/* Form card */}
+      <form onSubmit={handleSubmit} className="profile-setup__card">
 
         {/* ===== SECTION: General info ===== */}
         <div className="flex items-center gap-sm mb-md">
