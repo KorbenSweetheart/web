@@ -1,5 +1,5 @@
 .profile-panel {
-  background: var(--surface-elevated);
+  background: var(--surface);
   border: 1px solid var(--accent-hover);
   border-radius: var(--r-2xl);
   padding: clamp(1.5rem, 3vw, 2rem);

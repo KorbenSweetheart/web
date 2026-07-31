@@ -1,5 +1,5 @@
 .discover {
-  max-width: 1100px;
+  max-width: 1500px;
   margin: 0 auto;
 }
 
@@ -24,7 +24,8 @@
 /* When a panel is open (desktop): list left, panel right */
 @media (min-width: 900px) {
   .discover__layout.has-panel {
-    grid-template-columns: 1.3fr 1fr;
+    grid-template-columns: 1.5fr 1fr;
+    gap: clamp(1.5rem, 3vw, 2.5rem);
   }
 }
 
@@ -32,7 +33,7 @@
 .discover__grid {
   display: grid;
   gap: clamp(1rem, 2vw, 1.5rem);
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
 /* Panel wrapper */
@@ -53,5 +54,16 @@
     background: var(--bg);
     padding: 1rem;
     overflow-y: auto;
+  }
+}
+
+/* Panel prominence: subtle shadow to lift it above the list */
+@media (min-width: 900px) {
+  .discover__panel {
+    position: sticky;
+    top: 0;
+  }
+  .discover__panel .profile-panel {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
   }
 }

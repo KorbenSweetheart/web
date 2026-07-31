@@ -86,7 +86,7 @@ export default function UserCard({ user, onConnect, onDismiss, onClick }: UserCa
       <p className="user-card__bio">{user.bio}</p>
 
       {/* Sport tags */}
-      <div className="sport-tag">
+      <div className="user-card__tags">
         {user.activities.slice(0, 3).map((a) => (
           <span key={a.id} className="sport-tag">
             {a.title} · {EXP_LABELS[a.experience]}

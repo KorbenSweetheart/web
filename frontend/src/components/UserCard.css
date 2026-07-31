@@ -23,8 +23,8 @@
 }
 
 .user-card__avatar {
-  width: 56px;
-  height: 56px;
+  width: 70px;
+  height: 70px;
   border-radius: var(--r-full);
   overflow: hidden;
   flex-shrink: 0;
@@ -53,7 +53,9 @@
   font-weight: 700;
   color: var(--text-1);
   margin: 0;
+  white-space: nowrap;
 }
+
 .user-card__status {
   width: 8px;
   height: 8px;
