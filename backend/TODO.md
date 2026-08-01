@@ -35,3 +35,5 @@
   - [ ] `POST /users/{id}/profile` - profile update,
   - [ ] `/activities` - list of activities to display on a profile page
 - [ ] Add connections to profile
+- [x] update name min length, could be 2 char
+- [x] remove omitzero from bio and some other fields that could be removed/emptied by the user in bio

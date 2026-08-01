@@ -113,7 +113,54 @@ func (s *Storage) ProfileByID(ctx context.Context, id int64) (*domain.Profile, e
 	return &profile, nil
 }
 
-// func (s *Storage) UpdateProfile(ctx context.Context, profile *domain.Profile) error
+func (s *Storage) UpdateProfileRecord(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error {
+	updates := make(map[string]any)
+
+	if params.Name != nil {
+		updates["name"] = *params.Name
+	}
+	if params.Age != nil {
+		updates["age"] = *params.Age
+	}
+	if params.PictureURL != nil {
+		updates["picture_url"] = *params.PictureURL
+	}
+	if params.Bio != nil {
+		updates["bio"] = *params.Bio
+	}
+	if params.MaxRadius != nil {
+		updates["max_radius"] = *params.MaxRadius
+	}
+	if params.InteractionMode != nil {
+		updates["interaction_mode"] = int64(*params.InteractionMode)
+	}
+	if params.Lat != nil {
+		updates["lat"] = *params.Lat
+	}
+	if params.Lon != nil {
+		updates["lon"] = *params.Lon
+	}
+	if params.IsOnline != nil {
+		updates["is_online"] = *params.IsOnline
+	}
+
+	// if params.Activities != nil {
+	// 	if len(*params.Activities) > 0 {
+
+	// 		newActivities := make([]domain.ProfileActivity, len(*params.Activities))
+	// 		for i, act := range *params.Activities {
+	// 			newActivities[i] = domain.ProfileActivity{
+	// 				ProfileID:     profileID,
+	// 				ActivityID:    act.ActivityID,
+	// 				Experience:    int(act.Experience),
+	// 				InterestLevel: int(act.InterestLevel),
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	return nil
+}
 
 // IsEmailTaken checks whether the email is already taken.
 // Currently not used anywhere
