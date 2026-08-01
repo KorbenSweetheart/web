@@ -1,7 +1,6 @@
 .profile-panel {
   background: var(--surface);
-  border: 1px solid var(--accent-hover);
-  border-radius: var(--r-2xl);
+  border-left: 4px solid var(--accent-hover);
   padding: clamp(1.5rem, 3vw, 2rem);
   position: relative;
   height: 100%;

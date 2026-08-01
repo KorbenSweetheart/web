@@ -5,6 +5,7 @@
   padding: clamp(1.25rem, 3vw, 1.75rem);
   display: flex;
   flex-direction: column;
+  border-left: 4px solid var(--accent);
   height: 100%;
   transition: transform var(--speed-fast), border-color var(--speed-fast), box-shadow var(--speed-fast);
 }
