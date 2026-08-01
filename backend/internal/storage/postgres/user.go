@@ -98,7 +98,6 @@ func (s *Storage) ProfileByID(ctx context.Context, id int64) (*domain.Profile, e
 	var profile domain.Profile
 
 	err := s.db.WithContext(ctx).
-		Preload("InteractionMode").
 		Preload("Activities.Activity").
 		Where("user_id = ?", id).
 		First(&profile).Error
