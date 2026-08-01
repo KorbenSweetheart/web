@@ -40,7 +40,6 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	var req RegisterRequest
-
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{
 			"error": "invalid json",

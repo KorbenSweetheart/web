@@ -59,12 +59,12 @@ type RefreshToken struct {
 type Profile struct {
 	UserID          int64             `gorm:"primaryKey" json:"id"`
 	Name            string            `gorm:"type:varchar(255);not null" json:"name"`
-	Age             int64             `gorm:"column:age" json:"age"`
 	PictureURL      string            `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
-	Bio             string            `gorm:"type:text" json:"bio"`                                                  // Bio
-	InteractionMode InteractionMode   `gorm:"default:1" json:"interaction_mode"`                                     // "Open to anything", "Silent", "Social", "Dating" Mode
-	Activities      []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
+	Age             int64             `gorm:"column:age" json:"age"`
+	Bio             string            `gorm:"type:text" json:"bio"` // Bio
 	MaxRadius       float64           `gorm:"default:10" json:"max_radius"`
+	InteractionMode InteractionMode   `gorm:"type:smallint;column:interaction_mode;not null;default:1" json:"interaction_mode"` // "Open to anything", "Silent", "Social", "Dating" Mode
+	Activities      []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
 	Lat             float64           `gorm:"-" json:"lat"` // Latitude from the browser API
 	Lon             float64           `gorm:"-" json:"lon"` // Longitude from the browser API
 	IsOnline        bool              `gorm:"-" json:"is_online"`
@@ -80,8 +80,8 @@ type Activity struct {
 type ProfileActivity struct {
 	ProfileUserID int64           `gorm:"primaryKey" json:"profile_user_id"`
 	ActivityID    int64           `gorm:"primaryKey" json:"activity_id"`
-	Experience    ExperienceLevel `gorm:"default:1" json:"experience"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel InterestLevel   `gorm:"default:3" json:"interest_level"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+	Experience    ExperienceLevel `gorm:"type:smallint;column:experience;not null;default:1" json:"experience"`         // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel InterestLevel   `gorm:"type:smallint;column:interest_level;not null;default:3" json:"interest_level"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 	Profile       Profile         `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	Activity      Activity        `gorm:"foreignKey:ActivityID;references:ID;constraint:OnDelete:CASCADE" json:"activity,omitzero"` // To Preload Activity id and name
 }
@@ -130,4 +130,24 @@ type Message struct {
 	IsTyping  bool      `gorm:"-" json:"is_typing,omitempty"`   // optional, extra, e.g., {"type": "typing", "chat_id": 12, "user_id": 42}.
 	Chat      Chat      `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 	Sender    Profile   `gorm:"foreignKey:SenderID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+// Profile Update structs
+type ProfileUpdateParams struct {
+	Name            *string
+	Age             *int64
+	PictureURL      *string
+	Bio             *string
+	MaxRadius       *float64
+	InteractionMode *InteractionMode
+	Activities      *[]ActivityInput
+	Lat             *float64
+	Lon             *float64
+	IsOnline        *bool
+}
+
+type ActivityInput struct {
+	ActivityID    int64
+	Experience    ExperienceLevel
+	InterestLevel InterestLevel
 }

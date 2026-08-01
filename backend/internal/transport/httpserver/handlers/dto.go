@@ -2,12 +2,11 @@ package handlers
 
 import (
 	"match-me-api/internal/domain"
-	"time"
 )
 
-// AuthHandler DTO
+// REQUEST DTOs
 type RegisterRequest struct {
-	Name     string `json:"name" validate:"required,min=3"`
+	Name     string `json:"name" validate:"required,min=2"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 }
@@ -17,34 +16,53 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-type TokenResponse struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	ExpiresAt    time.Time `json:"expires_at"`
+type ProfileUpdateRequest struct {
+	Name            *string                 `json:"name" validate:"omitempty,min=2,max=100"`
+	PictureURL      *string                 `json:"picture_url" validate:"omitempty,url"`
+	Age             *int64                  `json:"age" validate:"omitempty,number,gte=0,lte=125"`
+	Bio             *string                 `json:"bio" validate:"omitempty,max=1000"`
+	MaxRadius       *float64                `json:"max_radius" validate:"omitempty,number,gte=1"`
+	InteractionMode *domain.InteractionMode `json:"interaction_mode" validate:"omitempty,number,gte=1,lte=4"`
+	Activities      *[]ActivityRequest      `json:"activities" validate:"omitempty,dive"`
+	Lat             *float64                `json:"lat" validate:"omitempty,latitude"`
+	Lon             *float64                `json:"lon" validate:"omitempty,longitude"`
+	IsOnline        *bool                   `json:"is_online"`
 }
 
-// UserHandler DTO
+type ActivityRequest struct {
+	ID            int64                  `json:"id" validate:"required,gte=1"`
+	Experience    domain.ExperienceLevel `json:"experience" validate:"required,gte=1,lte=5"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel domain.InterestLevel   `json:"interest_level" validate:"required,gte=1,lte=5"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+}
+
+type LocationUpdateRequest struct {
+	ID  int64   `json:"id" validate:"required,gte=1"`
+	Lat float64 `json:"lat" validate:"required,latitude"`
+	Lon float64 `json:"lon" validate:"required,longitude"`
+}
+
+// RESPONSE DTOs
 
 // /users/{id}
 type UserSummaryResponse struct {
-	ID         int64  `json:"id" validate:"required,id"`
-	Name       string `json:"name" validate:"required,name"`
-	PictureURL string `json:"picture_url" validate:"required,picture_url"`
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	PictureURL string `json:"picture_url"`
 }
 
 // /users/{id}/profile - the user's id and "about me" type information.
 type ProfileResponse struct {
-	ID              int64                  `json:"id" validate:"required,id"`
-	Name            string                 `json:"name"`
-	Age             int64                  `json:"age,omitzero"`
-	PictureURL      string                 `json:"picture_url"`
-	Bio             string                 `json:"bio,omitzero"`
-	MaxRadius       float64                `json:"max_radius,omitzero"`
-	InteractionMode domain.InteractionMode `json:"interaction_mode,omitzero"`
-	Activities      []ActivityResponse     `json:"activities,omitzero"`
-	Lat             float64                `json:"lat,omitzero"` // Latitude from the browser API
-	Lon             float64                `json:"lon,omitzero"` // Longitude from the browser API
-	IsOnline        bool                   `json:"is_online,omitzero"`
+	ID int64 `json:"id"`
+	// Name       string `json:"name"`
+	// PictureURL string `json:"picture_url"`
+	Age int64  `json:"age"`
+	Bio string `json:"bio"`
+	// MaxRadius       float64                `json:"max_radius"`
+	// InteractionMode domain.InteractionMode `json:"interaction_mode"`
+	// Activities      []ActivityResponse     `json:"activities"`
+	// Lat      float64 `json:"lat"`
+	// Lon      float64 `json:"lon"`
+	IsOnline bool `json:"is_online"`
 }
 
 // Activily responce DTO
@@ -57,31 +75,10 @@ type ActivityResponse struct {
 
 // /users/{id}/bio
 type UserBioResponse struct {
-	ID              int64                  `json:"id" validate:"required,id"`
+	ID              int64                  `json:"id"`
 	MaxRadius       float64                `json:"max_radius"`
-	InteractionMode domain.InteractionMode `json:"interaction_mode,omitzero"`
-	Activities      []ActivityResponse     `json:"activities,omitzero"`
-}
-
-type UpdateProfileRequest struct {
-	ID              int64                  `json:"id" validate:"required,id"`
-	Name            string                 `json:"name" validate:"min=3"`
-	Age             int64                  `json:"age" validate:"gte=5"`
-	PictureURL      string                 `json:"picture_url" validate:"url"`
-	Bio             string                 `json:"bio"`
-	MaxRadius       float64                `json:"max_radius" validate:"gt=0"`
-	InteractionMode domain.InteractionMode `json:"interaction_mode,omitzero" validate:"gte=1,lte=4"`
-	Activities      []ActivityRequest      `json:"activities,omitzero"`
-}
-
-type ActivityRequest struct {
-	ID            int64                  `json:"id" validate:"required,id"`
-	Title         string                 `json:"title" validate:"min=3"`                // e.g.: "Running", "Paddle", "Gym", "Cycling", "CrossFit", "Football"...
-	Experience    domain.ExperienceLevel `json:"experience" validate:"gte=1,lte=5"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel domain.InterestLevel   `json:"interest_level" validate:"gte=1,lte=5"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
-}
-
-type UpdateLocationRequest struct {
-	Lat float64 `json:"lat" validate:"required,latitude"`
-	Lon float64 `json:"lon" validate:"required,longitude"`
+	InteractionMode domain.InteractionMode `json:"interaction_mode"`
+	Activities      []ActivityResponse     `json:"activities"`
+	Lat             float64                `json:"lat"` // Latitude from the browser API
+	Lon             float64                `json:"lon"` // Longitude from the browser API
 }
