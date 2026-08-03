@@ -38,11 +38,11 @@ func SetupRouter(
 	public.POST("/auth/register", authHandler.Register)
 	public.POST("/auth/login", authHandler.Login)
 	// public.POST("/auth/refresh", authHandler.Refresh)
-	// public.POST("/auth/logout", authHandler.Logout)
 
 	// Private routes
 	private := e.Group("")
 	private.Use(utils.JWTMiddlewareWithConfig(cfg.TM.JWTSecretKey, handlers.AccessTokenCookieName))
+	private.POST("/auth/logout", authHandler.Logout)
 
 	// Users
 	private.GET("/users/:id", userHandler.UserSummary)         // /users/{id}
@@ -55,7 +55,7 @@ func SetupRouter(
 	private.GET("/me", userHandler.MySummary)         // /me
 	private.GET("/me/profile", userHandler.MyProfile) // /me/profile
 	private.GET("/me/bio", userHandler.MyBio)         // /me/bio
-	// private.PATCH("/me/profile", userHandler.UpdateProfile)
+	private.PATCH("/me/profile", userHandler.UpdateProfile)
 	// private.PATCH("/me/location", userHandler.UpdateLocation)
 
 	// Recommendations
