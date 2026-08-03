@@ -52,23 +52,42 @@ func (us *UserService) Profile(ctx context.Context, id int64) (*domain.Profile, 
 	return profile, nil
 }
 
-// UpdateProfile updates profile with provided data and returns it back with changes.
+// UpdateProfile updates profile with provided data.
 func (us *UserService) UpdateProfile(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error {
 	const op = "service.userService.Profile"
 	log := us.log.With(slog.String("op", op))
 
-	// Бизнес-rules
-	// if params.PictureURL != nil && *params.PictureURL == "" {
-	// 	defaultAvatar := "https://your-cdn.com/avatars/default_placeholder.png"
-	// 	params.PictureURL = &defaultAvatar
-	// }
+	// business rules
+	if params.PictureURL != nil && *params.PictureURL == "" {
+		defaultAvatar := DefaultAvatar
+		params.PictureURL = &defaultAvatar
+	}
 
-	// При необходимости здесь можно добавить дополнительные проверки доступа и валидацию бизнес-правил
+	// TODO: Maybe add MaxRadius rules?
+	if params.MaxRadius != nil && *params.MaxRadius <= 0 {
+		defaultRadius := DefaultRadius
+		params.MaxRadius = &defaultRadius
+	}
 
 	if err := us.storage.UpdateProfileRecord(ctx, id, params); err != nil {
-		log.Debug("failed to get profile by id", "id", id, "error", logger.Err(err))
+		log.Debug("failed to update profile", "id", id, "error", logger.Err(err))
 		return err
 	}
 
 	return nil
 }
+
+// isCompleted verifies Profile bio parameters and returns "true" if all touch points are set.
+// After that the profile can get recommendations and be used for recommendations.
+// func isCompleted(p *domain.Profile) bool {
+// 	const op = "service.userService.isCompleted"
+// 	// log := us.log.With(slog.String("op", op))
+
+// 	if p.Lat == 0 && p.Lon == 0 {
+// 		return false
+// 	}
+// 	if len(p.Activities) == 0 {
+// 		return false
+// 	}
+// 	return true
+// }

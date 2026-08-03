@@ -84,10 +84,10 @@ func (h *UserHandler) UserProfile(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, ProfileResponse{
-		ID:       profile.UserID,
-		Age:      profile.Age,
-		Bio:      profile.Bio,
-		IsOnline: profile.IsOnline,
+		ID:  profile.UserID,
+		Age: profile.Age,
+		Bio: profile.Bio,
+		// IsOnline: profile.IsOnline,
 	})
 }
 
@@ -121,8 +121,8 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 			activity := ActivityResponse{
 				ID:            a.Activity.ID,
 				Title:         a.Activity.Title,
-				Experience:    a.Experience,
-				InterestLevel: a.InterestLevel,
+				Experience:    int(a.Experience),
+				InterestLevel: int(a.InterestLevel),
 			}
 			activitiesResponse = append(activitiesResponse, activity)
 		}
@@ -131,7 +131,7 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 	return c.JSON(http.StatusOK, UserBioResponse{
 		ID:              profile.UserID,
 		MaxRadius:       profile.MaxRadius,
-		InteractionMode: profile.InteractionMode,
+		InteractionMode: int(profile.InteractionMode),
 		Activities:      activitiesResponse,
 		Lat:             profile.Lat,
 		Lon:             profile.Lon,
@@ -190,10 +190,10 @@ func (h *UserHandler) MyProfile(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, ProfileResponse{
-		ID:       profile.UserID,
-		Age:      profile.Age,
-		Bio:      profile.Bio,
-		IsOnline: profile.IsOnline,
+		ID:  profile.UserID,
+		Age: profile.Age,
+		Bio: profile.Bio,
+		// IsOnline: profile.IsOnline,
 	})
 }
 
@@ -226,8 +226,8 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 			activity := ActivityResponse{
 				ID:            a.Activity.ID,
 				Title:         a.Activity.Title,
-				Experience:    a.Experience,
-				InterestLevel: a.InterestLevel,
+				Experience:    int(a.Experience),
+				InterestLevel: int(a.InterestLevel),
 			}
 			activitiesResponce = append(activitiesResponce, activity)
 		}
@@ -236,12 +236,12 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 	return c.JSON(http.StatusOK, UserBioResponse{
 		ID:              profile.UserID,
 		MaxRadius:       profile.MaxRadius,
-		InteractionMode: profile.InteractionMode,
+		InteractionMode: int(profile.InteractionMode),
 		Activities:      activitiesResponce,
 	})
 }
 
-// // UpdateProfile
+// UpdateProfile updates existin user profile fully or partially based on the provided data.
 func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -267,12 +267,11 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 		MaxRadius:  req.MaxRadius,
 		Lat:        req.Lat,
 		Lon:        req.Lon,
-		IsOnline:   req.IsOnline,
+		// IsOnline:   req.IsOnline,
 	}
 
 	if req.InteractionMode != nil {
-		mode := domain.InteractionMode(*req.InteractionMode)
-		params.InteractionMode = &mode
+		params.InteractionMode = new(domain.InteractionMode(*req.InteractionMode))
 	}
 
 	if req.Activities != nil {

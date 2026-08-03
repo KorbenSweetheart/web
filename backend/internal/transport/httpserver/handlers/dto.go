@@ -1,9 +1,5 @@
 package handlers
 
-import (
-	"match-me-api/internal/domain"
-)
-
 // REQUEST DTOs
 type RegisterRequest struct {
 	Name     string `json:"name" validate:"required,min=2"`
@@ -17,22 +13,23 @@ type LoginRequest struct {
 }
 
 type ProfileUpdateRequest struct {
-	Name            *string                 `json:"name" validate:"omitempty,min=2,max=100"`
-	PictureURL      *string                 `json:"picture_url" validate:"omitempty,url"`
-	Age             *int64                  `json:"age" validate:"omitempty,number,gte=0,lte=125"`
-	Bio             *string                 `json:"bio" validate:"omitempty,max=1000"`
-	MaxRadius       *float64                `json:"max_radius" validate:"omitempty,number,gte=1"`
-	InteractionMode *domain.InteractionMode `json:"interaction_mode" validate:"omitempty,number,gte=1,lte=4"`
-	Activities      *[]ActivityRequest      `json:"activities" validate:"omitempty,dive"`
-	Lat             *float64                `json:"lat" validate:"omitempty,latitude"`
-	Lon             *float64                `json:"lon" validate:"omitempty,longitude"`
-	IsOnline        *bool                   `json:"is_online"`
+	// ID              *int64
+	Name            *string            `json:"name" validate:"omitempty,min=2,max=100"`
+	PictureURL      *string            `json:"picture_url" validate:"omitempty,url"`
+	Age             *int64             `json:"age" validate:"omitempty,number,gte=0,lte=125"`
+	Bio             *string            `json:"bio" validate:"omitempty,max=1000"`
+	MaxRadius       *float64           `json:"max_radius" validate:"omitempty,number,gte=1"`
+	InteractionMode *int               `json:"interaction_mode" validate:"omitempty,number,gte=1,lte=4"`
+	Activities      *[]ActivityRequest `json:"activities" validate:"omitempty,dive"`
+	Lat             *float64           `json:"lat" validate:"omitempty,latitude"`
+	Lon             *float64           `json:"lon" validate:"omitempty,longitude"`
+	// IsOnline        *bool              `json:"is_online"`
 }
 
 type ActivityRequest struct {
-	ID            int64                  `json:"id" validate:"required,gte=1"`
-	Experience    domain.ExperienceLevel `json:"experience" validate:"required,gte=1,lte=5"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel domain.InterestLevel   `json:"interest_level" validate:"required,gte=1,lte=5"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+	ID            int64 `json:"id" validate:"required,gte=1"`
+	Experience    int   `json:"experience" validate:"required,gte=1,lte=5"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel int   `json:"interest_level" validate:"required,gte=1,lte=5"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 }
 
 type LocationUpdateRequest struct {
@@ -62,23 +59,23 @@ type ProfileResponse struct {
 	// Activities      []ActivityResponse     `json:"activities"`
 	// Lat      float64 `json:"lat"`
 	// Lon      float64 `json:"lon"`
-	IsOnline bool `json:"is_online"`
+	// IsOnline bool `json:"is_online"`
 }
 
 // Activily responce DTO
 type ActivityResponse struct {
-	ID            int64                  `json:"id"`
-	Title         string                 `json:"title"`          // e.g.: "Running", "Paddle", "Gym", "Cycling", "CrossFit", "Football"...
-	Experience    domain.ExperienceLevel `json:"experience"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel domain.InterestLevel   `json:"interest_level"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+	ID            int64  `json:"id"`
+	Title         string `json:"title"`          // e.g.: "Running", "Paddle", "Gym", "Cycling", "CrossFit", "Football"...
+	Experience    int    `json:"experience"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel int    `json:"interest_level"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 }
 
 // /users/{id}/bio
 type UserBioResponse struct {
-	ID              int64                  `json:"id"`
-	MaxRadius       float64                `json:"max_radius"`
-	InteractionMode domain.InteractionMode `json:"interaction_mode"`
-	Activities      []ActivityResponse     `json:"activities"`
-	Lat             float64                `json:"lat"` // Latitude from the browser API
-	Lon             float64                `json:"lon"` // Longitude from the browser API
+	ID              int64              `json:"id"`
+	MaxRadius       float64            `json:"max_radius"`
+	InteractionMode int                `json:"interaction_mode"`
+	Activities      []ActivityResponse `json:"activities"`
+	Lat             float64            `json:"lat"` // Latitude from the browser API
+	Lon             float64            `json:"lon"` // Longitude from the browser API
 }

@@ -65,8 +65,8 @@ type Profile struct {
 	MaxRadius       float64           `gorm:"default:10" json:"max_radius"`
 	InteractionMode InteractionMode   `gorm:"type:smallint;column:interaction_mode;not null;default:1" json:"interaction_mode"` // "Open to anything", "Silent", "Social", "Dating" Mode
 	Activities      []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
-	Lat             float64           `gorm:"-" json:"lat"` // Latitude from the browser API
-	Lon             float64           `gorm:"-" json:"lon"` // Longitude from the browser API
+	Lat             float64           `gorm:"column:lat" json:"lat"` // Latitude from the browser API
+	Lon             float64           `gorm:"column:lon" json:"lon"` // Longitude from the browser API
 	IsOnline        bool              `gorm:"-" json:"is_online"`
 }
 
