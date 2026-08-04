@@ -3,6 +3,7 @@ import { getMyProfile } from '../services/users';
 import type { UserProfile } from '../services/mockUsers';
 import { User, Headphones, Users, Sparkles, MapPin, Pencil } from 'lucide-react';
 import './ProfilePage.css';
+import { useNavigate } from 'react-router-dom';
 
 const MODES: Record<number, { icon: typeof Headphones; label: string }> = {
   1: { icon: Sparkles,   label: 'Open to anything' },
@@ -18,6 +19,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     getMyProfile()
@@ -60,7 +62,7 @@ export default function ProfilePage() {
           <User size={28} strokeWidth={2.5} className="text-accent" />
           <h1 className="text-title">My profile</h1>
         </div>
-        <button className="btn btn-outline" disabled title="Coming soon">
+        <button className="btn btn-outline" onClick={() => navigate('/app/profile-setup')}>
           <Pencil size={16} strokeWidth={2.5} /> Edit
         </button>
       </div>

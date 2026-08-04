@@ -1,10 +1,11 @@
-import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SPORTS, MODES, LEVELS, saveProfile } from '../services/profile';
 import type { Profile, ProfileActivity } from '../types';
 import { User, Dumbbell, SlidersHorizontal, MapPin, Headphones, Users, Sparkles } from 'lucide-react';
+import { getMyProfile } from '../services/users';
 import './ProfileSetupPage.css';
+import { useState, useEffect } from 'react';
 
 export default function ProfileSetupPage() {
   const [name, setName] = useState('');
@@ -17,6 +18,36 @@ export default function ProfileSetupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
+
+  // On mount, load the existing profile (if any) to pre-fill the form.
+  // First-time users get an empty form; returning users get their data.
+  useEffect(() => {
+    getMyProfile()
+      .then((data) => {
+         // If there's already a name, this is an existing profile → editing
+        if (data.name) setIsEditing(true);
+        if (data.name) setName(data.name);
+        if (data.bio) setBio(data.bio);
+        if (data.picture_url) setPictureUrl(data.picture_url);
+        if (data.max_radius) setMaxRadius(data.max_radius);
+        if (data.interaction_mode) setModeId(data.interaction_mode);
+        if (data.activities && data.activities.length > 0) {
+          // Backend gives {id, experience_level, interest_level}
+          // We use {activity_id, experience, interest_level} internally, so translate:
+          setActivities(
+            data.activities.map((a: any) => ({
+              activity_id: a.id,
+              experience: a.experience_level ?? a.experience ?? 3,
+              interest_level: a.interest_level ?? 3,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        // No profile yet or not logged in — leave the form empty.
+      });
+  }, []);
 
   // Toggle a sport on/off
   function toggleSport(sportId: number) {
@@ -88,7 +119,7 @@ export default function ProfileSetupPage() {
     setLoading(true);
     try {
       await saveProfile(profile);
-      navigate('/app/discover');
+      navigate(isEditing ? '/app/profile' : '/app/discover');
     } catch (err) {
       setError('Something went wrong. Please try again.');
       console.error(err);

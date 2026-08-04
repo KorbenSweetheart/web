@@ -1,127 +1,92 @@
 # TODO — Frontend (Pulse / match-me)
 
 Frontend task list. Updated as Iván progresses on the backend.
-Written in English so Iván can read it too.
 
 ---
 
 ## ✅ Done
 
-- Real auth connected: register + login work against the backend (real JWT).
-- Register → sends to `/login` (no token returned, on purpose).
-- Login → stores the `access_token` and enters the app.
-- `PrivateRoute` protects `/app/*` (redirects to `/login` without a token).
-- Vite proxy to `localhost:8080`.
-- Full layout: sidebar (desktop) + header and bottom-nav (mobile), with logout.
-- Profile setup form (ProfileSetupPage): name, date of birth, photo URL, bio, sports with level, mode, distance.
-- Sport and mode IDs aligned with the backend seed.
-- `services/api.ts` — helper that auto-attaches the token to requests.
-- `services/users.ts` — `getMyProfile()` combines `/me/profile` + `/me/bio` into one object.
-- **ProfilePage** (view my profile) — connected to REAL data via `/me`. Loads name, photo, sports, mode, distance. Shows an empty state when the profile has no data yet.
-- **Discover page** built: `DiscoverPage`, `UserCard`, `ProfilePanel` (master-detail: card list + side panel on desktop, fullscreen on mobile).
-- Routes for both `/app/profile` (view/edit) and `/app/profile-setup` (fill in) now coexist.
-- Backend bug (`InteractionMode: unsupported relations`) — **fixed by Iván**, confirmed `/me`, `/me/profile`, `/me/bio`, `/users/:id` all work now.
+- Real auth: register + login work against the backend (real JWT in localStorage).
+- `PrivateRoute` protects `/app/*`.
+- Full layout: sidebar (desktop) + header/bottom-nav (mobile), with logout button.
+- Design system in `index.css`: 3 accent colors, typography classes, spacing utils, `.sport-tag`.
+- **Profile setup form** (`ProfileSetupPage`): name, date of birth, photo URL, bio, sports w/ level, mode, distance.
+- **Real profile SAVE connected** (`profile.ts`, MOCK=false): PATCH `/me/profile`, translates our field names to backend shape (`interaction_mode`, activity `id`/`experience_level`).
+- **Profile READ connected** (`users.ts` `getMyProfile`): combines `/me` + `/me/profile` + `/me/bio` into one object.
+- **ProfilePage** (view my profile): shows real data, empty state when blank.
+- **Edit flow works**: Edit button → pre-filled form → save → back to `/app/profile`.
+- Form pre-fills from existing profile (useEffect + getMyProfile). First-timers get empty form.
+- Redirect after save: editing → `/app/profile`; first-time → `/app/discover`.
+- **Discover page** (mock data): `DiscoverPage`, `UserCard`, `ProfilePanel` (master-detail; side panel desktop, fullscreen mobile).
+- Routes exist for `/app/profile` (view) and `/app/profile-setup` (fill/edit).
+- Backend profile bug (InteractionMode) — fixed by Iván. All read endpoints work.
 
 ---
 
-## ⚠️ MOCKS still in place (must be swapped for real data later)
+## ⚠️ MOCKS still in place (swap for real data later)
 
-These parts work visually but use FAKE data. They need to be connected to real
-endpoints once those are ready. Keeping them listed so nothing is forgotten:
-
-### 1. Discover uses mock users
-- `services/mockUsers.ts` → `MOCK_USERS` (3 fake users: Marcus, Sofia, Diego).
-- `DiscoverPage.tsx` imports `MOCK_USERS` instead of fetching real data.
-- **The mock was built with the EXACT backend shape** (matches `ProfileResponse` DTO),
-  so swapping to real data should be smooth.
-- **To connect for real, still need:**
-  - `GET /recommendations` (returns a list of IDs) — NOT active yet in the backend.
-  - Then: fetch `/recommendations` -> for each id fetch `/users/:id` + `/users/:id/bio` -> combine -> render cards.
-  - The `match_score` in the mock is fake — it will come from `/recommendations` later.
-- Connect / Dismiss buttons currently just `console.log` + remove the card from local state.
-  Later they must call the backend (send connection request / dismiss).
-
-### 2. Saving the profile is still mocked
-- `services/profile.ts` → `MOCK = true`. `saveProfile` only does a `console.log`.
-- **Before turning MOCK off:** the backend `UpdateProfile` endpoint
-  (`POST /users/:id/profile`) is still COMMENTED OUT in main. Iván is working
-  around the profile area (branch `ivan/profile-update`).
-- Once it's active: read the backend to confirm method (PUT/POST) and exact shape,
-  then set `MOCK = false`. The fetch is already written, just needs turning on.
-- Must accept `activities: [{ activity_id, experience, interest_level }]`.
+### Discover uses mock users
+- `services/mockUsers.ts` → `MOCK_USERS` (Marcus, Sofia, Diego), built with EXACT backend DTO shape.
+- `DiscoverPage.tsx` imports MOCK_USERS instead of fetching.
+- Needs `GET /recommendations` (list of IDs) — NOT active yet.
+- Flow when ready: `/recommendations` → per id `/users/:id` + `/users/:id/bio` → combine → cards.
+- `match_score` is faked in the mock; comes from `/recommendations` later.
+- Connect/Dismiss buttons only do `console.log` + remove from local state. Later: call backend.
 
 ---
 
-## ⏳ Pending to connect (changes in MY code, waiting on backend)
+## ⏳ Pending (my code, waiting on backend or decisions)
 
-### "Complete profile first" flow
-- Task requires: users must complete their profile before seeing recommendations
-  or connecting. No access to Discover/Chats/Connections until the profile is done.
-- Frontend part (mine, once the signal exists):
-  - In `PrivateRoute`: if profile not complete -> redirect to `/app/profile-setup`.
-  - Hide the menu (sidebar / bottom-nav) while the profile is incomplete.
-  - Once complete -> normal access; `/app/profile` becomes view/edit.
-- **Needs from Iván (open question):** a way to know if a profile is complete.
-  Either a `profile_completed` field on `/me`, or infer it (empty `activities` = not done).
-- Backend should ALSO block those endpoints if the profile isn't complete (real security,
-  not just the frontend hiding things).
+### "Complete profile first" flow  ← NOT built yet
+- Task: user must complete profile before Discover/Chats/Connections.
+- Both routes exist but there's NO logic deciding which to show.
+- Need a signal: `profile_completed` field on `/me`, OR infer (empty `activities` = incomplete).
+- Then in `PrivateRoute`: incomplete → redirect to `/app/profile-setup`; hide menu while incomplete.
+- Backend should also block those endpoints if profile incomplete (real security).
 
-### Edit profile
-- `ProfilePage` has an **Edit button that is disabled** ("Coming soon").
-- Enable it once profile saving/editing works. It should reuse the ProfileSetup form,
-  pre-filled with current data.
+### Date of birth vs age  ← Iván AGREED to change
+- Backend currently stores `age` (number). Editing can't show a date, and age gets stale.
+- Iván said YES to switching to `birth_date`. When he does: form sends a date like "1990-05-14".
+- Until then: form still asks age via date picker, and on EDIT the date field comes back EMPTY
+  (can't rebuild date from age), so user must re-enter it. Small annoyance, left as-is for now.
 
-### Redirect after login by profile status
-- `LoginPage.tsx` currently sends everyone to `/app/profile`.
-- Once the "profile complete" signal exists:
-  - complete -> `/app/discover`
-  - incomplete -> `/app/profile-setup`
+### Token expiry (401)
+- When a request returns 401, app should auto-clear token + redirect to `/login`.
+- Add to `services/api.ts`. Right now expired token just shows a generic error.
 
-### Token expiry handling (401)
-- When any request returns 401 (expired token), the app should auto clear the token
-  and redirect to `/login`, instead of showing a confusing error.
-- Add this to `services/api.ts`. Right now an expired token just shows
-  "Could not load your profile".
-
-### Sports / modes lists from the backend
-- `services/profile.ts` → `SPORTS` and `MODES` are hardcoded (with correct seed IDs).
-- When Iván builds `/activities` (and if he exposes modes), replace the hardcoded
-  lists with a fetch. Modes/levels agreed to stay mapped in frontend.
+### Sports/modes from backend
+- `profile.ts` SPORTS/MODES hardcoded (correct seed IDs). Swap to fetch when `/activities` exists.
+- Modes/levels agreed to stay mapped in frontend.
 
 ### Real logout
-- `/auth/logout` exists on the backend (still commented in main router though).
-- When active, `logout()` can call it in addition to clearing the local token.
+- `/auth/logout` now exists on backend. `logout()` can call it in addition to clearing local token.
+
+### /me/profile doesn't return name/picture
+- `/me/profile` returns only id/age/bio. name + picture_url come from `/me`.
+- That's why getMyProfile combines all three. Noted in case it confuses later.
 
 ---
 
-## 🆕 New work (build, not just connect)
+## 🆕 New work (build)
 
-### Connections
-- Needs `GET /connections` (list of IDs) — Iván working on it.
-- Reuse the card, different buttons per state (pending / connected -> chat, disconnect).
-
-### Chat
-- Needs connections + WebSocket (real-time, no polling per the task).
-- Big separate piece: chat list, message view, unread indicator, typing indicator,
-  online/offline status.
+- **Connections**: needs `GET /connections`. Reuse card, different buttons per state.
+- **Chat**: needs connections + WebSocket (real-time, no polling). Big piece: chat list, messages, unread badge, typing indicator, online status.
 
 ---
 
 ## 💬 Decisions settled with Iván
 
-- **Dating mode + Gender:** DROPPED. Pulse is training-partners only (simpler). Can revisit Dating at the end if there's time.
-- **Availability / schedule:** DROPPED (Iván: over-engineers the recommendation engine).
-- **Interest level per sport:** kept FIXED at 3 in the form (backend supports it, but user doesn't pick it — keeps the form simple).
-- **Only Activities becomes a DB dictionary** (`/activities`); modes and levels stay mapped in frontend.
+- Dating mode + Gender: DROPPED (training-partners only). Revisit Dating at end if time.
+- Availability/schedule: DROPPED (over-engineers recommendations).
+- Interest level per sport: FIXED at 3 in form (backend supports it, user doesn't pick).
+- Only Activities becomes a DB dictionary (`/activities`); modes/levels mapped in frontend.
+- birth_date instead of age: Iván AGREED, will change backend when he can.
 
-## 💬 Still open with Iván
-
-- How the frontend knows a profile is complete (field vs infer).
-- Whether I take on a piece of the backend to share the load (offered, waiting on his call).
+## ⚙️ Backend status note
+- Iván is mid-work: switching age→birth_date, wrestling with GORM, added PostGIS for coordinates
+  (crashed Docker doing it). Backend may be unstable for a bit — if requests fail weirdly, might be him.
 
 ---
 
-## 🔤 Permanent reminder
-
-Everything in **snake_case** to match the backend:
-`access_token`, `picture_url`, `activity_id`, `interaction_mode_id`, `max_radius`, `profile_completed`, `interest_level`.
+## 🔤 Reminder
+Everything in snake_case: `access_token`, `picture_url`, `activity_id`, `interaction_mode`, `max_radius`, `experience_level`, `interest_level`, `profile_completed`.
