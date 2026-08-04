@@ -14,7 +14,7 @@
 
 import type { Profile } from '../types';
 
-const MOCK = true;
+const MOCK = false;
 
 // Sports list — ids match Iván's activities table exactly.
 // (Confirmed from the seeded DB, so ids line up with the backend.)
@@ -54,18 +54,37 @@ export const LEVELS = [
 ];
 
 export async function saveProfile(profile: Profile) {
+  // Transform our data into the exact shape Iván's backend expects.
+  // Our internal names differ, so we translate here before sending:
+  //   interaction_mode_id → interaction_mode
+  //   activity_id         → id
+  //   experience          → experience_level
+  const body = {
+    name: profile.name,
+    picture_url: profile.picture_url,
+    age: profile.age,
+    bio: profile.bio,
+    max_radius: profile.max_radius,
+    interaction_mode: profile.interaction_mode_id,
+    activities: profile.activities.map((a) => ({
+      id: a.activity_id,
+      experience_level: a.experience,
+      interest_level: a.interest_level,
+    })),
+  };
+
   if (MOCK) {
-    console.log('Saving profile (mock):', profile);
+    console.log('Saving profile (mock):', body);
     return { success: true };
   }
 
   const res = await fetch('/me/profile', {
-    method: 'PUT',
+    method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${localStorage.getItem('token')}`,
     },
-    body: JSON.stringify(profile),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) throw new Error('Failed to save profile');

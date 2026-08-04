@@ -14,17 +14,17 @@ import type { UserProfile } from './mockUsers';
 // Fetch the logged-in user's full profile.
 // Combines /me/profile (about) + /me/bio (sports, mode, radius).
 export async function getMyProfile(): Promise<UserProfile> {
-  const [profile, bio] = await Promise.all([
-    apiGet('/me/profile'),
-    apiGet('/me/bio'),
+  const [summary, profile, bio] = await Promise.all([
+    apiGet('/me'),          // name, picture_url
+    apiGet('/me/profile'),  // age, bio
+    apiGet('/me/bio'),      // max_radius, mode, activities
   ]);
 
-  // Merge both responses into one object matching UserProfile shape
   return {
-    id: profile.id,
-    name: profile.name ?? '',
+    id: summary.id,
+    name: summary.name ?? '',
+    picture_url: summary.picture_url ?? '',
     age: profile.age ?? 0,
-    picture_url: profile.picture_url ?? '',
     bio: profile.bio ?? '',
     max_radius: bio.max_radius ?? 0,
     interaction_mode: bio.interaction_mode ?? 1,
@@ -32,6 +32,6 @@ export async function getMyProfile(): Promise<UserProfile> {
     lat: profile.lat ?? 0,
     lon: profile.lon ?? 0,
     is_online: profile.is_online ?? false,
-    match_score: 0, // not applicable to your own profile
+    match_score: 0,
   };
 }
