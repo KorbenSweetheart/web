@@ -80,8 +80,8 @@ type Activity struct {
 type ProfileActivity struct {
 	ProfileUserID int64           `gorm:"primaryKey" json:"profile_user_id"`
 	ActivityID    int64           `gorm:"primaryKey" json:"activity_id"`
-	Experience    ExperienceLevel `gorm:"type:smallint;column:experience;not null;default:1" json:"experience"`         // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel InterestLevel   `gorm:"type:smallint;column:interest_level;not null;default:3" json:"interest_level"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+	Experience    ExperienceLevel `gorm:"type:smallint;column:experience_level;not null;default:1" json:"experience_level"` // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel InterestLevel   `gorm:"type:smallint;column:interest_level;not null;default:3" json:"interest_level"`     // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 	Profile       Profile         `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	Activity      Activity        `gorm:"foreignKey:ActivityID;references:ID;constraint:OnDelete:CASCADE" json:"activity,omitzero"` // To Preload Activity id and name
 }

@@ -28,8 +28,8 @@ type ProfileUpdateRequest struct {
 
 type ActivityRequest struct {
 	ID            int64 `json:"id" validate:"required,gte=1"`
-	Experience    int   `json:"experience" validate:"required,gte=1,lte=5"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-	InterestLevel int   `json:"interest_level" validate:"required,gte=1,lte=5"` // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
+	Experience    int   `json:"experience_level" validate:"required,gte=1,lte=5"` // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
+	InterestLevel int   `json:"interest_level" validate:"required,gte=1,lte=5"`   // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 }
 
 type LocationUpdateRequest struct {

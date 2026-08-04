@@ -115,6 +115,7 @@ func (s *Storage) ProfileByID(ctx context.Context, id int64) (*domain.Profile, e
 
 func (s *Storage) UpdateProfileRecord(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error {
 	const op = "storage.postgres.UpdateProfileRecord"
+	// log := s.log.With(slog.String("op", op))
 
 	updates := make(map[string]any)
 
