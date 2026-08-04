@@ -9,12 +9,12 @@
   - [x] Registration
     - [x] Add bcrypt (salt is the part of the algorithm)
     - [x] Add switch for different types of error, to return different statuses.
-    - [ ] Add Login in or redirect to login upon successful registration
+    <!-- - [ ] Add Login in or redirect to login upon successful registration -->
   - [x] Login
     - [x] Add JWT and session cookies
     - [x] Add refresh token and RT cookie
     - [x] Add save refresh token to db
-    - [ ] Add location lon lat parse during login, front should pass it to backend while login, to use for distance matching
+    - [ ] Add location lon lat parse during recommendation request, front should pass it to backend, to use for distance matching
     - [ ] Add refresh token endpoint for refresh
     - [ ] Add renew JWT token based on RT
     - [ ] Decide when to mark user Online, when he logged in, or when he sends messages?
@@ -37,3 +37,4 @@
 - [ ] Add connections to profile
 - [x] update name min length, could be 2 char
 - [x] remove omitzero from bio and some other fields that could be removed/emptied by the user in bio
+- [ ] Check all TODOs inside the code.

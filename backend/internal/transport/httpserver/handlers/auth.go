@@ -58,7 +58,7 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 			return c.JSON(http.StatusBadRequest, map[string]any{
 				"email":   req.Email,
 				"name":    req.Name,
-				"error":   domain.ErrEmailIsTaken,
+				"error":   domain.ErrEmailIsTaken.Error(),
 				"message": "An account with this email already exists.",
 			})
 		} else {
@@ -98,7 +98,7 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidCreds) {
 			return c.JSON(http.StatusUnauthorized, map[string]any{
 				"email":   req.Email,
-				"error":   domain.ErrInvalidCreds,
+				"error":   domain.ErrInvalidCreds.Error(),
 				"message": "invalid input body",
 			})
 		} else {

@@ -238,11 +238,17 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 		MaxRadius:       profile.MaxRadius,
 		InteractionMode: int(profile.InteractionMode),
 		Activities:      activitiesResponce,
+		// TODO: remove lat and lon from responce, added for testing
+		Lat: profile.Lat,
+		Lon: profile.Lon,
 	})
 }
 
 // UpdateProfile updates existin user profile fully or partially based on the provided data.
 func (h *UserHandler) UpdateProfile(c *echo.Context) error {
+	const op = "httpserver.handlers.UpdateProfile"
+	// log := h.log.With(slog.String("op", op))
+
 	ctx := c.Request().Context()
 
 	userID, ok := c.Get("user_id").(int64)
