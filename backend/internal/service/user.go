@@ -12,7 +12,7 @@ type UserProvider interface {
 	IsEmailTaken(ctx context.Context, email string) (bool, error)
 	AccountByID(ctx context.Context, id int64) (*domain.Account, error)
 	ProfileByID(ctx context.Context, id int64) (*domain.Profile, error)
-	// UpdateProfile(ctx context.Context, profile *domain.Profile) error
+	UpdateProfileRecord(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
 }
 
 type UserService struct {
@@ -52,32 +52,42 @@ func (us *UserService) Profile(ctx context.Context, id int64) (*domain.Profile, 
 	return profile, nil
 }
 
-// // UpdateProfile updates profile with provided data and returns it back with changes.
-// func (us *UserService) UpdateProfile(ctx context.Context, profile domain.Profile) (*domain.Profile, error) {
-// 	const op = "service.userService.Profile"
-// 	log := us.log.With(slog.String("op", op))
+// UpdateProfile updates profile with provided data.
+func (us *UserService) UpdateProfile(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error {
+	const op = "service.userService.Profile"
+	log := us.log.With(slog.String("op", op))
 
-// 	profile, err := us.storage.ProfileByID(ctx, id)
-// 	if err != nil {
-// 		log.Debug("failed to get profile by id", "id", id, "error", logger.Err(err))
-// 		return nil, err
+	// business rules
+	if params.PictureURL != nil && *params.PictureURL == "" {
+		defaultAvatar := DefaultAvatar
+		params.PictureURL = &defaultAvatar
+	}
+
+	// TODO: Maybe add MaxRadius rules?
+	if params.MaxRadius != nil && *params.MaxRadius <= 0 {
+		defaultRadius := DefaultRadius
+		params.MaxRadius = &defaultRadius
+	}
+
+	if err := us.storage.UpdateProfileRecord(ctx, id, params); err != nil {
+		log.Debug("failed to update profile", "id", id, "error", logger.Err(err))
+		return err
+	}
+
+	return nil
+}
+
+// isCompleted verifies Profile bio parameters and returns "true" if all touch points are set.
+// After that the profile can get recommendations and be used for recommendations.
+// func isCompleted(p *domain.Profile) bool {
+// 	const op = "service.userService.isCompleted"
+// 	// log := us.log.With(slog.String("op", op))
+
+// 	if p.Lat == 0 && p.Lon == 0 {
+// 		return false
 // 	}
-
-// 	return profile, nil
-// }
-
-// func (us *UserService) UpdateLocation(ctx context.Context, id int64, lat, lon float64) error {
-// 	const op = "service.userService.Profile"
-// 	log := us.log.With(slog.String("op", op))
-
-// 	profile, err := us.storage.ProfileByID(ctx, id)
-// 	if err != nil {
-// 		log.Debug("failed to get profile by id", "id", id, "error", logger.Err(err))
-// 		return err
+// 	if len(p.Activities) == 0 {
+// 		return false
 // 	}
-
-// 	profile.Lat = lat
-// 	profile.Lon = lon
-
-// 	return nil
+// 	return true
 // }

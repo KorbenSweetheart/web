@@ -15,8 +15,8 @@ import (
 type UserService interface {
 	Account(ctx context.Context, id int64) (*domain.Account, error)
 	Profile(ctx context.Context, id int64) (*domain.Profile, error)
+	UpdateProfile(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
 	// UpdateLocation(ctx context.Context, id int64, lat, lon float64) error
-	// UpdateProfile(ctx context.Context, profile *domain.Profile) error
 	// AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
 }
 
@@ -84,12 +84,10 @@ func (h *UserHandler) UserProfile(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, ProfileResponse{
-		ID:         profile.UserID,
-		Name:       profile.Name,
-		Age:        profile.Age,
-		PictureURL: profile.PictureURL,
-		Bio:        profile.Bio,
-		IsOnline:   profile.IsOnline,
+		ID:  profile.UserID,
+		Age: profile.Age,
+		Bio: profile.Bio,
+		// IsOnline: profile.IsOnline,
 	})
 }
 
@@ -116,25 +114,27 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 		}
 	}
 
-	activitiesResponce := []ActivityResponse{}
+	activitiesResponse := make([]ActivityResponse, 0, len(profile.Activities))
 
 	if len(profile.Activities) > 0 {
 		for _, a := range profile.Activities {
 			activity := ActivityResponse{
 				ID:            a.Activity.ID,
 				Title:         a.Activity.Title,
-				Experience:    a.Experience,
-				InterestLevel: a.InterestLevel,
+				Experience:    int(a.Experience),
+				InterestLevel: int(a.InterestLevel),
 			}
-			activitiesResponce = append(activitiesResponce, activity)
+			activitiesResponse = append(activitiesResponse, activity)
 		}
 	}
 
 	return c.JSON(http.StatusOK, UserBioResponse{
 		ID:              profile.UserID,
 		MaxRadius:       profile.MaxRadius,
-		InteractionMode: profile.InteractionMode,
-		Activities:      activitiesResponce,
+		InteractionMode: int(profile.InteractionMode),
+		Activities:      activitiesResponse,
+		Lat:             profile.Lat,
+		Lon:             profile.Lon,
 	})
 }
 
@@ -190,12 +190,10 @@ func (h *UserHandler) MyProfile(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, ProfileResponse{
-		ID:         profile.UserID,
-		Name:       profile.Name,
-		Age:        profile.Age,
-		PictureURL: profile.PictureURL,
-		Bio:        profile.Bio,
-		IsOnline:   profile.IsOnline,
+		ID:  profile.UserID,
+		Age: profile.Age,
+		Bio: profile.Bio,
+		// IsOnline: profile.IsOnline,
 	})
 }
 
@@ -228,8 +226,8 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 			activity := ActivityResponse{
 				ID:            a.Activity.ID,
 				Title:         a.Activity.Title,
-				Experience:    a.Experience,
-				InterestLevel: a.InterestLevel,
+				Experience:    int(a.Experience),
+				InterestLevel: int(a.InterestLevel),
 			}
 			activitiesResponce = append(activitiesResponce, activity)
 		}
@@ -238,9 +236,67 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 	return c.JSON(http.StatusOK, UserBioResponse{
 		ID:              profile.UserID,
 		MaxRadius:       profile.MaxRadius,
-		InteractionMode: profile.InteractionMode,
+		InteractionMode: int(profile.InteractionMode),
 		Activities:      activitiesResponce,
+		// TODO: remove lat and lon from responce, added for testing
+		Lat: profile.Lat,
+		Lon: profile.Lon,
 	})
+}
+
+// UpdateProfile updates existin user profile fully or partially based on the provided data.
+func (h *UserHandler) UpdateProfile(c *echo.Context) error {
+	const op = "httpserver.handlers.UpdateProfile"
+	// log := h.log.With(slog.String("op", op))
+
+	ctx := c.Request().Context()
+
+	userID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	var req ProfileUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid payload"})
+	}
+	if err := h.validator.Struct(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+	}
+
+	// 3. Map DTO into domain struct
+	params := &domain.ProfileUpdateParams{
+		Name:       req.Name,
+		Age:        req.Age,
+		PictureURL: req.PictureURL,
+		Bio:        req.Bio,
+		MaxRadius:  req.MaxRadius,
+		Lat:        req.Lat,
+		Lon:        req.Lon,
+		// IsOnline:   req.IsOnline,
+	}
+
+	if req.InteractionMode != nil {
+		params.InteractionMode = new(domain.InteractionMode(*req.InteractionMode))
+	}
+
+	if req.Activities != nil {
+		activities := make([]domain.ActivityInput, len(*req.Activities))
+		for i, act := range *req.Activities {
+			activities[i] = domain.ActivityInput{
+				ActivityID:    act.ID,
+				Experience:    domain.ExperienceLevel(act.Experience),
+				InterestLevel: domain.InterestLevel(act.InterestLevel),
+			}
+		}
+		params.Activities = &activities
+	}
+
+	if err := h.userService.UpdateProfile(ctx, userID, params); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to update profile"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"status": "profile updated successfully"})
 }
 
 // func (h *UserHandler) UpdateLocation(c *echo.Context) error {
@@ -251,6 +307,12 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 // 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid payload"})
 // 	}
 
+// 	if err := h.validator.Struct(req); err != nil {
+// 		return c.JSON(http.StatusBadRequest, map[string]any{
+// 			"error": "validation failed: " + err.Error(),
+// 		})
+// 	}
+
 // 	userID := c.Get("user_id").(int64)
 
 // 	if err := h.userService.UpdateLocation(ctx, userID, req.Lat, req.Lon); err != nil {
@@ -258,38 +320,4 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 // 	}
 
 // 	return c.JSON(http.StatusOK, map[string]any{"status": "location updated"})
-// }
-
-// // UpdateProfile
-// func (h *UserHandler) UpdateProfile(c *echo.Context) error {
-// 	ctx := c.Request().Context()
-
-// 	var req UpdateProfileRequest
-
-// 	if err := c.Bind(&req); err != nil {
-// 		return c.JSON(http.StatusBadRequest, map[string]any{
-// 			"error": "invalid json",
-// 		})
-// 	}
-
-// 	if err := h.validator.Struct(req); err != nil {
-// 		return c.JSON(http.StatusBadRequest, map[string]any{
-// 			"error": "validation failed: " + err.Error(),
-// 		})
-// 	}
-
-// 	// Build domain model out of DTO
-// 	profile := &domain.Profile{
-// 		Name:      req.Name,
-//		PictureURL req.Picture // add/remove/change their profile picture
-// 		Age:       req.Age,
-// 		Bio:       req.Bio,
-// 		MaxRadius: req.MaxRadius,
-// 	}
-
-// 	if err := h.userService.Update(ctx, profile); err != nil {
-// 		return err
-// 	}
-
-// 	return c.JSON(http.StatusOK, profile)
 // }

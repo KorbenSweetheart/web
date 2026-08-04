@@ -38,27 +38,28 @@ func SetupRouter(
 	public.POST("/auth/register", authHandler.Register)
 	public.POST("/auth/login", authHandler.Login)
 	// public.POST("/auth/refresh", authHandler.Refresh)
-	// public.POST("/auth/logout", authHandler.Logout)
 
 	// Private routes
 	private := e.Group("")
 	private.Use(utils.JWTMiddlewareWithConfig(cfg.TM.JWTSecretKey, handlers.AccessTokenCookieName))
+	private.POST("/auth/logout", authHandler.Logout)
 
 	// Users
 	private.GET("/users/:id", userHandler.UserSummary)         // /users/{id}
 	private.GET("/users/:id/profile", userHandler.UserProfile) // /users/{id}/profile
 	private.GET("/users/:id/bio", userHandler.UserBio)         // /users/{id}/bio
-	// private.POST("/users/:id/profile", userHandler.UpdateProfile)         // /users/{id}/profile
+	// private.GET("/activities", userHandler.Activities) // /actvities
+	// private.GET("/connections", userHandler.Connections)
 
 	// Shortcuts
 	private.GET("/me", userHandler.MySummary)         // /me
 	private.GET("/me/profile", userHandler.MyProfile) // /me/profile
 	private.GET("/me/bio", userHandler.MyBio)         // /me/bio
+	private.PATCH("/me/profile", userHandler.UpdateProfile)
 	// private.PATCH("/me/location", userHandler.UpdateLocation)
 
 	// Recommendations
-	// private.GET("/connections", matchHandler.GetConnections)
-	// private.GET("/recommendations", matchHandler.GetRecommendations)
+	// private.GET("/recommendations", matchHandler.Recommendations)
 
 	return e
 }
