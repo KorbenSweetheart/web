@@ -24,7 +24,7 @@ export async function getMyProfile(): Promise<UserProfile> {
     id: summary.id,
     name: summary.name ?? '',
     picture_url: summary.picture_url ?? '',
-    age: profile.age ?? 0,
+    birth_date: profile.birth_date ?? '',
     bio: profile.bio ?? '',
     max_radius: bio.max_radius ?? 0,
     interaction_mode: bio.interaction_mode ?? 1,

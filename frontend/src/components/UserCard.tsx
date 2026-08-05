@@ -2,6 +2,15 @@ import type { UserProfile } from '../services/mockUsers';
 import './UserCard.css';
 import { Headphones, Users, Sparkles, ChevronRight } from 'lucide-react';
 
+function calculateAge(birth: string): number {
+  const today = new Date();
+  const b = new Date(birth);
+  let age = today.getFullYear() - b.getFullYear();
+  const monthDiff = today.getMonth() - b.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < b.getDate())) age--;
+  return age;
+}
+
 // Map interaction_mode → icon + label
 const MODES: Record<number, { icon: typeof Headphones; label: string }> = {
   1: { icon: Sparkles,   label: 'Open to anything' },
@@ -18,15 +27,29 @@ const EXP_LABELS: Record<number, string> = {
   5: 'Professional',
 };
 
+// Which set of buttons the card shows in the footer.
+// 'discover'  → Dismiss / Connect        (Discover page)
+// 'received'  → Decline / Accept         (they sent us a request)
+// 'sent'      → Cancel request           (we sent it, waiting)
+// 'connected' → Message                  (already connected)
+export type UserCardVariant = 'discover' | 'received' | 'sent' | 'connected';
+
 interface UserCardProps {
   user: UserProfile;
+  variant?: UserCardVariant;
   onConnect?: (id: number) => void;
   onDismiss?: (id: number) => void;
+  onAccept?: (id: number) => void;
+  onDecline?: (id: number) => void;
+  onCancel?: (id: number) => void;
+  onMessage?: (id: number) => void;
   onClick?: (id: number) => void;
 }
 
-export default function UserCard({ user, onConnect, onDismiss, onClick }: UserCardProps) {
-  // Initials for the avatar fallback
+export default function UserCard({
+  user, variant = 'discover',
+  onConnect, onDismiss, onAccept, onDecline, onCancel, onMessage, onClick,
+}: UserCardProps) {
   const initials = user.name
     .split(' ')
     .map((w) => w[0])
@@ -62,7 +85,7 @@ export default function UserCard({ user, onConnect, onDismiss, onClick }: UserCa
               const ModeIcon = MODES[user.interaction_mode].icon;
               return (
                 <>
-                  {user.age} · <ModeIcon size={14} strokeWidth={2.5} className="user-card__mode-icon" />
+                  {calculateAge(user.birth_date)} · <ModeIcon size={14} strokeWidth={2.5} className="user-card__mode-icon" />
                   {MODES[user.interaction_mode].label}
                 </>
               );
@@ -103,17 +126,49 @@ export default function UserCard({ user, onConnect, onDismiss, onClick }: UserCa
           onClick={(e) => { e.stopPropagation(); onClick?.(user.id); }}>
           View full profile <ChevronRight size={16} strokeWidth={2.5} />
         </button>
+
         <div className="user-card__actions">
-          <button className="btn btn-outline"
-            onClick={(e) => { e.stopPropagation(); onDismiss?.(user.id); }}>
-            Dismiss
-          </button>
-          <button className="btn btn-primary"
-            onClick={(e) => { e.stopPropagation(); onConnect?.(user.id); }}>
-            Connect
-          </button>
+          {variant === 'discover' && (
+            <>
+              <button className="btn btn-outline"
+                onClick={(e) => { e.stopPropagation(); onDismiss?.(user.id); }}>
+                Dismiss
+              </button>
+              <button className="btn btn-primary"
+                onClick={(e) => { e.stopPropagation(); onConnect?.(user.id); }}>
+                Connect
+              </button>
+            </>
+          )}
+
+          {variant === 'received' && (
+            <>
+              <button className="btn btn-outline"
+                onClick={(e) => { e.stopPropagation(); onDecline?.(user.id); }}>
+                Decline
+              </button>
+              <button className="btn btn-primary"
+                onClick={(e) => { e.stopPropagation(); onAccept?.(user.id); }}>
+                Accept
+              </button>
+            </>
+          )}
+
+          {variant === 'sent' && (
+            <button className="btn btn-outline"
+              onClick={(e) => { e.stopPropagation(); onCancel?.(user.id); }}>
+              Cancel request
+            </button>
+          )}
+
+          {variant === 'connected' && (
+            <button className="btn btn-primary"
+              onClick={(e) => { e.stopPropagation(); onMessage?.(user.id); }}>
+              Message
+            </button>
+          )}
         </div>
       </div>
-    </div>  
+    </div>
   );
 }

@@ -19,7 +19,7 @@ export interface Activity {
 export interface UserProfile {
   id: number;
   name: string;
-  age: number;
+  birth_date: string;
   picture_url: string;
   bio: string;
   max_radius: number;
@@ -37,7 +37,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: 1,
     name: 'Marcus K.',
-    age: 28,
+    birth_date: '1997-03-14',
     picture_url: 'https://i.pravatar.cc/300?img=12',
     bio: 'Early riser, love a hard morning run before work. Looking for someone to keep the pace honest.',
     max_radius: 15,
@@ -54,7 +54,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: 2,
     name: 'Sofia R.',
-    age: 24,
+    birth_date: '1999-03-04',
     picture_url: 'https://i.pravatar.cc/300?img=45',
     bio: 'Climber and yoga person. Happy to chat between sets or just vibe in silence.',
     max_radius: 10,
@@ -71,7 +71,7 @@ export const MOCK_USERS: UserProfile[] = [
   {
     id: 3,
     name: 'Diego M.',
-    age: 31,
+    birth_date: '1999-03-04',
     picture_url: 'https://i.pravatar.cc/300?img=33',
     bio: 'Football on weekends, gym during the week. Always up for a kickabout.',
     max_radius: 20,

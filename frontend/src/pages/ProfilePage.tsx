@@ -15,6 +15,15 @@ const EXP_LABELS: Record<number, string> = {
   1: 'Beginner', 2: 'Active Novice', 3: 'Intermediate', 4: 'Advanced', 5: 'Professional',
 };
 
+function calculateAge(birth: string): number {
+  const today = new Date();
+  const b = new Date(birth);
+  let age = today.getFullYear() - b.getFullYear();
+  const monthDiff = today.getMonth() - b.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < b.getDate())) age--;
+  return age;
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +91,7 @@ export default function ProfilePage() {
           </div>
           <div>
             <h2 className="text-subtitle">{profile.name || 'No name yet'}</h2>
-            {profile.age > 0 && <p className="text-body">{profile.age} years old</p>}
+            {profile.birth_date && <p className="text-body">{calculateAge(profile.birth_date)} years old</p>}
           </div>
         </div>
 
