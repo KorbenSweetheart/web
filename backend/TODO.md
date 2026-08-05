@@ -38,3 +38,6 @@
 - [x] update name min length, could be 2 char
 - [x] remove omitzero from bio and some other fields that could be removed/emptied by the user in bio
 - [ ] Check all TODOs inside the code.
+- [ ] Add Age calculation based on the birthday
+- [ ] Review context usage starting from main
+- [] Add "withContext()" to db calls.

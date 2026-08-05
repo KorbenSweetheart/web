@@ -67,7 +67,6 @@ type Profile struct {
 	Activities      []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
 	Lat             float64           `gorm:"column:lat" json:"lat"` // Latitude from the browser API
 	Lon             float64           `gorm:"column:lon" json:"lon"` // Longitude from the browser API
-	IsOnline        bool              `gorm:"-" json:"is_online"`
 }
 
 // Activily dictionary
@@ -143,7 +142,6 @@ type ProfileUpdateParams struct {
 	Activities      *[]ActivityInput
 	Lat             *float64
 	Lon             *float64
-	IsOnline        *bool
 }
 
 type ActivityInput struct {

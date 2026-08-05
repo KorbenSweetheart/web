@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"match-me-api/internal/config"
@@ -13,13 +15,18 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+const (
+	maxRetries        = 5
+	backoffMultiplier = 2
+)
+
 type Storage struct {
 	db  *gorm.DB
 	log *slog.Logger
 }
 
 // NewPostgresDB creates a new Postgres storage object.
-func NewPostgresDB(dbCfg config.Database, log *slog.Logger) (*Storage, error) {
+func NewPostgresDB(ctx context.Context, dbCfg config.Database, log *slog.Logger) (*Storage, error) {
 	const op = "storage.postgres.New"
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/Helsinki",
@@ -37,44 +44,61 @@ func NewPostgresDB(dbCfg config.Database, log *slog.Logger) (*Storage, error) {
 		},
 	)
 
-	// Note: AutomaticPing: true
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: gormLogger})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to postgres: %s, %w", op, err)
+	var (
+		db      *gorm.DB
+		sqlDB   *sql.DB
+		err     error
+		backoff = 500 * time.Millisecond
+	)
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("failed to connect, context canceled before attempt: op: %s, error: %w", op, ctx.Err())
+		default:
+		}
+
+		db, sqlDB, err = connectAndSetup(ctx, dsn, gormLogger)
+		if err == nil {
+			// Configuring DB
+			// Connection Pool
+			sqlDB.SetMaxOpenConns(25)
+			sqlDB.SetMaxIdleConns(5)
+			sqlDB.SetConnMaxLifetime(10 * time.Minute)
+			sqlDB.SetConnMaxIdleTime(5 * time.Minute)
+
+			return &Storage{db: db, log: log}, nil
+		}
+
+		if sqlDB != nil {
+			_ = sqlDB.Close()
+		}
+
+		if attempt == maxRetries {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("failed to connect, context canceled during backoff: op: %s, error: %w", op, ctx.Err())
+		case <-time.After(backoff):
+		}
+
+		backoff *= backoffMultiplier
 	}
 
-	// For additional DB configuration
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get sql.DB from gorm: %s, %w", op, err)
-	}
-
-	// Configuring DB
-	// Connection Pool
-	sqlDB.SetMaxOpenConns(25)
-	sqlDB.SetMaxIdleConns(5)
-	sqlDB.SetConnMaxLifetime(10 * time.Minute)
-	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
-
-	if err := sqlDB.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping postgres db: %s, %w", op, err)
-	}
-
-	return &Storage{
-		db:  db,
-		log: log,
-	}, nil
+	return nil, fmt.Errorf("failed to connect to db after %d attempts: op: %s, error: %w", maxRetries, op, err)
 }
 
 // AutoMigrate
-func (s *Storage) AutoMigrate() error {
+func (s *Storage) AutoMigrate(ctx context.Context) error {
 	const op = "storage.postgres.AutoMigrate"
 
 	log := s.log.With(
 		slog.String("op", op),
 	)
 
-	if err := s.db.AutoMigrate(
+	if err := s.db.WithContext(ctx).AutoMigrate(
 		&domain.Activity{},
 		&domain.Account{},
 		&domain.Profile{},
@@ -84,7 +108,7 @@ func (s *Storage) AutoMigrate() error {
 		&domain.Chat{},
 		&domain.Message{},
 	); err != nil {
-		return fmt.Errorf("failed to auto-migrate: %s, %w", op, err)
+		return fmt.Errorf("failed to auto-migrate: op: %s, error: %w", op, err)
 	}
 
 	log.Info("database auto-migration completed successfully")
@@ -93,7 +117,7 @@ func (s *Storage) AutoMigrate() error {
 }
 
 // SeedData adds dictionary elements and default values to the tables
-func (s *Storage) SeedData() error {
+func (s *Storage) SeedData(ctx context.Context) error {
 	const op = "storage.postgres.SeedData"
 
 	// Activities
@@ -115,7 +139,7 @@ func (s *Storage) SeedData() error {
 		{ID: 15, Title: "Jiu-Jitsu"},
 	}
 
-	if err := s.db.Clauses(clause.OnConflict{
+	if err := s.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "id"}},
 		DoNothing: true,
 	}).Create(&activities).Error; err != nil {
@@ -128,15 +152,15 @@ func (s *Storage) SeedData() error {
 		"SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE(MAX(id), 1)) FROM %s;",
 		table, table,
 	)
-	if err := s.db.Exec(query).Error; err != nil {
-		return fmt.Errorf("failed to execute reset sequences for table %s: %w", table, err)
+	if err := s.db.WithContext(ctx).Exec(query).Error; err != nil {
+		return fmt.Errorf("failed to execute reset sequences for table %s: op: %s, error: %w", table, op, err)
 	}
 
 	// Seed users
 
 	// Checking do we already have any seeded users
 	var count int64
-	if err := s.db.Model(&domain.Account{}).Count(&count).Error; err != nil {
+	if err := s.db.WithContext(ctx).Model(&domain.Account{}).Count(&count).Error; err != nil {
 		return fmt.Errorf("failed to count existing accounts: op: %s, error: %w", op, err)
 	}
 
@@ -147,16 +171,50 @@ func (s *Storage) SeedData() error {
 
 	users := generateSeedUsers()
 
-	if err := s.db.Clauses(clause.OnConflict{
+	const batchLimit = 50
+
+	if err := s.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}},
 		DoNothing: true,
-	}).Create(&users).Error; err != nil {
+	}).CreateInBatches(&users, batchLimit).Error; err != nil {
 		return fmt.Errorf("failed to seed users, op: %s, error: %w", op, err)
 	}
 
 	return nil
 }
 
+func connectAndSetup(ctx context.Context, dsn string, gormLogger logger.Interface) (*gorm.DB, *sql.DB, error) {
+	const op = "storage.postgres.connectAndSetup"
+
+	// Note: AutomaticPing: true
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: gormLogger})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to postgres: op: %s, error: %w", op, err)
+	}
+
+	// For additional DB configuration
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get sql.DB: op: %s, error: %w", op, err)
+	}
+
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer pingCtxCancel()
+	if err := sqlDB.PingContext(pingCtx); err != nil {
+		return nil, sqlDB, fmt.Errorf("failed to ping sql.DB: op: %s, error: %w", op, err)
+	}
+
+	// Adding PostGIS extension
+	extCtx, extCancel := context.WithTimeout(ctx, 3*time.Second)
+	defer extCancel()
+	if err := db.WithContext(extCtx).Exec("CREATE EXTENSION IF NOT EXISTS postgis;").Error; err != nil {
+		return nil, sqlDB, fmt.Errorf("failed to create postgis extension: op: %s, error: %w", op, err)
+	}
+
+	return db, sqlDB, nil
+}
+
+// generateSeedUsers creates fake users for testing purposes
 func generateSeedUsers() []domain.Account {
 	users := make([]domain.Account, 0, 100)
 
@@ -182,9 +240,8 @@ func generateSeedUsers() []domain.Account {
 					InterestLevel: 4, // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 				},
 			},
-			Lat:      60.1699,
-			Lon:      24.9384,
-			IsOnline: false,
+			Lat: 60.1699,
+			Lon: 24.9384,
 		},
 	}
 
@@ -211,9 +268,8 @@ func generateSeedUsers() []domain.Account {
 					InterestLevel: 5, // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
 				},
 			},
-			Lat:      60.1699,
-			Lon:      24.9384,
-			IsOnline: false,
+			Lat: 60.1699,
+			Lon: 24.9384,
 		},
 	}
 

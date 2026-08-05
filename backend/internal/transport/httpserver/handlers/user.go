@@ -16,7 +16,6 @@ type UserService interface {
 	Account(ctx context.Context, id int64) (*domain.Account, error)
 	Profile(ctx context.Context, id int64) (*domain.Profile, error)
 	UpdateProfile(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
-	// UpdateLocation(ctx context.Context, id int64, lat, lon float64) error
 	// AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
 }
 
@@ -298,26 +297,3 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]any{"status": "profile updated successfully"})
 }
-
-// func (h *UserHandler) UpdateLocation(c *echo.Context) error {
-// 	ctx := c.Request().Context()
-
-// 	var req UpdateLocationRequest
-// 	if err := c.Bind(&req); err != nil {
-// 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid payload"})
-// 	}
-
-// 	if err := h.validator.Struct(req); err != nil {
-// 		return c.JSON(http.StatusBadRequest, map[string]any{
-// 			"error": "validation failed: " + err.Error(),
-// 		})
-// 	}
-
-// 	userID := c.Get("user_id").(int64)
-
-// 	if err := h.userService.UpdateLocation(ctx, userID, req.Lat, req.Lon); err != nil {
-// 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to update location"})
-// 	}
-
-// 	return c.JSON(http.StatusOK, map[string]any{"status": "location updated"})
-// }
