@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
@@ -34,28 +35,40 @@ func main() {
 	log.Info("setup api server", slog.String("env", cfg.Env))
 
 	// init storage/repo
-	storage, err := postgres.NewPostgresDB(cfg.DB, log)
+	dbCtx, dbCancel := context.WithTimeout(shutdownCtx, 10*time.Second)
+	defer dbCancel()
+
+	storage, err := postgres.NewPostgresDB(dbCtx, cfg.DB, log)
 	if err != nil {
 		log.Error("database connection failed", logger.Err(err))
 		os.Exit(1)
 	}
 
+	// migrations
+	migrateCtx, migrateCancel := context.WithTimeout(shutdownCtx, 10*time.Second)
+	defer migrateCancel()
+
 	log.Info("database connection established successfully")
 
-	if err := storage.AutoMigrate(); err != nil {
+	if err := storage.AutoMigrate(migrateCtx); err != nil {
 		log.Error("migration failed", logger.Err(err))
 		os.Exit(1)
 	}
 
 	log.Info("migration completed successfully")
 
-	if err := storage.SeedData(); err != nil {
+	// Seeding dictionaries and test users
+	seedCtx, seedCancel := context.WithTimeout(shutdownCtx, 15*time.Second)
+	defer seedCancel()
+
+	if err := storage.SeedData(seedCtx); err != nil {
 		log.Error("seeding failed", logger.Err(err))
 		os.Exit(1)
 	}
 
 	log.Info("seeding completed successfully")
 
+	// token manager
 	tm := tokenmgr.NewTokenManager(
 		cfg.TM.JWTSecretKey,
 		cfg.TM.TokenIssuer,
@@ -84,7 +97,7 @@ func main() {
 
 	if err := sc.Start(shutdownCtx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("api server stopped with error", logger.Err(err))
-		// db.Close()
+		// storage.Close()
 		os.Exit(1)
 	}
 
