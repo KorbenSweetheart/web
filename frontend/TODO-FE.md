@@ -46,6 +46,9 @@ Frontend task list. Updated as Iván progresses on the backend.
 
 ## ⏳ Pending (my code, waiting on backend or decisions)
 
+### Edit profile: birth_date field comes back empty
+- Bug: clicking Edit clears the date field instead of pre-filling it.
+
 ### Auth: migrate to HttpOnly cookies + refresh flow ← NEW, Iván confirmed this direction
 - Iván is moving away from body/localStorage token toward **cookie-only** auth:
   - Login sets `access_token` cookie (`Path: /`) and `refresh_token` cookie (`Path: /auth/refresh`), both HttpOnly.
