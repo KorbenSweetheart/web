@@ -20,6 +20,8 @@
    sent to /login afterwards.
    ============================================ */
 
+import { apiPost } from './api';
+
 // Register a new account. Backend needs name, email, password.
 // Returns { id, email, name, message } — no token.
 export async function registerUser(name: string, email: string, password: string) {
@@ -50,6 +52,19 @@ export async function loginUser(email: string, password: string) {
   return res.json();
 }
 
-export function logout() {
-  localStorage.removeItem('token');
+// Log out. Two steps:
+//   1. Tell the backend to end the session (needs the token,
+//      so this MUST run before we delete it).
+//   2. Clear the token locally — always, even if step 1 fails,
+//      so the user is never trapped inside the app.
+export async function logout() {
+  try {
+    await apiPost('/auth/logout');
+  } catch (err) {
+    // Backend might be down or token already expired.
+    // We log it but don't block the local logout.
+    console.error('Backend logout failed:', err);
+  } finally {
+    localStorage.removeItem('token');
+  }
 }
