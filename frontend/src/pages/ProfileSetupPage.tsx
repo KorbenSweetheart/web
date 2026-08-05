@@ -32,6 +32,7 @@ export default function ProfileSetupPage() {
         if (data.picture_url) setPictureUrl(data.picture_url);
         if (data.max_radius) setMaxRadius(data.max_radius);
         if (data.interaction_mode) setModeId(data.interaction_mode);
+        if (data.birth_date) setBirthDate(data.birth_date);
         if (data.activities && data.activities.length > 0) {
           // Backend gives {id, experience_level, interest_level}
           // We use {activity_id, experience, interest_level} internally, so translate:
@@ -77,18 +78,6 @@ export default function ProfileSetupPage() {
     return activities.find((a) => a.activity_id === sportId)?.experience ?? 3;
   }
 
-// Turn a birth date into an age number (what the backend expects)
-  function calculateAge(birth: string): number {
-    const today = new Date();
-    const b = new Date(birth);
-    let age = today.getFullYear() - b.getFullYear();
-    const monthDiff = today.getMonth() - b.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < b.getDate())) {
-      age--;
-    }
-    return age;
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
@@ -108,7 +97,7 @@ export default function ProfileSetupPage() {
 
     const profile: Profile = {
       name,
-      age: calculateAge(birthDate),
+      birth_date: birthDate,
       bio,
       picture_url: pictureUrl,
       interaction_mode_id: modeId,
