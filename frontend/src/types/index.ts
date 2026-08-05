@@ -16,7 +16,7 @@ export interface ProfileActivity {
 // The full profile the user fills in
 export interface Profile {
   name: string;
-  age: number;
+  birth_date: string;
   bio: string;
   picture_url: string;
   interaction_mode_id: number;   // Silent / Social / Open to anything

@@ -1,19 +1,54 @@
-import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SPORTS, MODES, LEVELS, saveProfile } from '../services/profile';
 import type { Profile, ProfileActivity } from '../types';
 import { User, Dumbbell, SlidersHorizontal, MapPin, Headphones, Users, Sparkles } from 'lucide-react';
+import { getMyProfile } from '../services/users';
+import './ProfileSetupPage.css';
+import { useState, useEffect } from 'react';
 
 export default function ProfileSetupPage() {
   const [name, setName] = useState('');
-  const [birthDate, setBirthDate] = useState('');  const [bio, setBio] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [bio, setBio] = useState('');
+  const [pictureUrl, setPictureUrl] = useState('');
   const [modeId, setModeId] = useState<number | null>(null);
   const [maxRadius, setMaxRadius] = useState(10);
   const [activities, setActivities] = useState<ProfileActivity[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
+
+  // On mount, load the existing profile (if any) to pre-fill the form.
+  // First-time users get an empty form; returning users get their data.
+  useEffect(() => {
+    getMyProfile()
+      .then((data) => {
+         // If there's already a name, this is an existing profile → editing
+        if (data.name) setIsEditing(true);
+        if (data.name) setName(data.name);
+        if (data.bio) setBio(data.bio);
+        if (data.picture_url) setPictureUrl(data.picture_url);
+        if (data.max_radius) setMaxRadius(data.max_radius);
+        if (data.interaction_mode) setModeId(data.interaction_mode);
+        if (data.birth_date) setBirthDate(data.birth_date);
+        if (data.activities && data.activities.length > 0) {
+          // Backend gives {id, experience_level, interest_level}
+          // We use {activity_id, experience, interest_level} internally, so translate:
+          setActivities(
+            data.activities.map((a: any) => ({
+              activity_id: a.id,
+              experience: a.experience_level ?? a.experience ?? 3,
+              interest_level: a.interest_level ?? 3,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        // No profile yet or not logged in — leave the form empty.
+      });
+  }, []);
 
   // Toggle a sport on/off
   function toggleSport(sportId: number) {
@@ -43,18 +78,6 @@ export default function ProfileSetupPage() {
     return activities.find((a) => a.activity_id === sportId)?.experience ?? 3;
   }
 
-// Turn a birth date into an age number (what the backend expects)
-  function calculateAge(birth: string): number {
-    const today = new Date();
-    const b = new Date(birth);
-    let age = today.getFullYear() - b.getFullYear();
-    const monthDiff = today.getMonth() - b.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < b.getDate())) {
-      age--;
-    }
-    return age;
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
@@ -74,9 +97,9 @@ export default function ProfileSetupPage() {
 
     const profile: Profile = {
       name,
-      age: calculateAge(birthDate),
+      birth_date: birthDate,
       bio,
-      picture_url: '',
+      picture_url: pictureUrl,
       interaction_mode_id: modeId,
       activities,
       max_radius: maxRadius,
@@ -85,7 +108,7 @@ export default function ProfileSetupPage() {
     setLoading(true);
     try {
       await saveProfile(profile);
-      navigate('/app/discover');
+      navigate(isEditing ? '/app/profile' : '/app/discover');
     } catch (err) {
       setError('Something went wrong. Please try again.');
       console.error(err);
@@ -101,11 +124,15 @@ export default function ProfileSetupPage() {
   };
 
   return (
-    <div className="container" style={{ maxWidth: 640, paddingTop: '2rem', paddingBottom: '2rem' }}>
-      <h1 className="text-title">Set up your profile</h1>
-      <p className="text-body mt-xs">Tell us a bit about you so we can find your training partners.</p>
+    <div className="profile-setup">
+      {/* Sticky floating header */}
+      <div className="profile-setup__header">
+        <h1 className="text-title">Set up your profile</h1>
+        <p className="text-body mt-xs">Tell us a bit about you so we can find your training partners.</p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-xl">
+      {/* Form card */}
+      <form onSubmit={handleSubmit} className="profile-setup__card">
 
         {/* ===== SECTION: General info ===== */}
         <div className="flex items-center gap-sm mb-md">
@@ -117,6 +144,30 @@ export default function ProfileSetupPage() {
           <label className="form-label" htmlFor="name">Name</label>
           <input id="name" type="text" className="input" placeholder="Marcus K."
             value={name} onChange={(e) => setName(e.target.value)} disabled={loading} />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Profile photo</label>
+          <div className="flex items-center gap-md">
+            {/* Avatar preview: photo or placeholder */}
+            <div className="avatar avatar-lg" style={{ overflow: 'hidden', width: '96px', height: '96px' }}>
+              {pictureUrl ? (
+                <img src={pictureUrl} alt="Profile preview"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              ) : (
+                <span style={{ fontSize: '2.5rem' }}>👤</span>
+              )}
+            </div>
+
+            {/* URL input */}
+            <div style={{ flex: 1 }}>
+              <input type="url" className="input" placeholder="Paste an image URL"
+                value={pictureUrl} onChange={(e) => setPictureUrl(e.target.value)}
+                disabled={loading} />
+              <p className="form-helper mt-xs">Optional — leave empty to use a placeholder.</p>
+            </div>
+          </div>
         </div>
 
         <div className="form-group">

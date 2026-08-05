@@ -26,7 +26,7 @@ export default function LoginPage() {
       localStorage.setItem('token', data.access_token);
       // Profile-completed flag isn't ready on the backend yet,
       // so for now we always go to profile setup.
-      navigate('/app/profile');
+      navigate('/app/profile-setup');
     } catch (err) {
       setError('Invalid email or password.');
       console.error(err);

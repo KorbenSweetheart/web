@@ -1,0 +1,32 @@
+.profile-page {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* Header card — matches setup & discover */
+.profile-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  margin-bottom: clamp(1.5rem, 3vw, 2rem);
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-2xl);
+}
+
+/* Content card */
+.profile-page__card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-2xl);
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+/* Empty state */
+.profile-page__empty {
+  text-align: center;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  background: var(--surface-elevated);
+  border-radius: var(--r-xl);
+}

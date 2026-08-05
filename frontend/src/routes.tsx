@@ -5,6 +5,9 @@ import RegisterPage from './pages/auth/RegisterPage';
 import AppLayout from './layouts/AppLayout';
 import PrivateRoute from './components/PrivateRoute';
 import ProfileSetupPage from './pages/ProfileSetupPage';
+import DiscoverPage from './pages/DiscoverPage';
+import ProfilePage from './pages/ProfilePage';
+import ConnectionsPage from './pages/ConnectionsPage';
 
 
 export default function AppRoutes() {
@@ -19,10 +22,11 @@ export default function AppRoutes() {
          {/*Private Routes - Layout */}
         <Route path="/app" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
           <Route index element={<Navigate to="discover" replace />} />
-          <Route path="discover" element={<div className="text-hero" style={{ color: 'var(--text-1)' }}>🔥 Discover</div>} />
-          <Route path="connections" element={<div className="text-hero" style={{ color: 'var(--text-1)' }}>👥 Connections</div>} />
+          <Route path="discover" element={<DiscoverPage />} />
+          <Route path="connections" element={<ConnectionsPage />} />
           <Route path="chats" element={<div className="text-hero" style={{ color: 'var(--text-1)' }}>💬 Chats</div>} />
-          <Route path="profile" element={<ProfileSetupPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="profile-setup" element={<ProfileSetupPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
