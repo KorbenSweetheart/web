@@ -117,8 +117,8 @@ func (s *Storage) AutoMigrate(ctx context.Context) error {
 }
 
 // SeedData adds dictionary elements and default values to the tables
-func (s *Storage) SeedData(ctx context.Context) error {
-	const op = "storage.postgres.SeedData"
+func (s *Storage) SeedDictionaries(ctx context.Context) error {
+	const op = "storage.postgres.SeedDictionaries"
 
 	// Activities
 	activities := []domain.Activity{
@@ -156,21 +156,23 @@ func (s *Storage) SeedData(ctx context.Context) error {
 		return fmt.Errorf("failed to execute reset sequences for table %s: op: %s, error: %w", table, op, err)
 	}
 
-	// Seed users
+	return nil
+}
 
-	// Checking do we already have any seeded users
+func (s *Storage) SeedDummyUsers(ctx context.Context) error {
+	const op = "storage.postgres.SeedDummyUsers"
+
+	// Seed users
 	var count int64
 	if err := s.db.WithContext(ctx).Model(&domain.Account{}).Count(&count).Error; err != nil {
 		return fmt.Errorf("failed to count existing accounts: op: %s, error: %w", op, err)
 	}
 
-	// If we have users then skip seeding
 	if count > 0 {
 		return nil
 	}
 
-	users := generateSeedUsers()
-
+	users := generateDummyUsers()
 	const batchLimit = 50
 
 	if err := s.db.WithContext(ctx).Clauses(clause.OnConflict{
@@ -215,7 +217,7 @@ func connectAndSetup(ctx context.Context, dsn string, gormLogger logger.Interfac
 }
 
 // generateSeedUsers creates fake users for testing purposes
-func generateSeedUsers() []domain.Account {
+func generateDummyUsers() []domain.Account {
 	users := make([]domain.Account, 0, 100)
 
 	user1 := domain.Account{

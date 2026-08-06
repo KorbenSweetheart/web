@@ -17,22 +17,22 @@ const (
 	RefreshTokenCookieName = "refresh_token"
 )
 
-type AuthService interface {
+type Authenticator interface {
 	Register(ctx context.Context, name, email, password string) (*domain.Account, error)
 	Login(ctx context.Context, email, password string) (string, string, error)
 	Logout(ctx context.Context, userID int64) error
 }
 
 type AuthHandler struct {
-	authService      AuthService
+	auth             Authenticator
 	validator        *validator.Validate
 	accessCookieTTL  time.Duration
 	refreshCookieTTL time.Duration
 	log              *slog.Logger
 }
 
-func NewAuthHandler(as AuthService, v *validator.Validate, atTTL, rtTTL time.Duration, logger *slog.Logger) *AuthHandler {
-	return &AuthHandler{authService: as, validator: v, accessCookieTTL: atTTL, refreshCookieTTL: rtTTL, log: logger}
+func NewAuthHandler(auth Authenticator, v *validator.Validate, atTTL, rtTTL time.Duration, logger *slog.Logger) *AuthHandler {
+	return &AuthHandler{auth: auth, validator: v, accessCookieTTL: atTTL, refreshCookieTTL: rtTTL, log: logger}
 }
 
 // Register handler
@@ -52,7 +52,7 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 		})
 	}
 
-	account, err := h.authService.Register(ctx, req.Name, req.Email, req.Password)
+	account, err := h.auth.Register(ctx, req.Name, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailIsTaken) {
 			return c.JSON(http.StatusBadRequest, map[string]any{
@@ -93,7 +93,7 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 		})
 	}
 
-	accessToken, refreshToken, err := h.authService.Login(ctx, req.Email, req.Password)
+	accessToken, refreshToken, err := h.auth.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidCreds) {
 			return c.JSON(http.StatusUnauthorized, map[string]any{
@@ -144,7 +144,7 @@ func (h *AuthHandler) Logout(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
 	}
 
-	if err := h.authService.Logout(ctx, userID); err != nil {
+	if err := h.auth.Logout(ctx, userID); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
 	}
 

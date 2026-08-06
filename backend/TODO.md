@@ -42,3 +42,5 @@
 - [ ] Add Age calculation based on the birthday
 - [ ] Review context usage starting from main
 - [ ] Add "withContext()" to db calls.
+- [ ] Review gracefull shutdown
+- [ ] maybe move migration to separete docker container

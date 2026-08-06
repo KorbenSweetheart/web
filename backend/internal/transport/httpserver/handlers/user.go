@@ -12,21 +12,19 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
-type UserService interface {
-	Account(ctx context.Context, id int64) (*domain.Account, error)
+type UserManager interface {
 	Profile(ctx context.Context, id int64) (*domain.Profile, error)
 	UpdateProfile(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
-	// AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
 }
 
 type UserHandler struct {
-	userService UserService
+	userService UserManager
 	validator   *validator.Validate
 	log         *slog.Logger
 }
 
-func NewUserHandler(us UserService, v *validator.Validate, logger *slog.Logger) *UserHandler {
-	return &UserHandler{userService: us, validator: v, log: logger}
+func NewUserHandler(um UserManager, v *validator.Validate, logger *slog.Logger) *UserHandler {
+	return &UserHandler{userService: um, validator: v, log: logger}
 }
 
 // UserSummary returns the user's id, name, and link to the profile picture.
