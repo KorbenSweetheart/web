@@ -201,18 +201,18 @@ func (s *Storage) UpdateProfileRecord(ctx context.Context, id int64, params *dom
 
 // IsEmailTaken checks whether the email is already taken.
 // Currently not used anywhere
-func (s *Storage) IsEmailTaken(ctx context.Context, email string) (bool, error) {
-	const op = "storage.postgres.IsEmailTaken"
+// func (s *Storage) IsEmailTaken(ctx context.Context, email string) (bool, error) {
+// 	const op = "storage.postgres.IsEmailTaken"
 
-	var count int64
+// 	var count int64
 
-	err := s.db.Model(&domain.Account{}).
-		Where("email = ?", email).
-		Count(&count).Error
+// 	err := s.db.Model(&domain.Account{}).
+// 		Where("email = ?", email).
+// 		Count(&count).Error
 
-	if err != nil {
-		return false, fmt.Errorf("failed to check email existence, op: %s, error: %w", op, err)
-	}
+// 	if err != nil {
+// 		return false, fmt.Errorf("failed to check email existence, op: %s, error: %w", op, err)
+// 	}
 
-	return count > 0, nil
-}
+// 	return count > 0, nil
+// }

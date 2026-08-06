@@ -6,7 +6,6 @@ import (
 	"match-me-api/internal/transport/httpserver/handlers"
 	"match-me-api/internal/transport/httpserver/utils"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
@@ -14,8 +13,7 @@ import (
 func SetupRouter(
 	cfg *config.Config,
 	log *slog.Logger,
-	as handlers.AuthService,
-	us handlers.UserService,
+	h handlers.Handlers,
 ) *echo.Echo {
 
 	e := echo.New()
@@ -26,40 +24,33 @@ func SetupRouter(
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS("http://localhost:8080", "http://localhost:5173")) // TODO: move to config vars
 
-	validate := validator.New(validator.WithRequiredStructEnabled())
-
-	// Handlers
-	authHandler := handlers.NewAuthHandler(as, validate, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
-	userHandler := handlers.NewUserHandler(us, validate, log)
-
 	// Public routes
 	public := e.Group("")
 	public.GET("/health", handlers.CheckHealth)
-	public.POST("/auth/register", authHandler.Register)
-	public.POST("/auth/login", authHandler.Login)
-	// public.POST("/auth/refresh", authHandler.Refresh)
+	public.POST("/auth/register", h.Auth.Register)
+	public.POST("/auth/login", h.Auth.Login)
+	// public.POST("/auth/refresh", h.Auth.Refresh)
 
 	// Private routes
 	private := e.Group("")
 	private.Use(utils.JWTMiddlewareWithConfig(cfg.TM.JWTSecretKey, handlers.AccessTokenCookieName))
-	private.POST("/auth/logout", authHandler.Logout)
+	private.POST("/auth/logout", h.Auth.Logout)
 
 	// Users
-	private.GET("/users/:id", userHandler.UserSummary)         // /users/{id}
-	private.GET("/users/:id/profile", userHandler.UserProfile) // /users/{id}/profile
-	private.GET("/users/:id/bio", userHandler.UserBio)         // /users/{id}/bio
-	// private.GET("/activities", userHandler.Activities) // /actvities
-	// private.GET("/connections", userHandler.Connections)
+	private.GET("/users/:id", h.User.UserSummary)         // /users/{id}
+	private.GET("/users/:id/profile", h.User.UserProfile) // /users/{id}/profile
+	private.GET("/users/:id/bio", h.User.UserBio)         // /users/{id}/bio
+	// private.GET("/activities", h.User.Activities) // /actvities
+	// private.GET("/connections", h.User.Connections)
 
 	// Shortcuts
-	private.GET("/me", userHandler.MySummary)         // /me
-	private.GET("/me/profile", userHandler.MyProfile) // /me/profile
-	private.GET("/me/bio", userHandler.MyBio)         // /me/bio
-	private.PATCH("/me/profile", userHandler.UpdateProfile)
-	// private.PATCH("/me/location", userHandler.UpdateLocation)
+	private.GET("/me", h.User.MySummary)         // /me
+	private.GET("/me/profile", h.User.MyProfile) // /me/profile
+	private.GET("/me/bio", h.User.MyBio)         // /me/bio
+	private.PATCH("/me/profile", h.User.UpdateProfile)
 
 	// Recommendations
-	// private.GET("/recommendations", matchHandler.Recommendations)
+	// private.GET("/recommendations", h.Match.Recommendations)
 
 	return e
 }

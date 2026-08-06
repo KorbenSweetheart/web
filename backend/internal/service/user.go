@@ -7,21 +7,21 @@ import (
 	"match-me-api/internal/logger"
 )
 
-type UserProvider interface {
+type UserRepository interface {
 	AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
-	IsEmailTaken(ctx context.Context, email string) (bool, error)
 	AccountByID(ctx context.Context, id int64) (*domain.Account, error)
 	ProfileByID(ctx context.Context, id int64) (*domain.Profile, error)
 	UpdateProfileRecord(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
+	// IsEmailTaken(ctx context.Context, email string) (bool, error)
 }
 
 type UserService struct {
-	storage UserProvider
-	log     *slog.Logger
+	repo UserRepository
+	log  *slog.Logger
 }
 
-func NewUserService(up UserProvider, logger *slog.Logger) *UserService {
-	return &UserService{storage: up, log: logger}
+func NewUserService(r UserRepository, logger *slog.Logger) *UserService {
+	return &UserService{repo: r, log: logger}
 }
 
 // Account returns a user account data struct from db.
@@ -29,7 +29,7 @@ func (us *UserService) Account(ctx context.Context, id int64) (*domain.Account, 
 	const op = "service.userService.Account"
 	log := us.log.With(slog.String("op", op))
 
-	user, err := us.storage.AccountByID(ctx, id)
+	user, err := us.repo.AccountByID(ctx, id)
 	if err != nil {
 		log.Debug("failed to get account by id", "id", id, "error", logger.Err(err))
 		return nil, err
@@ -43,7 +43,7 @@ func (us *UserService) Profile(ctx context.Context, id int64) (*domain.Profile, 
 	const op = "service.userService.Profile"
 	log := us.log.With(slog.String("op", op))
 
-	profile, err := us.storage.ProfileByID(ctx, id)
+	profile, err := us.repo.ProfileByID(ctx, id)
 	if err != nil {
 		log.Debug("failed to get profile by id", "id", id, "error", logger.Err(err))
 		return nil, err
@@ -69,7 +69,7 @@ func (us *UserService) UpdateProfile(ctx context.Context, id int64, params *doma
 		params.MaxRadius = &defaultRadius
 	}
 
-	if err := us.storage.UpdateProfileRecord(ctx, id, params); err != nil {
+	if err := us.repo.UpdateProfileRecord(ctx, id, params); err != nil {
 		log.Debug("failed to update profile", "id", id, "error", logger.Err(err))
 		return err
 	}

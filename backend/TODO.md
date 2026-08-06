@@ -3,6 +3,7 @@
 - [x] Add Router
 - [x] Connect DB
   - [x] Add AutoMigrate
+  - [x] Create PostGis extension
   - [x] Add seed data
   - [ ] Add 100-1000 seeded users
 - [ ] Add Public Handlers
@@ -14,13 +15,9 @@
     - [x] Add JWT and session cookies
     - [x] Add refresh token and RT cookie
     - [x] Add save refresh token to db
-    - [ ] Add location lon lat parse during recommendation request, front should pass it to backend, to use for distance matching
     - [ ] Add refresh token endpoint for refresh
     - [ ] Add renew JWT token based on RT
     - [ ] Decide when to mark user Online, when he logged in, or when he sends messages?
-  - [x] Logout
-    - [x] Add delete refresh token from db
-    - [x] Add cookie deletion (expired)
 - [ ] Add Private Handlers
     <!-- remember now you can get userID from context of the request -->
   - [x] `/users/{id}` - returns the user's id, name, and link to the profile picture.
@@ -34,10 +31,16 @@
         Additional:
   - [ ] `POST /users/{id}/profile` - profile update,
   - [ ] `/activities` - list of activities to display on a profile page
+  - [x] `/auth/logout` - Logout
+    - [x] Add delete refresh token from db
+    - [x] Add cookie deletion (expired)
+- [ ] Add location lon lat parse during recommendation request, front should pass it to backend, to use for distance matching
 - [ ] Add connections to profile
 - [x] update name min length, could be 2 char
 - [x] remove omitzero from bio and some other fields that could be removed/emptied by the user in bio
 - [ ] Check all TODOs inside the code.
 - [ ] Add Age calculation based on the birthday
 - [ ] Review context usage starting from main
-- [] Add "withContext()" to db calls.
+- [ ] Add "withContext()" to db calls.
+- [ ] Review gracefull shutdown
+- [ ] maybe move migration to separete docker container

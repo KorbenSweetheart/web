@@ -25,30 +25,34 @@ var (
 	emailRegex    = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 )
 
-type AuthProvider interface {
+type AccountRepository interface {
 	CreateAccount(ctx context.Context, user *domain.Account) error
-	SaveRefreshToken(ctx context.Context, rt *domain.RefreshToken) error
-	DeleteRefreshTokenByAccountID(ctx context.Context, id int64) error
 	AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
-	IsEmailTaken(ctx context.Context, email string) (bool, error)
+	// IsEmailTaken(ctx context.Context, email string) (bool, error)
 }
 
-type TokenProvider interface {
+type TokenRepository interface {
+	SaveRefreshToken(ctx context.Context, rt *domain.RefreshToken) error
+	DeleteRefreshTokenByAccountID(ctx context.Context, id int64) error
+}
+
+type TokenProcessor interface {
 	GenerateToken(userID int64, ttl time.Duration) (string, error)
 	GenerateRefreshToken() (string, error)
 	HashToken(token string) string
 }
 
 type AuthService struct {
-	storage         AuthProvider
-	tokenMgr        TokenProvider
+	repo            AccountRepository
+	tokenRepo       TokenRepository
+	tokenMgr        TokenProcessor
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
 	log             *slog.Logger
 }
 
-func NewAuthService(ap AuthProvider, tp TokenProvider, atTTL, rtTTL time.Duration, logger *slog.Logger) *AuthService {
-	return &AuthService{storage: ap, tokenMgr: tp, AccessTokenTTL: atTTL, RefreshTokenTTL: rtTTL, log: logger}
+func NewAuthService(r AccountRepository, tr TokenRepository, tp TokenProcessor, atTTL, rtTTL time.Duration, logger *slog.Logger) *AuthService {
+	return &AuthService{repo: r, tokenRepo: tr, tokenMgr: tp, AccessTokenTTL: atTTL, RefreshTokenTTL: rtTTL, log: logger}
 }
 
 // Register creates a user account and profile, adds a record to the db table, prepopulates the ID, and returns it to the caller.
@@ -77,7 +81,7 @@ func (as *AuthService) Register(ctx context.Context, name, email, password strin
 
 	log.Info("creating account")
 
-	if err := as.storage.CreateAccount(ctx, u); err != nil {
+	if err := as.repo.CreateAccount(ctx, u); err != nil {
 		if errors.Is(err, domain.ErrEmailIsTaken) {
 			log.Debug("email already taken")
 			return nil, err
@@ -99,7 +103,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 
 	email = strings.ToLower(strings.TrimSpace(email))
 
-	account, err := as.storage.AccountByEmail(ctx, email)
+	account, err := as.repo.AccountByEmail(ctx, email)
 	if err != nil {
 		log.Debug("failed to get account by email", "email", email, "error", logger.Err(err))
 		return "", "", fmt.Errorf("failed to get account by email: %w", err)
@@ -138,7 +142,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 		ExpiresAt: time.Now().Add(as.RefreshTokenTTL),
 	}
 
-	if err := as.storage.SaveRefreshToken(ctx, RefreshToken); err != nil {
+	if err := as.tokenRepo.SaveRefreshToken(ctx, RefreshToken); err != nil {
 		log.Debug("failed to save refresh token to db", "user:", account.ID, "error", logger.Err(err))
 		return "", "", fmt.Errorf("failed to save refresh token to db: %w", err)
 	}
@@ -158,7 +162,7 @@ func (as *AuthService) Logout(ctx context.Context, userID int64) error {
 
 	// Delete refresh token from DB
 
-	err := as.storage.DeleteRefreshTokenByAccountID(ctx, userID)
+	err := as.tokenRepo.DeleteRefreshTokenByAccountID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete refresh token: %w", err)
 	}

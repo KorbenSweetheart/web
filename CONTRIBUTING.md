@@ -125,6 +125,12 @@ git remote set-url --add --push origin <GITHUB_URL>
 
 _(Now, a standard `git push origin main` will update both automatically.)_
 
+In case of PRs, it might require separate force push to remote github repo.
+
+```bash
+git push -f git@github.com:USERNAME/PROJECTNAME.git HEAD
+```
+
 ### Another option is to configure `git config` in the repository
 
 Run the following command inside the project repository:
@@ -137,7 +143,7 @@ Look for the [remote "origin"] section. It likely looks like this:
 So you should have 1 fetch and 2 pushurl.
 Note: you should edit caps variables.
 
-```text
+```bash
 [remote "origin"]
     url = git@gitea.kood.tech:ivanandreev/PROJECT-NAME.git
     fetch = +refs/heads/*:refs/remotes/origin/*

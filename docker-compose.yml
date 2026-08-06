@@ -20,6 +20,26 @@ services:
       timeout: 5s
       retries: 5
 
+  migrator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: matchme-migrator
+    # Launch migrator directly via go run, later could be moved to separete Dockerfile
+    command: ["go", "run", "./cmd/migrator/main.go"]
+    volumes:
+      - ./backend:/app
+    environment:
+      - ENVIRONMENT=dev
+      - DB_USER=dbuser
+      - DB_PASS=my_db_password
+      - DB_NAME=postgres
+      - DB_PORT=5432
+      - DB_HOST=db
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     build:
       context: ./backend
@@ -52,6 +72,9 @@ services:
       db:
         # backend launches only when PostgreSQL pass healthcheck
         condition: service_healthy
+      migrator:
+        # Backend launches only after the migrator successfully finishes its work (exit 0)
+        condition: service_completed_successfully
 
   # frontend:
   #   build:
