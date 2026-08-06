@@ -6,17 +6,17 @@ import (
 	"match-me-api/internal/domain"
 )
 
-type RecommendationProvider interface {
+type MatchRepository interface {
 	Recomendations(ctx context.Context, id int64) ([]domain.Profile, error)
 }
 
 type MatchService struct {
-	storage RecommendationProvider
-	log     *slog.Logger
+	repo MatchRepository
+	log  *slog.Logger
 }
 
-func NewSwipeHandler(rp RecommendationProvider, logger *slog.Logger) *MatchService {
-	return &MatchService{storage: rp, log: logger}
+func NewSwipeHandler(r MatchRepository, logger *slog.Logger) *MatchService {
+	return &MatchService{repo: r, log: logger}
 }
 
 func (ms *MatchService) Recommendations(ctx context.Context, userID string, limit int) ([]int64, error) {

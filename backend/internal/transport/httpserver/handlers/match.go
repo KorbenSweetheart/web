@@ -3,24 +3,22 @@ package handlers
 import (
 	"context"
 	"log/slog"
-	"match-me-api/internal/domain"
 
 	"github.com/go-playground/validator/v10"
 )
 
-type MatchService interface {
-	Account(ctx context.Context, id int64) (*domain.Account, error)
-	Profile(ctx context.Context, id int64) (*domain.Profile, error)
-	UpdateProfile(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
+type Matcher interface { // alternative name RecommendationEngine
+	// Recommendations(ctx context.Context, userID int64) ([]domain.Match, error)
+	Like(ctx context.Context, fromID, toID int64) (bool, error)
 }
 
 type MatchHandler struct {
-	matchService MatchService
+	matchService Matcher
 	validator    *validator.Validate
 	log          *slog.Logger
 }
 
-func NewMatchHandler(ms MatchService, v *validator.Validate, logger *slog.Logger) *MatchHandler {
+func NewMatchHandler(ms Matcher, v *validator.Validate, logger *slog.Logger) *MatchHandler {
 	return &MatchHandler{matchService: ms, validator: v, log: logger}
 }
 
