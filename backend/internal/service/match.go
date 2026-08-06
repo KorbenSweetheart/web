@@ -6,37 +6,28 @@ import (
 	"match-me-api/internal/domain"
 )
 
-type MatchRepository interface {
-	Recomendations(ctx context.Context, id int64) ([]domain.Profile, error)
+type CandidateRepository interface {
+	FindCandidates(ctx context.Context, id int64) ([]domain.Profile, error)
 }
 
-type MatchService struct {
-	repo MatchRepository
+type RecommendationService struct {
+	repo CandidateRepository
 	log  *slog.Logger
 }
 
-func NewSwipeHandler(r MatchRepository, logger *slog.Logger) *MatchService {
-	return &MatchService{repo: r, log: logger}
+func NewRecommendationService(r CandidateRepository, logger *slog.Logger) *RecommendationService {
+	return &RecommendationService{repo: r, log: logger}
 }
 
-func (ms *MatchService) Recommendations(ctx context.Context, userID string, limit int) ([]int64, error) {
+func (rs *RecommendationService) Matches(ctx context.Context, userID string, limit int) ([]*domain.Profile, error) {
+	// op
+
+	// get userprofile and check that profile is complete (all 5 touchpoints are set, and user has activities to check.)
+	// send request to dp to find candidates.
+
+	// if len(profile.Activities) == 0 {
+	// 	return nil, fmt.Errorf("failed to get profile, id: %d, op: %s, error: %w", id, op, err)
+	// }
+
 	return nil, nil
-	// ms.repo.GetRecommendations(ctx, userID, limit)
-
-	// type request struct {
-	// 	FromID string `json:"from_id"`
-	// 	ToID   string `json:"to_id"`
-	// }
-
-	// var req request
-	// if err := c.Bind(&req); err != nil {
-	// 	return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid body"})
-	// }
-
-	// match, err := h.app.HandleMatch(req.FromID, req.ToID)
-	// if err != nil {
-	// 	return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	// }
-
-	// return c.JSON(http.StatusOK, match)
 }
