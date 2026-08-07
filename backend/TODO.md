@@ -18,6 +18,9 @@
     - [ ] Add refresh token endpoint for refresh
     - [ ] Add renew JWT token based on RT
     - [ ] Decide when to mark user Online, when he logged in, or when he sends messages?
+  - [x] System healthchecks
+    - [x] Healthz
+    - [x] Readyz
 - [ ] Add Private Handlers
     <!-- remember now you can get userID from context of the request -->
   - [x] `/users/{id}` - returns the user's id, name, and link to the profile picture.
@@ -26,11 +29,12 @@
   - [x] `/me` - a shortcut to `/users/{id}` for the authenticated user.
   - [x] `/me/profile` - a shortcut to `/users/{id}/profile` for the authenticated user.
   - [x] `/me/bio` - a shortcut to `/users/{id}/bio` for the authenticated user.
+  - [x] `POST /users/{id}/profile` - profile update.
+  - [x] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
   - [ ] `/connections` - returns a list connected profiles, containing only the `id` and nothing else.
-  - [ ] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
-        Additional:
-  - [ ] `POST /users/{id}/profile` - profile update,
-  - [ ] `/activities` - list of activities to display on a profile page
+    - [ ] `POST /connections` - with body, to create connection request, and to accept/reject it.
+          Additional:
+  - [x] `/activities` - list of activities to display on a profile page
   - [x] `/auth/logout` - Logout
     - [x] Add delete refresh token from db
     - [x] Add cookie deletion (expired)
@@ -41,6 +45,6 @@
 - [ ] Check all TODOs inside the code.
 - [ ] Add Age calculation based on the birthday
 - [ ] Review context usage starting from main
-- [ ] Add "withContext()" to db calls.
+- [x] Add "withContext()" to db calls.
 - [ ] Review gracefull shutdown
-- [ ] maybe move migration to separete docker container
+- [x] maybe move migration to separete docker container
