@@ -174,6 +174,24 @@ func (s *Storage) SeedDictionaries(ctx context.Context) error {
 	return nil
 }
 
+func (s *Storage) Ping(ctx context.Context) error {
+	const op = "storage.postgres.Ping"
+
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get sql.DB: op: %s, error: %w", op, err)
+	}
+
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer pingCtxCancel()
+
+	if err := sqlDB.PingContext(pingCtx); err != nil {
+		return fmt.Errorf("failed to ping sql.DB: op: %s, error: %w", op, err)
+	}
+
+	return nil
+}
+
 // connectAndSetup is a helper "facade" function that wraps the db setup, including context and timeouts, to improve readability.
 func connectAndSetup(ctx context.Context, dsn string, gormLogger logger.Interface) (*gorm.DB, *sql.DB, error) {
 	const op = "storage.postgres.connectAndSetup"

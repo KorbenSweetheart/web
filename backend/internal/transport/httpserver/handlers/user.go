@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"match-me-api/internal/domain"
+	"match-me-api/internal/transport/httpserver/dto"
 	"net/http"
 	"strconv"
 
@@ -50,7 +51,7 @@ func (h *UserHandler) UserSummary(c *echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, UserSummaryResponse{
+	return c.JSON(http.StatusOK, dto.UserSummaryResponse{
 		ID:         profile.UserID,
 		Name:       profile.Name,
 		PictureURL: profile.PictureURL,
@@ -80,7 +81,7 @@ func (h *UserHandler) UserProfile(c *echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, ProfileResponse{
+	return c.JSON(http.StatusOK, dto.ProfileResponse{
 		ID:  profile.UserID,
 		Age: profile.Age,
 		Bio: profile.Bio,
@@ -111,11 +112,11 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 		}
 	}
 
-	activitiesResponse := make([]ActivityResponse, 0, len(profile.Activities))
+	activitiesResponse := make([]dto.UserActivityResponse, 0, len(profile.Activities))
 
 	if len(profile.Activities) > 0 {
 		for _, a := range profile.Activities {
-			activity := ActivityResponse{
+			activity := dto.UserActivityResponse{
 				ID:            a.Activity.ID,
 				Title:         a.Activity.Title,
 				Experience:    int(a.Experience),
@@ -125,7 +126,7 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, UserBioResponse{
+	return c.JSON(http.StatusOK, dto.UserBioResponse{
 		ID:              profile.UserID,
 		MaxRadius:       profile.MaxRadius,
 		InteractionMode: int(profile.InteractionMode),
@@ -157,7 +158,7 @@ func (h *UserHandler) MySummary(c *echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, UserSummaryResponse{
+	return c.JSON(http.StatusOK, dto.UserSummaryResponse{
 		ID:         profile.UserID,
 		Name:       profile.Name,
 		PictureURL: profile.PictureURL,
@@ -186,7 +187,7 @@ func (h *UserHandler) MyProfile(c *echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, ProfileResponse{
+	return c.JSON(http.StatusOK, dto.ProfileResponse{
 		ID:  profile.UserID,
 		Age: profile.Age,
 		Bio: profile.Bio,
@@ -216,11 +217,11 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 		}
 	}
 
-	activitiesResponce := []ActivityResponse{}
+	activitiesResponce := []dto.UserActivityResponse{}
 
 	if len(profile.Activities) > 0 {
 		for _, a := range profile.Activities {
-			activity := ActivityResponse{
+			activity := dto.UserActivityResponse{
 				ID:            a.Activity.ID,
 				Title:         a.Activity.Title,
 				Experience:    int(a.Experience),
@@ -230,7 +231,7 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, UserBioResponse{
+	return c.JSON(http.StatusOK, dto.UserBioResponse{
 		ID:              profile.UserID,
 		MaxRadius:       profile.MaxRadius,
 		InteractionMode: int(profile.InteractionMode),
@@ -253,7 +254,7 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
 	}
 
-	var req ProfileUpdateRequest
+	var req dto.ProfileUpdateRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid payload"})
 	}

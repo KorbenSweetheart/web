@@ -1,4 +1,4 @@
-package handlers
+package dto
 
 // REQUEST DTOs
 type RegisterRequest struct {
@@ -13,7 +13,6 @@ type LoginRequest struct {
 }
 
 type ProfileUpdateRequest struct {
-	// ID              *int64
 	Name            *string            `json:"name" validate:"omitempty,min=2,max=100"`
 	PictureURL      *string            `json:"picture_url" validate:"omitempty,url"`
 	Age             *int64             `json:"age" validate:"omitempty,number,gte=0,lte=125"`
@@ -23,19 +22,12 @@ type ProfileUpdateRequest struct {
 	Activities      *[]ActivityRequest `json:"activities" validate:"omitempty,dive"`
 	Lat             *float64           `json:"lat" validate:"omitempty,latitude"`
 	Lon             *float64           `json:"lon" validate:"omitempty,longitude"`
-	// IsOnline        *bool              `json:"is_online"`
 }
 
 type ActivityRequest struct {
 	ID            int64 `json:"id" validate:"required,gte=1"`
 	Experience    int   `json:"experience_level" validate:"required,gte=1,lte=5"` // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
 	InterestLevel int   `json:"interest_level" validate:"required,gte=1,lte=5"`   // 1-5 levels: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
-}
-
-type LocationUpdateRequest struct {
-	ID  int64   `json:"id" validate:"required,gte=1"`
-	Lat float64 `json:"lat" validate:"required,latitude"`
-	Lon float64 `json:"lon" validate:"required,longitude"`
 }
 
 // RESPONSE DTOs
@@ -63,7 +55,7 @@ type ProfileResponse struct {
 }
 
 // Activily responce DTO
-type ActivityResponse struct {
+type UserActivityResponse struct {
 	ID            int64  `json:"id"`
 	Title         string `json:"title"`          // e.g.: "Running", "Paddle", "Gym", "Cycling", "CrossFit", "Football"...
 	Experience    int    `json:"experience"`     // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
@@ -72,10 +64,15 @@ type ActivityResponse struct {
 
 // /users/{id}/bio
 type UserBioResponse struct {
-	ID              int64              `json:"id"`
-	MaxRadius       float64            `json:"max_radius"`
-	InteractionMode int                `json:"interaction_mode"`
-	Activities      []ActivityResponse `json:"activities"`
-	Lat             float64            `json:"lat"` // Latitude from the browser API
-	Lon             float64            `json:"lon"` // Longitude from the browser API
+	ID              int64                  `json:"id"`
+	MaxRadius       float64                `json:"max_radius"`
+	InteractionMode int                    `json:"interaction_mode"`
+	Activities      []UserActivityResponse `json:"activities"`
+	Lat             float64                `json:"lat"` // Latitude from the browser API
+	Lon             float64                `json:"lon"` // Longitude from the browser API
+}
+
+type ActivityResponse struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
 }
