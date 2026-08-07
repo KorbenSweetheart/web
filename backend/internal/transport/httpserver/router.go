@@ -41,7 +41,7 @@ func SetupRouter(
 	private.GET("/users/:id/profile", h.User.UserProfile) // /users/{id}/profile
 	private.GET("/users/:id/bio", h.User.UserBio)         // /users/{id}/bio
 	// private.GET("/activities", h.User.Activities) // /actvities
-	// private.GET("/connections", h.User.Connections)
+	// private.GET("/connections", h.User.Connections) // /connections
 
 	// Shortcuts
 	private.GET("/me", h.User.MySummary)         // /me
@@ -50,7 +50,7 @@ func SetupRouter(
 	private.PATCH("/me/profile", h.User.UpdateProfile)
 
 	// Recommendations
-	// private.GET("/recommendations", h.Match.Recommendations)
+	private.GET("/recommendations", h.Match.Recommendations)
 
 	return e
 }

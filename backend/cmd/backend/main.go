@@ -57,6 +57,7 @@ func main() {
 	// create services
 	authService := service.NewAuthService(storage, storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	userService := service.NewUserService(storage, log)
+	matchService := service.NewMatchService(storage, log)
 
 	// init validator
 	validate := validator.New(validator.WithRequiredStructEnabled())
@@ -64,12 +65,13 @@ func main() {
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authService, validate, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	userHandler := handlers.NewUserHandler(userService, validate, log)
+	matchHandler := handlers.NewMatchHandler(matchService, validate, log)
 
 	// setup router/server (Echo)
 	e := httpserver.SetupRouter(cfg, log, handlers.Handlers{
-		Auth: authHandler,
-		User: userHandler,
-		// Match: matchHandler,
+		Auth:  authHandler,
+		User:  userHandler,
+		Match: matchHandler,
 	})
 
 	// server config
