@@ -10,6 +10,7 @@ var (
 	ErrInvalidCreds          = errors.New("invalid credentials")
 	ErrInvalidUsernameFormat = errors.New("invalid username format")
 	ErrInvalidOrExpiredToken = errors.New("invalid or expired token")
+	ErrIncompleteProfile     = errors.New("incomplete profile")
 	// ErrUsernameIsTaken       = errors.New("username is taken")
 	// ErrInvalidSession        = errors.New("invalid or expired session")
 )

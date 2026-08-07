@@ -14,24 +14,6 @@ func (s *Storage) FindCandidates(ctx context.Context, id int64) ([]*domain.Profi
 	const op = "storage.postgres.FindCandidates"
 	// log := s.log.With(slog.String("op", op))
 
-	// TODO: do this in service layer
-	var profile domain.Profile
-
-	if err := s.db.WithContext(ctx).
-		Preload("Activities.Activity").
-		Where("user_id = ?", id).
-		First(&profile).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrUserNotFound
-		} else {
-			return nil, fmt.Errorf("failed to get profile, id: %d, op: %s, error: %w", id, op, err)
-		}
-	}
-
-	// if len(profile.Activities) == 0 {
-	// 	return nil, fmt.Errorf("failed to get profile, id: %d, op: %s, error: %w", id, op, err)
-	// }
-
 	// activityIDs := make([]int64, 0, len(profile.Activities))
 	// for i, _ := range profile.Activities {
 	// 	activityIDs = append(activityIDs, profile.Activities[i].ActivityID)
@@ -60,7 +42,7 @@ func (s *Storage) FindCandidates(ctx context.Context, id int64) ([]*domain.Profi
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrUserNotFound
 		} else {
-			return nil, fmt.Errorf("failed to get profile, id: %d, op: %s, error: %w", id, op, err)
+			return nil, fmt.Errorf("failed to get candidates profiles, id: %d, op: %s, error: %w", id, op, err)
 		}
 	}
 

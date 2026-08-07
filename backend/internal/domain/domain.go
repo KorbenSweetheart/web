@@ -60,8 +60,9 @@ type Profile struct {
 	UserID          int64             `gorm:"primaryKey" json:"id"`
 	Name            string            `gorm:"type:varchar(255);not null" json:"name"`
 	PictureURL      string            `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
-	Age             int64             `gorm:"column:age" json:"age"`
-	Bio             string            `gorm:"type:text" json:"bio"` // Bio
+	Age             int64             `gorm:"column:age" json:"age"`                                                 // TODO: replace with birthday
+	Birthday        time.Time         `gorm:"type:date" json:"birthday"`                                             // to get age AGE(birthday) in SQL or time.Since(profile.Birthday) in Go
+	Bio             string            `gorm:"type:text" json:"bio"`                                                  // Bio
 	MaxRadius       float64           `gorm:"default:10" json:"max_radius"`
 	InteractionMode InteractionMode   `gorm:"type:smallint;column:interaction_mode;not null;default:1" json:"interaction_mode"` // "Open to anything", "Silent", "Social", "Dating" Mode
 	Activities      []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
