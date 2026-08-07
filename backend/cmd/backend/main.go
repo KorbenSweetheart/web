@@ -57,19 +57,26 @@ func main() {
 	// create services
 	authService := service.NewAuthService(storage, storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	userService := service.NewUserService(storage, log)
+	matchService := service.NewMatchService(storage, log)
+	dictionaryService := service.NewDictionaryService(storage, log)
 
 	// init validator
-	validate := validator.New(validator.WithRequiredStructEnabled())
+	validator := validator.New(validator.WithRequiredStructEnabled())
 
 	// Handlers
-	authHandler := handlers.NewAuthHandler(authService, validate, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
-	userHandler := handlers.NewUserHandler(userService, validate, log)
+	authHandler := handlers.NewAuthHandler(authService, validator, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
+	userHandler := handlers.NewUserHandler(userService, validator, log)
+	matchHandler := handlers.NewMatchHandler(matchService, validator, log)
+	dictionaryHandler := handlers.NewDictionaryHandler(dictionaryService, validator, log)
+	healthHandler := handlers.NewHealthHandler(storage)
 
 	// setup router/server (Echo)
 	e := httpserver.SetupRouter(cfg, log, handlers.Handlers{
-		Auth: authHandler,
-		User: userHandler,
-		// Match: matchHandler,
+		Auth:       authHandler,
+		User:       userHandler,
+		Match:      matchHandler,
+		Dictionary: dictionaryHandler,
+		Health:     healthHandler,
 	})
 
 	// server config
@@ -88,7 +95,7 @@ func main() {
 
 	if err := sc.Start(shutdownCtx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("api server stopped with error", logger.Err(err))
-		// storage.Close()
+		// TODO: storage.Close()
 		os.Exit(1)
 	}
 

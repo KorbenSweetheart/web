@@ -90,7 +90,7 @@ func NewPostgresDB(ctx context.Context, dbCfg config.Database, log *slog.Logger)
 	return nil, fmt.Errorf("failed to connect to db after %d attempts: op: %s, error: %w", maxRetries, op, err)
 }
 
-// AutoMigrate
+// AutoMigrate creates required tables in database
 func (s *Storage) AutoMigrate(ctx context.Context) error {
 	const op = "storage.postgres.AutoMigrate"
 
@@ -109,6 +109,21 @@ func (s *Storage) AutoMigrate(ctx context.Context) error {
 		&domain.Message{},
 	); err != nil {
 		return fmt.Errorf("failed to auto-migrate: op: %s, error: %w", op, err)
+	}
+
+	locationColQuery := `
+        ALTER TABLE profiles 
+        ADD COLUMN IF NOT EXISTS location geography(Point, 4326) 
+        GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography) STORED;
+    `
+	if err := s.db.WithContext(ctx).Exec(locationColQuery).Error; err != nil {
+		return fmt.Errorf("failed to add generated location column: op: %s, error: %w", op, err)
+	}
+
+	// GIST index for radius search
+	gistIndexQuery := `CREATE INDEX IF NOT EXISTS idx_profiles_location ON profiles USING GIST (location);`
+	if err := s.db.WithContext(ctx).Exec(gistIndexQuery).Error; err != nil {
+		return fmt.Errorf("failed to create GIST index: op: %s, error: %w", op, err)
 	}
 
 	log.Info("database auto-migration completed successfully")
@@ -159,32 +174,25 @@ func (s *Storage) SeedDictionaries(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) SeedDummyUsers(ctx context.Context) error {
-	const op = "storage.postgres.SeedDummyUsers"
+func (s *Storage) Ping(ctx context.Context) error {
+	const op = "storage.postgres.Ping"
 
-	// Seed users
-	var count int64
-	if err := s.db.WithContext(ctx).Model(&domain.Account{}).Count(&count).Error; err != nil {
-		return fmt.Errorf("failed to count existing accounts: op: %s, error: %w", op, err)
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get sql.DB: op: %s, error: %w", op, err)
 	}
 
-	if count > 0 {
-		return nil
-	}
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer pingCtxCancel()
 
-	users := generateDummyUsers()
-	const batchLimit = 50
-
-	if err := s.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "email"}},
-		DoNothing: true,
-	}).CreateInBatches(&users, batchLimit).Error; err != nil {
-		return fmt.Errorf("failed to seed users, op: %s, error: %w", op, err)
+	if err := sqlDB.PingContext(pingCtx); err != nil {
+		return fmt.Errorf("failed to ping sql.DB: op: %s, error: %w", op, err)
 	}
 
 	return nil
 }
 
+// connectAndSetup is a helper "facade" function that wraps the db setup, including context and timeouts, to improve readability.
 func connectAndSetup(ctx context.Context, dsn string, gormLogger logger.Interface) (*gorm.DB, *sql.DB, error) {
 	const op = "storage.postgres.connectAndSetup"
 
@@ -200,84 +208,18 @@ func connectAndSetup(ctx context.Context, dsn string, gormLogger logger.Interfac
 		return nil, nil, fmt.Errorf("failed to get sql.DB: op: %s, error: %w", op, err)
 	}
 
-	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 2*time.Second)
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer pingCtxCancel()
 	if err := sqlDB.PingContext(pingCtx); err != nil {
 		return nil, sqlDB, fmt.Errorf("failed to ping sql.DB: op: %s, error: %w", op, err)
 	}
 
 	// Adding PostGIS extension
-	extCtx, extCancel := context.WithTimeout(ctx, 3*time.Second)
+	extCtx, extCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer extCancel()
 	if err := db.WithContext(extCtx).Exec("CREATE EXTENSION IF NOT EXISTS postgis;").Error; err != nil {
 		return nil, sqlDB, fmt.Errorf("failed to create postgis extension: op: %s, error: %w", op, err)
 	}
 
 	return db, sqlDB, nil
-}
-
-// generateSeedUsers creates fake users for testing purposes
-func generateDummyUsers() []domain.Account {
-	users := make([]domain.Account, 0, 100)
-
-	user1 := domain.Account{
-		Email:        "obiwan@matchme.com",
-		PasswordHash: "$2a$12$15dw2.nyH6xOf10DjQezcOIDY.PL.Jkr6ZjJOjpmqcL3xHtVeTWIq", // 12345678
-		Profile: domain.Profile{
-			Name: "Obi-Wan Kenobi", // TODO: maybe add it during registration
-			Age:  35,
-			Bio: `A disciplined mind, a patient approach, and a good cup of tea are my essentials.
-			I value loyalty, strategy, and staying calm in chaos. Always down for a witty debate or a long walk.`,
-			MaxRadius:       10,
-			InteractionMode: 2,
-			Activities: []domain.ProfileActivity{
-				{
-					ActivityID:    1, // Running
-					Experience:    3, // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-					InterestLevel: 5,
-				},
-				{
-					ActivityID:    14,
-					Experience:    5, // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-					InterestLevel: 4, // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
-				},
-			},
-			Lat: 60.1699,
-			Lon: 24.9384,
-		},
-	}
-
-	user2 := domain.Account{
-		Email:        "anakin@matchme.com",
-		PasswordHash: "$2a$12$15dw2.nyH6xOf10DjQezcOIDY.PL.Jkr6ZjJOjpmqcL3xHtVeTWIq", // 12345678
-		Profile: domain.Profile{
-			Name: "Anakin Skywalker", // TODO: maybe add it during registration
-			Age:  19,
-			Bio: `I live for speed, high stakes, and pushing limits.
-			I trust my gut, speak my mind, and never back down from a challenge.
-			If it's fast, intense, or "impossible", count me in.`,
-			MaxRadius:       20,
-			InteractionMode: 2,
-			Activities: []domain.ProfileActivity{
-				{
-					ActivityID:    13, // Running
-					Experience:    4,  // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-					InterestLevel: 4,
-				},
-				{
-					ActivityID:    1,
-					Experience:    3, // 1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced", "Professional"
-					InterestLevel: 5, // 1-5: "Not interested", "Open to it" , "Interested" , "Highly interested", "Actively looking"
-				},
-			},
-			Lat: 60.1699,
-			Lon: 24.9384,
-		},
-	}
-
-	// TODO: add 100 randomly generated users
-
-	users = append(users, user1, user2)
-
-	return users
 }

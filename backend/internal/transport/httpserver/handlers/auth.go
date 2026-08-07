@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"match-me-api/internal/domain"
+	"match-me-api/internal/transport/httpserver/dto"
 	"net/http"
 	"time"
 
@@ -39,7 +40,7 @@ func NewAuthHandler(auth Authenticator, v *validator.Validate, atTTL, rtTTL time
 func (h *AuthHandler) Register(c *echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req RegisterRequest
+	var req dto.RegisterRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{
 			"error": "invalid json",
@@ -80,7 +81,7 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 func (h *AuthHandler) Login(c *echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req LoginRequest
+	var req dto.LoginRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{
 			"error": "faild to read body",
