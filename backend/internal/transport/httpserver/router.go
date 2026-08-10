@@ -43,8 +43,8 @@ func SetupRouter(
 	private.GET("/users/:id", h.User.UserSummary)         // /users/{id}
 	private.GET("/users/:id/profile", h.User.UserProfile) // /users/{id}/profile
 	private.GET("/users/:id/bio", h.User.UserBio)         // /users/{id}/bio
-	// private.GET("/connections", h.User.Connections) // /connections
-	private.GET("/activities", h.Dictionary.Activities) // /actvities
+	private.GET("/connections", h.Conn.Connections)       // /connections
+	private.GET("/activities", h.Dictionary.Activities)   // /actvities
 
 	// Shortcuts
 	private.GET("/me", h.User.MySummary)         // /me

@@ -76,3 +76,8 @@ type ActivityResponse struct {
 	ID    int64  `json:"id"`
 	Title string `json:"title"`
 }
+
+// /connections
+type ConnectionIDResponse struct {
+	ID int64 `json:"id"`
+}

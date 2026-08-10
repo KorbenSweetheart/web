@@ -10,7 +10,7 @@ import (
 func (s *Storage) AcceptedConnectionUserIDs(ctx context.Context, userID int64) ([]int64, error) {
 	const op = "storage.postgres.AcceptedConnectionUserIDs"
 
-	var userIDs []int64
+	userIDs := make([]int64, 0)
 
 	err := s.db.WithContext(ctx).Model(&domain.Connection{}).
 		Select("CASE WHEN from_user_id = ? THEN to_user_id ELSE from_user_id END", userID).

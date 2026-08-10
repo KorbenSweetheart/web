@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"log/slog"
+	"match-me-api/internal/transport/httpserver/dto"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -11,7 +12,6 @@ import (
 
 type ConnectionManager interface {
 	AcceptedConnections(ctx context.Context, userID int64) ([]int64, error)
-	// FriendRequest(ctx context.Context, fromID, toID int64) error
 }
 
 type ConnectionHandler struct {
@@ -33,13 +33,15 @@ func (h *ConnectionHandler) Connections(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
 	}
 
-	connections, err := h.ConnectionService.AcceptedConnections(ctx, myID)
+	userIDs, err := h.ConnectionService.AcceptedConnections(ctx, myID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get recommendations"})
-
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get connections"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
-		"connections": connections,
-	})
+	response := make([]dto.ConnectionIDResponse, 0, len(userIDs))
+	for _, id := range userIDs {
+		response = append(response, dto.ConnectionIDResponse{ID: id})
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
