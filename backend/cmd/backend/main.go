@@ -56,27 +56,30 @@ func main() {
 
 	// create services
 	authService := service.NewAuthService(storage, storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
+	dictionaryService := service.NewDictionaryService(storage, log)
 	userService := service.NewUserService(storage, log)
 	matchService := service.NewMatchService(storage, log)
-	dictionaryService := service.NewDictionaryService(storage, log)
+	connectionService := service.NewConnectionService(storage, log)
 
 	// init validator
 	validator := validator.New(validator.WithRequiredStructEnabled())
 
 	// Handlers
+	healthHandler := handlers.NewHealthHandler(storage)
+	dictionaryHandler := handlers.NewDictionaryHandler(dictionaryService, validator, log)
 	authHandler := handlers.NewAuthHandler(authService, validator, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	userHandler := handlers.NewUserHandler(userService, validator, log)
 	matchHandler := handlers.NewMatchHandler(matchService, validator, log)
-	dictionaryHandler := handlers.NewDictionaryHandler(dictionaryService, validator, log)
-	healthHandler := handlers.NewHealthHandler(storage)
+	connectionHandler := handlers.NewConnectionHandler(connectionService, validator, log)
 
 	// setup router/server (Echo)
 	e := httpserver.SetupRouter(cfg, log, handlers.Handlers{
+		Health:     healthHandler,
+		Dictionary: dictionaryHandler,
 		Auth:       authHandler,
 		User:       userHandler,
 		Match:      matchHandler,
-		Dictionary: dictionaryHandler,
-		Health:     healthHandler,
+		Conn:       connectionHandler,
 	})
 
 	// server config

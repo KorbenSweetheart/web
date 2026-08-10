@@ -8,7 +8,7 @@ import (
 
 const (
 	tokenIssuer               = "match-me-api"
-	accessTokenTTL            = 15 * time.Minute    // 15 min
+	accessTokenTTL            = 60 * time.Minute    // 15 min
 	refreshTokenTTL           = 30 * 24 * time.Hour // 30 days
 	defaultSrvTimeout         = 4 * time.Second
 	defaultSrvIdleTimeout     = 60 * time.Second

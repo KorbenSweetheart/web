@@ -23,7 +23,7 @@ func NewMatchService(r CandidateRepository, logger *slog.Logger) *MatchService {
 
 // MatchedProfiles returns a list of 10 ranked profiles matched to the user based on Match Score.
 func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]*domain.Profile, error) {
-	const op = "service.recommendationService.Recommendations"
+	const op = "service.matchService.Recommendations"
 	log := ms.log.With(slog.String("op", op))
 
 	profile, err := ms.repo.ProfileByID(ctx, userID)
@@ -45,6 +45,7 @@ func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]*d
 
 	// TODO: implement Match Score and algorithm
 	// add filter and sort the get top 10 best candidates based on Match Score (criteria or weights)
+	// don't forget to exclude users who was previously rejected. maybe add it to db level.
 
 	return candidates, nil
 }

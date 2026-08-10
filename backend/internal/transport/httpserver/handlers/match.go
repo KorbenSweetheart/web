@@ -22,8 +22,8 @@ type MatchHandler struct {
 	log          *slog.Logger
 }
 
-func NewMatchHandler(rs MatchEngine, v *validator.Validate, logger *slog.Logger) *MatchHandler {
-	return &MatchHandler{matchService: rs, validator: v, log: logger}
+func NewMatchHandler(ms MatchEngine, v *validator.Validate, logger *slog.Logger) *MatchHandler {
+	return &MatchHandler{matchService: ms, validator: v, log: logger}
 }
 
 // Recommendations return a list of profiles that match the user profile search criteria.
