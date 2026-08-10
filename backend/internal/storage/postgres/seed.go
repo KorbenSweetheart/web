@@ -43,6 +43,14 @@ func (s *Storage) SeedDummyUsers(ctx context.Context) error {
 		return fmt.Errorf("failed to seed users, op: %s, error: %w", op, err)
 	}
 
+	connections := generateDummyConnections()
+	if err := s.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "from_user_id"}, {Name: "to_user_id"}},
+		DoNothing: true,
+	}).Create(&connections).Error; err != nil {
+		return fmt.Errorf("failed to seed connections, op: %s, error: %w", op, err)
+	}
+
 	return nil
 }
 
@@ -365,7 +373,7 @@ func generateDummyUsers(n int) []domain.Account {
 			PasswordHash: defaultPasswordHash,
 			Profile: domain.Profile{
 				Name:            fmt.Sprintf("Athlete %d (%s)", i, city.Name),
-				Age:             int64(18 + rand.Intn(43)), // 18 - 60
+				Age:             18 + rand.Intn(43), // 18 - 60
 				Bio:             fmt.Sprintf("Hi! I live in %s and love staying active. Looking for sports partners!", city.Name),
 				MaxRadius:       float64(10 + rand.Intn(91)), // 10 - 100 km (10 + [0..90])
 				InteractionMode: domain.InteractionMode(1 + rand.Intn(4)),
@@ -379,4 +387,26 @@ func generateDummyUsers(n int) []domain.Account {
 	}
 
 	return users
+}
+
+func generateDummyConnections() []domain.Connection {
+	return []domain.Connection{
+		// The Jedi
+		{FromUserID: 1, ToUserID: 2, Status: domain.Accepted}, // Obi-Wan <-> Anakin
+		{FromUserID: 1, ToUserID: 3, Status: domain.Accepted}, // Obi-Wan <-> Yoda
+		{FromUserID: 3, ToUserID: 4, Status: domain.Accepted}, // Yoda <-> Windu
+		{FromUserID: 2, ToUserID: 8, Status: domain.Accepted}, // Anakin <-> Ahsoka
+
+		// Pending
+		{FromUserID: 9, ToUserID: 1, Status: domain.Pending}, // Jar Jar -> Obi-Wan
+		{FromUserID: 8, ToUserID: 3, Status: domain.Pending}, // Ahsoka -> Yoda
+
+		// Declined
+		{FromUserID: 1, ToUserID: 6, Status: domain.Declined}, // Obi-Wan <-> Maul
+		{FromUserID: 2, ToUserID: 5, Status: domain.Declined}, // Anakin <-> Dooku
+
+		// The Sith
+		{FromUserID: 5, ToUserID: 7, Status: domain.Accepted}, // Dooku <-> Ventress
+		{FromUserID: 6, ToUserID: 5, Status: domain.Pending},  // Maul -> Dooku
+	}
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"log/slog"
+	"match-me-api/internal/domain"
 	"match-me-api/internal/transport/httpserver/dto"
 	"net/http"
 
@@ -12,6 +13,10 @@ import (
 
 type ConnectionManager interface {
 	AcceptedConnections(ctx context.Context, userID int64) ([]int64, error)
+	PendingConnectionRequests(ctx context.Context, userID int64) ([]int64, error)
+	AddConnection(ctx context.Context, fromUserID, toUserID int64) error
+	ChangeConnectionStatus(ctx context.Context, userID, targetUserID int64, status domain.ConnectionStatus) error
+	DeleteConnection(ctx context.Context, userID, targetUserID int64) error
 }
 
 type ConnectionHandler struct {

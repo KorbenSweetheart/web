@@ -4,17 +4,16 @@ import (
 	"time"
 )
 
-type ConnectionStatus string
-
-const (
-	StatusPending  ConnectionStatus = "pending"
-	StatusAccepted ConnectionStatus = "accepted"
-	StatusRejected ConnectionStatus = "rejected"
-)
-
+type ConnectionStatus int
 type InteractionMode int
 type ExperienceLevel int
 type InterestLevel int
+
+const (
+	Pending  ConnectionStatus = iota + 1 // 1
+	Accepted                             // 2
+	Declined                             // 3
+)
 
 const (
 	OpenToAnything InteractionMode = iota + 1 // 1
@@ -60,7 +59,7 @@ type Profile struct {
 	UserID     int64  `gorm:"primaryKey" json:"id"`
 	Name       string `gorm:"type:varchar(255);not null" json:"name"`
 	PictureURL string `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
-	Age        int64  `gorm:"column:age" json:"age"`
+	Age        int    `gorm:"type:smallint;column:age" json:"age"`
 	// Birthday        time.Time         `gorm:"type:date" json:"birthday"`                                             // to get age AGE(birthday) in SQL or time.Since(profile.Birthday) in Go
 	Bio             string            `gorm:"type:text" json:"bio"` // Bio
 	MaxRadius       float64           `gorm:"default:10" json:"max_radius"`
@@ -104,7 +103,7 @@ func (ProfileActivity) TableName() string {
 type Connection struct {
 	FromUserID int64            `gorm:"primaryKey" json:"from_user_id"`
 	ToUserID   int64            `gorm:"primaryKey" json:"to_user_id"`
-	Status     ConnectionStatus `gorm:"type:varchar(50);not null" json:"status"`
+	Status     ConnectionStatus `gorm:"type:smallint;not null;default:1" json:"status"`
 	UpdatedAt  time.Time        `gorm:"autoUpdateTime" json:"updated_at"`
 	FromUser   Profile          `gorm:"foreignKey:FromUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	ToUser     Profile          `gorm:"foreignKey:ToUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`

@@ -45,7 +45,7 @@ func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]*d
 
 	// TODO: implement Match Score and algorithm
 	// add filter and sort the get top 10 best candidates based on Match Score (criteria or weights)
-	// don't forget to exclude users who was previously rejected. maybe add it to db level.
+	// don't forget to exclude users who was previously declined. maybe add it to db level.
 
 	return candidates, nil
 }

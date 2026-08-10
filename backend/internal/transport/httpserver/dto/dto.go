@@ -44,7 +44,7 @@ type ProfileResponse struct {
 	ID int64 `json:"id"`
 	// Name       string `json:"name"`
 	// PictureURL string `json:"picture_url"`
-	Age int64  `json:"age"`
+	Age int    `json:"age"`
 	Bio string `json:"bio"`
 	// MaxRadius       float64                `json:"max_radius"`
 	// InteractionMode domain.InteractionMode `json:"interaction_mode"`
@@ -80,4 +80,8 @@ type ActivityResponse struct {
 // /connections
 type ConnectionIDResponse struct {
 	ID int64 `json:"id"`
+}
+
+type UpdateConnectionRequest struct {
+	Status string `json:"status" validate:"required,oneof=accepted dismissed"`
 }

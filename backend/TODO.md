@@ -5,7 +5,7 @@
   - [x] Add AutoMigrate
   - [x] Create PostGis extension
   - [x] Add seed data
-  - [ ] Add 100-1000 seeded users
+  - [x] Add 100-1000 seeded users
 - [ ] Add Public Handlers
   - [x] Registration
     - [x] Add bcrypt (salt is the part of the algorithm)
@@ -31,7 +31,7 @@
   - [x] `/me/bio` - a shortcut to `/users/{id}/bio` for the authenticated user.
   - [x] `POST /users/{id}/profile` - profile update.
   - [x] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
-  - [ ] `/connections` - returns a list connected profiles, containing only the `id` and nothing else.
+  - [x] `/connections` - returns a list connected profiles, containing only the `id` and nothing else.
     - [ ] `POST /connections` - with body, to create connection request, and to accept/reject it.
           Additional:
   - [x] `/activities` - list of activities to display on a profile page
