@@ -2,14 +2,17 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"match-me-api/internal/domain"
 )
 
 type ConnectionRepository interface {
-	CreateConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error)
-	UpdateConnectionRecord(ctx context.Context, userID, targetUserID int64, status domain.ConnectionStatus) (*domain.Connection, error)
-	DeleteConnectionRecord(ctx context.Context, userID, targetUserID int64) error
+	FindConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error)
+	CreateConnectionRecord(ctx context.Context, conn *domain.Connection) error
+	UpdateConnectionRecord(ctx context.Context, conn *domain.Connection) error
+	DeleteConnectionRecord(ctx context.Context, conn *domain.Connection) error
 	AcceptedConnectionRecords(ctx context.Context, userID int64) ([]int64, error)
 	PendingConnectionRecords(ctx context.Context, userID int64) ([]int64, error)
 	// AllConnectionRecords(ctx context.Context, userID int64) ([]int64, error) // needed for recommendations
@@ -29,12 +32,32 @@ func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUs
 	const op = "service.connectionService.ConnectToUser"
 	// log := cs.log.With(slog.String("op", op))
 
-	connection, err := cs.repo.CreateConnectionRecord(ctx, fromUserID, toUserID)
-	if err != nil {
+	if fromUserID == toUserID {
+		return nil, fmt.Errorf("can't connect to self, op: %s, fromId: %d, toID: %d", op, fromUserID, toUserID)
+	}
+
+	var err error
+
+	_, err = cs.repo.FindConnectionRecord(ctx, fromUserID, toUserID)
+	if err == nil {
+		return nil, domain.ErrConnectionAlreadyExists
+	}
+
+	if !errors.Is(err, domain.ErrConnectionNotFound) {
 		return nil, err
 	}
 
-	return connection, nil
+	conn := &domain.Connection{
+		FromUserID: fromUserID,
+		ToUserID:   toUserID,
+		Status:     domain.Pending,
+	}
+
+	if err = cs.repo.CreateConnectionRecord(ctx, conn); err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 // RespondUserConnectionRequest changes pending connection request status to accepted or dismissed.
@@ -42,18 +65,36 @@ func (cs *ConnectionService) RespondUserConnectionRequest(ctx context.Context, u
 	const op = "service.connectionService.RespondUserConnectionRequest"
 	// log := cs.log.With(slog.String("op", op))
 
-	connection, err := cs.repo.UpdateConnectionRecord(ctx, userID, targetUserID, status)
+	var conn *domain.Connection
+	var err error
+
+	conn, err = cs.repo.FindConnectionRecord(ctx, targetUserID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return connection, nil
+	conn.Status = status
+
+	if err := cs.repo.UpdateConnectionRecord(ctx, conn); err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 // RemoveConnectionToUser deletes connection with status accepted between users.
 func (cs *ConnectionService) RemoveConnectionToUser(ctx context.Context, fromUserID, toUserID int64) error {
 	const op = "service.connectionService.RemoveConnectionToUser"
 	// log := cs.log.With(slog.String("op", op))
+
+	conn, err := cs.repo.FindConnectionRecord(ctx, fromUserID, toUserID)
+	if err != nil {
+		return err
+	}
+
+	if err := cs.repo.DeleteConnectionRecord(ctx, conn); err != nil {
+		return err
+	}
 
 	return nil
 }

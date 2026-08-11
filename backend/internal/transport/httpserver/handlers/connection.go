@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"match-me-api/internal/domain"
 	"match-me-api/internal/transport/httpserver/dto"
@@ -51,19 +52,22 @@ func (h *ConnectionHandler) CreateConnection(c *echo.Context) error {
 
 	connection, err := h.ConnectionService.ConnectToUser(ctx, myID, req.ToUserID)
 	if err != nil {
+		if errors.Is(err, domain.ErrConnectionAlreadyExists) {
+			return c.JSON(http.StatusBadRequest, map[string]any{"error": domain.ErrConnectionAlreadyExists.Error()})
+		}
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to create connection"})
 	}
 
 	return c.JSON(http.StatusCreated, dto.ConnectionResponse{
 		FromUserID: connection.FromUserID,
 		ToUserID:   connection.ToUserID,
-		Status:     int(connection.Status),
+		Status:     connection.Status.String(),
 		Timestamp:  connection.UpdatedAt,
 	})
 }
 
-// UpdateConnectionStatus
-// PATCH: /connections/:id Body: {"status": 2 | 3}, // "accepted" or "declined"
+// UpdateConnectionStatus updates the connection record based on the user's chosen action: accept or decline the request.
+// PATCH: /connections/:id Body: {"status": "accepted" or "declined"}
 func (h *ConnectionHandler) UpdateConnectionStatus(c *echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -87,17 +91,50 @@ func (h *ConnectionHandler) UpdateConnectionStatus(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
 	}
 
-	connection, err := h.ConnectionService.RespondUserConnectionRequest(ctx, myID, targetUserID, domain.ConnectionStatus(req.Status))
+	status, err := domain.ParseConnectionStatus(req.Status)
 	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+	}
+
+	connection, err := h.ConnectionService.RespondUserConnectionRequest(ctx, myID, targetUserID, status)
+	if err != nil {
+		if errors.Is(err, domain.ErrConnectionNotFound) {
+			return c.JSON(http.StatusBadRequest, map[string]any{"error": domain.ErrConnectionNotFound.Error()})
+		}
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to update connection status"})
 	}
 
 	return c.JSON(http.StatusOK, dto.ConnectionResponse{
 		FromUserID: connection.FromUserID,
 		ToUserID:   connection.ToUserID,
-		Status:     int(connection.Status),
+		Status:     connection.Status.String(),
 		Timestamp:  connection.UpdatedAt,
 	})
+}
+
+// DeleteConnection deletes the connection between two users.
+func (h *ConnectionHandler) DeleteConnection(c *echo.Context) error {
+	ctx := c.Request().Context()
+
+	myID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	targetUserIDStr := c.Param("id")
+	targetUserID, err := strconv.ParseInt(targetUserIDStr, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+	}
+
+	if err := h.ConnectionService.RemoveConnectionToUser(ctx, myID, targetUserID); err != nil {
+		if errors.Is(err, domain.ErrConnectionNotFound) {
+			c.JSON(http.StatusBadRequest, map[string]any{"error": domain.ErrConnectionNotFound.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to delete connection"})
+	}
+
+	return c.JSON(http.StatusNoContent, map[string]any{"status": "Connection deleted successfully"}) // TODO: maybe need to return empty response.
 }
 
 // Connections return a list of profile IDs of accepted connections for the user.

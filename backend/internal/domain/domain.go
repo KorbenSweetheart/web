@@ -1,19 +1,46 @@
 package domain
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
 type ConnectionStatus int
-type InteractionMode int
-type ExperienceLevel int
-type InterestLevel int
 
 const (
 	Pending  ConnectionStatus = iota + 1 // 1
 	Accepted                             // 2
 	Declined                             // 3
 )
+
+func (s ConnectionStatus) String() string {
+	switch s {
+	case Pending:
+		return "pending"
+	case Accepted:
+		return "accepted"
+	case Declined:
+		return "declined"
+	default:
+		return "unknown"
+	}
+}
+
+func ParseConnectionStatus(s string) (ConnectionStatus, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "pending":
+		return Pending, nil
+	case "accepted":
+		return Accepted, nil
+	case "declined":
+		return Declined, nil
+	default:
+		return 0, fmt.Errorf("invalid connection status: %s", s)
+	}
+}
+
+type InteractionMode int
 
 const (
 	OpenToAnything InteractionMode = iota + 1 // 1
@@ -22,6 +49,8 @@ const (
 	Dating                                    // 4
 )
 
+type ExperienceLevel int
+
 const (
 	Beginner     ExperienceLevel = iota + 1 // 1
 	ActiveNovice                            // 2
@@ -29,6 +58,8 @@ const (
 	Advanced                                // 4
 	Professional                            // 5
 )
+
+type InterestLevel int
 
 const (
 	NotInterested InterestLevel = iota + 1 // 1

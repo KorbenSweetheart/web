@@ -53,9 +53,9 @@ func SetupRouter(
 	// Connections
 	private.GET("/connections", h.Conn.Connections) // /connections
 	private.GET("/connections/requests", h.Conn.ConnectionRequests)
-	private.POST("/connections", h.Conn.CreateConnection) // request body: {"to_user_id": 123}, Response: 200 OK {"status": "pending"}
-	// private.PATCH("/connections/:id", h.Conn.UpdateConnectionStatus) // request body: {"status": "accepted" | "declined"}, Response: 200 OK
-	// private.DELETE("/connections/:id", h.Conn.DeleteConnection) // Response: 204 No Content
+	private.POST("/connections", h.Conn.CreateConnection)            // request body: {"to_user_id": 123}, Response: 200 OK {"status": "pending"}
+	private.PATCH("/connections/:id", h.Conn.UpdateConnectionStatus) // request body: {"status": "accepted" | "declined"}, Response: 200 OK
+	private.DELETE("/connections/:id", h.Conn.DeleteConnection)      // Response: 204 No Content
 
 	// Recommendations
 	private.GET("/recommendations", h.Match.Recommendations)

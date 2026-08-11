@@ -25,65 +25,52 @@ func (s *Storage) FindConnectionRecord(ctx context.Context, fromUserID, toUserID
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrConnectionNotFound
 		}
-		return nil, fmt.Errorf("failed to check existing connection, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
+		return nil, fmt.Errorf("failed to find connection record, op: %s, fromId: %d, toID: %d, error: %w",
+			op, fromUserID, toUserID, err)
 	}
 
 	return &conn, nil
 }
 
 // CreateConnectionRecord creates connection record with status pending between 2 users.
-func (s *Storage) CreateConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error) {
+func (s *Storage) CreateConnectionRecord(ctx context.Context, conn *domain.Connection) error {
 	const op = "storage.postgres.CreateConnectionRecord"
 
-	if err == nil {
-		return nil, domain.ErrConnectionAlreadyExists
+	if err := s.db.WithContext(ctx).Create(conn).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return domain.ErrConnectionAlreadyExists
+		}
+		return fmt.Errorf("failed to create connection record, op: %s, fromId: %d, toID: %d, error: %w",
+			op, conn.FromUserID, conn.ToUserID, err)
 	}
 
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("failed to check existing connection, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
-	}
-
-	conn := domain.Connection{
-		FromUserID: fromUserID,
-		ToUserID:   toUserID,
-		Status:     domain.Pending,
-	}
-
-	err = s.db.WithContext(ctx).Create(&conn).Error
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create connection record, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
-	}
-
-	return &conn, nil
+	return nil
 }
 
 // UpdateConnectionRecord changes connection record status between 2 users by changing "pending" status to "accepted" or "declined".
-func (s *Storage) UpdateConnectionRecord(ctx context.Context, userID, targetUserID int64, status domain.ConnectionStatus) (*domain.Connection, error) {
+func (s *Storage) UpdateConnectionRecord(ctx context.Context, conn *domain.Connection) error {
 	const op = "storage.postgres.UpdateConnectionRecord"
 
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("failed to check existing connection, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
-	}
-
-	conn := domain.Connection{
-		FromUserID: fromUserID,
-		ToUserID:   toUserID,
-		Status:     domain.Pending,
-	}
-
-	err = s.db.WithContext(ctx).Create(&conn).Error
-
+	err := s.db.WithContext(ctx).Save(conn).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to create connection record, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
+		return fmt.Errorf("failed to update connection record, op: %s, fromId: %d, toID: %d, error: %w",
+			op, conn.FromUserID, conn.ToUserID, err)
+
 	}
 
-	return &conn, nil
+	return nil
 }
 
 // DeleteConnectionRecord deletes connection record between 2 users.
-func (s *Storage) DeleteConnectionRecord(ctx context.Context, fromUserID, toUserID int64) error {
+func (s *Storage) DeleteConnectionRecord(ctx context.Context, conn *domain.Connection) error {
 	const op = "storage.postgres.DeleteConnectionRecord"
+
+	err := s.db.WithContext(ctx).Delete(conn).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete connection record, op: %s, fromId: %d, toID: %d, error: %w",
+			op, conn.FromUserID, conn.ToUserID, err)
+
+	}
 
 	return nil
 }

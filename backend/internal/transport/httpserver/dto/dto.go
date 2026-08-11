@@ -89,7 +89,7 @@ type ConnectionIDResponse struct {
 type ConnectionResponse struct {
 	FromUserID int64     `json:"from_user_id"`
 	ToUserID   int64     `json:"to_user_id"`
-	Status     int       `json:"status"`
+	Status     string    `json:"status"`
 	Timestamp  time.Time `json:"timestamp"`
 }
 
@@ -98,5 +98,5 @@ type ConnectionRequest struct {
 }
 
 type UpdateConnectionRequest struct {
-	Status int `json:"status" validate:"required,number,gte=2,lte=3"` // if string use "validate:"required,oneof=accepted declined"
+	Status string `json:"status" validate:"required,oneof=accepted declined"`
 }
