@@ -43,17 +43,25 @@ func SetupRouter(
 	private.GET("/users/:id", h.User.UserSummary)         // /users/{id}
 	private.GET("/users/:id/profile", h.User.UserProfile) // /users/{id}/profile
 	private.GET("/users/:id/bio", h.User.UserBio)         // /users/{id}/bio
-	// private.GET("/connections", h.User.Connections) // /connections
-	private.GET("/activities", h.Dictionary.Activities) // /actvities
 
-	// Shortcuts
+	// "Me" Shortcuts
 	private.GET("/me", h.User.MySummary)         // /me
 	private.GET("/me/profile", h.User.MyProfile) // /me/profile
 	private.GET("/me/bio", h.User.MyBio)         // /me/bio
 	private.PATCH("/me/profile", h.User.UpdateProfile)
 
+	// Connections
+	private.GET("/connections", h.Conn.Connections) // /connections
+	private.GET("/connections/requests", h.Conn.ConnectionRequests)
+	private.POST("/connections", h.Conn.CreateConnection)            // request body: {"to_user_id": 123}, Response: 200 OK {"status": "pending"}
+	private.PATCH("/connections/:id", h.Conn.UpdateConnectionStatus) // request body: {"status": "accepted" | "declined"}, Response: 200 OK
+	private.DELETE("/connections/:id", h.Conn.DeleteConnection)      // Response: 204 No Content
+
 	// Recommendations
 	private.GET("/recommendations", h.Match.Recommendations)
+
+	// Dictionary
+	private.GET("/activities", h.Dictionary.Activities) // /actvities
 
 	return e
 }

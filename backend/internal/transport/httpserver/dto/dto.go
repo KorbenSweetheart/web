@@ -1,5 +1,9 @@
 package dto
 
+import (
+	"time"
+)
+
 // REQUEST DTOs
 type RegisterRequest struct {
 	Name     string `json:"name" validate:"required,min=2"`
@@ -44,7 +48,7 @@ type ProfileResponse struct {
 	ID int64 `json:"id"`
 	// Name       string `json:"name"`
 	// PictureURL string `json:"picture_url"`
-	Age int64  `json:"age"`
+	Age int    `json:"age"`
 	Bio string `json:"bio"`
 	// MaxRadius       float64                `json:"max_radius"`
 	// InteractionMode domain.InteractionMode `json:"interaction_mode"`
@@ -75,4 +79,24 @@ type UserBioResponse struct {
 type ActivityResponse struct {
 	ID    int64  `json:"id"`
 	Title string `json:"title"`
+}
+
+// /connections
+type ConnectionIDResponse struct {
+	ID int64 `json:"id"`
+}
+
+type ConnectionResponse struct {
+	FromUserID int64     `json:"from_user_id"`
+	ToUserID   int64     `json:"to_user_id"`
+	Status     string    `json:"status"`
+	Timestamp  time.Time `json:"timestamp"`
+}
+
+type ConnectionRequest struct {
+	ToUserID int64 `json:"to_user_id" validate:"required,number"`
+}
+
+type UpdateConnectionRequest struct {
+	Status string `json:"status" validate:"required,oneof=accepted declined"`
 }

@@ -1,20 +1,46 @@
 package domain
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
-type ConnectionStatus string
+type ConnectionStatus int
 
 const (
-	StatusPending  ConnectionStatus = "pending"
-	StatusAccepted ConnectionStatus = "accepted"
-	StatusRejected ConnectionStatus = "rejected"
+	Pending  ConnectionStatus = iota + 1 // 1
+	Accepted                             // 2
+	Declined                             // 3
 )
 
+func (s ConnectionStatus) String() string {
+	switch s {
+	case Pending:
+		return "pending"
+	case Accepted:
+		return "accepted"
+	case Declined:
+		return "declined"
+	default:
+		return "unknown"
+	}
+}
+
+func ParseConnectionStatus(s string) (ConnectionStatus, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "pending":
+		return Pending, nil
+	case "accepted":
+		return Accepted, nil
+	case "declined":
+		return Declined, nil
+	default:
+		return 0, fmt.Errorf("invalid connection status: %s", s)
+	}
+}
+
 type InteractionMode int
-type ExperienceLevel int
-type InterestLevel int
 
 const (
 	OpenToAnything InteractionMode = iota + 1 // 1
@@ -23,6 +49,8 @@ const (
 	Dating                                    // 4
 )
 
+type ExperienceLevel int
+
 const (
 	Beginner     ExperienceLevel = iota + 1 // 1
 	ActiveNovice                            // 2
@@ -30,6 +58,8 @@ const (
 	Advanced                                // 4
 	Professional                            // 5
 )
+
+type InterestLevel int
 
 const (
 	NotInterested InterestLevel = iota + 1 // 1
@@ -57,12 +87,12 @@ type RefreshToken struct {
 }
 
 type Profile struct {
-	UserID          int64             `gorm:"primaryKey" json:"id"`
-	Name            string            `gorm:"type:varchar(255);not null" json:"name"`
-	PictureURL      string            `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
-	Age             int64             `gorm:"column:age" json:"age"`                                                 // TODO: replace with birthday
-	Birthday        time.Time         `gorm:"type:date" json:"birthday"`                                             // to get age AGE(birthday) in SQL or time.Since(profile.Birthday) in Go
-	Bio             string            `gorm:"type:text" json:"bio"`                                                  // Bio
+	UserID     int64  `gorm:"primaryKey" json:"id"`
+	Name       string `gorm:"type:varchar(255);not null" json:"name"`
+	PictureURL string `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
+	Age        int    `gorm:"type:smallint;column:age" json:"age"`
+	// Birthday        time.Time         `gorm:"type:date" json:"birthday"`                                             // to get age AGE(birthday) in SQL or time.Since(profile.Birthday) in Go
+	Bio             string            `gorm:"type:text" json:"bio"` // Bio
 	MaxRadius       float64           `gorm:"default:10" json:"max_radius"`
 	InteractionMode InteractionMode   `gorm:"type:smallint;column:interaction_mode;not null;default:1" json:"interaction_mode"` // "Open to anything", "Silent", "Social", "Dating" Mode
 	Activities      []ProfileActivity `gorm:"foreignKey:ProfileUserID;references:UserID;constraint:OnDelete:CASCADE" json:"activities"`
@@ -104,7 +134,7 @@ func (ProfileActivity) TableName() string {
 type Connection struct {
 	FromUserID int64            `gorm:"primaryKey" json:"from_user_id"`
 	ToUserID   int64            `gorm:"primaryKey" json:"to_user_id"`
-	Status     ConnectionStatus `gorm:"type:varchar(50);not null" json:"status"`
+	Status     ConnectionStatus `gorm:"type:smallint;not null;default:1" json:"status"`
 	UpdatedAt  time.Time        `gorm:"autoUpdateTime" json:"updated_at"`
 	FromUser   Profile          `gorm:"foreignKey:FromUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
 	ToUser     Profile          `gorm:"foreignKey:ToUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`

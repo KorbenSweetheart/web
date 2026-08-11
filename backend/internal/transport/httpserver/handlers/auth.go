@@ -98,9 +98,10 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidCreds) {
 			return c.JSON(http.StatusUnauthorized, map[string]any{
-				"email":   req.Email,
-				"error":   domain.ErrInvalidCreds.Error(),
-				"message": "invalid input body",
+				"email":    req.Email,
+				"password": req.Password,
+				"error":    domain.ErrInvalidCreds.Error(),
+				"message":  "invalid input body",
 			})
 		} else {
 			return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
