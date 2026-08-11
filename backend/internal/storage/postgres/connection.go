@@ -2,34 +2,95 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"match-me-api/internal/domain"
+
+	"gorm.io/gorm"
 )
 
-// CreateConnection .
-func (s *Storage) CreateConnection(ctx context.Context, fromUserID, toUserID int64) error {
-	const op = "storage.postgres.CreateConnection"
+// FindConnectionRecord
+func (s *Storage) FindConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error) {
+	const op = "storage.postgres.FindConnectionRecord"
+
+	var conn domain.Connection
+
+	// checking does the connection in ANY direction exists
+	err := s.db.WithContext(ctx).
+		Where("(from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?)",
+			fromUserID, toUserID, toUserID, fromUserID).
+		First(&conn).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrConnectionNotFound
+		}
+		return nil, fmt.Errorf("failed to check existing connection, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
+	}
+
+	return &conn, nil
+}
+
+// CreateConnectionRecord creates connection record with status pending between 2 users.
+func (s *Storage) CreateConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error) {
+	const op = "storage.postgres.CreateConnectionRecord"
+
+	if err == nil {
+		return nil, domain.ErrConnectionAlreadyExists
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to check existing connection, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
+	}
+
+	conn := domain.Connection{
+		FromUserID: fromUserID,
+		ToUserID:   toUserID,
+		Status:     domain.Pending,
+	}
+
+	err = s.db.WithContext(ctx).Create(&conn).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection record, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
+	}
+
+	return &conn, nil
+}
+
+// UpdateConnectionRecord changes connection record status between 2 users by changing "pending" status to "accepted" or "declined".
+func (s *Storage) UpdateConnectionRecord(ctx context.Context, userID, targetUserID int64, status domain.ConnectionStatus) (*domain.Connection, error) {
+	const op = "storage.postgres.UpdateConnectionRecord"
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to check existing connection, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
+	}
+
+	conn := domain.Connection{
+		FromUserID: fromUserID,
+		ToUserID:   toUserID,
+		Status:     domain.Pending,
+	}
+
+	err = s.db.WithContext(ctx).Create(&conn).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection record, op: %s, fromId: %d, toID: %d, error: %w", op, fromUserID, toUserID, err)
+	}
+
+	return &conn, nil
+}
+
+// DeleteConnectionRecord deletes connection record between 2 users.
+func (s *Storage) DeleteConnectionRecord(ctx context.Context, fromUserID, toUserID int64) error {
+	const op = "storage.postgres.DeleteConnectionRecord"
 
 	return nil
 }
 
-// UpdateConnection .
-func (s *Storage) UpdateConnection(ctx context.Context, fromUserID, toUserID int64, status domain.ConnectionStatus) error {
-	const op = "storage.postgres.UpdateConnection"
-
-	return nil
-}
-
-// DeleteConnection .
-func (s *Storage) DeleteConnection(ctx context.Context, fromUserID, toUserID int64) error {
-	const op = "storage.postgres.DeleteConnection"
-
-	return nil
-}
-
-// AcceptedConnections returns a list of IDs of all users' connected profiles with status 'accepted'.
-func (s *Storage) AcceptedConnections(ctx context.Context, userID int64) ([]int64, error) {
-	const op = "storage.postgres.AcceptedConnections"
+// AcceptedConnectionRecords returns a list of IDs of all users' connected profiles with status 'accepted'.
+func (s *Storage) AcceptedConnectionRecords(ctx context.Context, userID int64) ([]int64, error) {
+	const op = "storage.postgres.AcceptedConnectionRecords"
 
 	userIDs := make([]int64, 0)
 
@@ -45,9 +106,9 @@ func (s *Storage) AcceptedConnections(ctx context.Context, userID int64) ([]int6
 	return userIDs, nil
 }
 
-// PendingConnections returns a list of IDs of incoming connection requests for the provided userID.
-func (s *Storage) PendingConnections(ctx context.Context, userID int64) ([]int64, error) {
-	const op = "storage.postgres.PendingConnections"
+// PendingConnectionRecords returns a list of IDs of incoming connection requests for the provided userID.
+func (s *Storage) PendingConnectionRecords(ctx context.Context, userID int64) ([]int64, error) {
+	const op = "storage.postgres.PendingConnectionRecords"
 
 	var userIDs []int64
 
@@ -62,9 +123,9 @@ func (s *Storage) PendingConnections(ctx context.Context, userID int64) ([]int64
 	return userIDs, nil
 }
 
-// AllConnections returns a list of IDs of all types of connections for the provided userID.
-func (s *Storage) AllConnections(ctx context.Context, userID int64) ([]int64, error) {
-	const op = "storage.postgres.AllConnections"
+// AllConnectionRecords returns a list of IDs of all types of connections for the provided userID.
+func (s *Storage) AllConnectionRecords(ctx context.Context, userID int64) ([]int64, error) {
+	const op = "storage.postgres.AllConnectionRecords"
 
 	var userIDs []int64
 

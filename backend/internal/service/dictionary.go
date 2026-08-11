@@ -20,6 +20,7 @@ func NewDictionaryService(repo DictionaryRepository, logger *slog.Logger) *Dicti
 	return &DictionaryService{repo: repo, log: logger}
 }
 
+// Activities return a list of activities from the dictionary.
 func (ds *DictionaryService) Activities(ctx context.Context) ([]*domain.Activity, error) {
 	const op = "service.dictionaryService.Activities"
 	log := ds.log.With(slog.String("op", op))

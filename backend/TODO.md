@@ -48,3 +48,4 @@
 - [x] Add "withContext()" to db calls.
 - [ ] Review gracefull shutdown
 - [x] maybe move migration to separete docker container
+- [ ] Review POST requests, they should return full state of the created resourse. The same for PUT and PATCH.

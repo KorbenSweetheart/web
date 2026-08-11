@@ -191,7 +191,6 @@ func (h *UserHandler) MyProfile(c *echo.Context) error {
 		ID:  profile.UserID,
 		Age: profile.Age,
 		Bio: profile.Bio,
-		// IsOnline: profile.IsOnline,
 	})
 }
 
@@ -256,7 +255,7 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 
 	var req dto.ProfileUpdateRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid payload"})
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid request body"})
 	}
 	if err := h.validator.Struct(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
@@ -271,7 +270,6 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 		MaxRadius:  req.MaxRadius,
 		Lat:        req.Lat,
 		Lon:        req.Lon,
-		// IsOnline:   req.IsOnline,
 	}
 
 	if req.InteractionMode != nil {
@@ -291,8 +289,8 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 	}
 
 	if err := h.userService.UpdateProfile(ctx, userID, params); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to update profile"})
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to update profile"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{"status": "profile updated successfully"})
+	return c.JSON(http.StatusOK, map[string]any{"status": "Profile updated successfully"})
 }

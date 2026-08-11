@@ -7,9 +7,12 @@ import (
 )
 
 type ConnectionRepository interface {
-	AcceptedConnections(ctx context.Context, userID int64) ([]int64, error)
-	PendingConnections(ctx context.Context, userID int64) ([]int64, error)
-	AllConnections(ctx context.Context, userID int64) ([]int64, error)
+	CreateConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error)
+	UpdateConnectionRecord(ctx context.Context, userID, targetUserID int64, status domain.ConnectionStatus) (*domain.Connection, error)
+	DeleteConnectionRecord(ctx context.Context, userID, targetUserID int64) error
+	AcceptedConnectionRecords(ctx context.Context, userID int64) ([]int64, error)
+	PendingConnectionRecords(ctx context.Context, userID int64) ([]int64, error)
+	// AllConnectionRecords(ctx context.Context, userID int64) ([]int64, error) // needed for recommendations
 }
 
 type ConnectionService struct {
@@ -21,13 +24,46 @@ func NewConnectionService(r ConnectionRepository, logger *slog.Logger) *Connecti
 	return &ConnectionService{repo: r, log: logger}
 }
 
+// ConnectToUser creates connection with pending status for the provided userID.
+func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error) {
+	const op = "service.connectionService.ConnectToUser"
+	// log := cs.log.With(slog.String("op", op))
+
+	connection, err := cs.repo.CreateConnectionRecord(ctx, fromUserID, toUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return connection, nil
+}
+
+// RespondUserConnectionRequest changes pending connection request status to accepted or dismissed.
+func (cs *ConnectionService) RespondUserConnectionRequest(ctx context.Context, userID, targetUserID int64, status domain.ConnectionStatus) (*domain.Connection, error) {
+	const op = "service.connectionService.RespondUserConnectionRequest"
+	// log := cs.log.With(slog.String("op", op))
+
+	connection, err := cs.repo.UpdateConnectionRecord(ctx, userID, targetUserID, status)
+	if err != nil {
+		return nil, err
+	}
+
+	return connection, nil
+}
+
+// RemoveConnectionToUser deletes connection with status accepted between users.
+func (cs *ConnectionService) RemoveConnectionToUser(ctx context.Context, fromUserID, toUserID int64) error {
+	const op = "service.connectionService.RemoveConnectionToUser"
+	// log := cs.log.With(slog.String("op", op))
+
+	return nil
+}
+
 // AcceptedConnections return a list of profile IDs of the users accepted by the user.
-// GET /connections
 func (cs *ConnectionService) AcceptedConnections(ctx context.Context, userID int64) ([]int64, error) {
 	const op = "service.connectionService.AcceptedConnections"
 	// log := cs.log.With(slog.String("op", op))
 
-	connections, err := cs.repo.AcceptedConnections(ctx, userID)
+	connections, err := cs.repo.AcceptedConnectionRecords(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -40,37 +76,18 @@ func (cs *ConnectionService) AcceptedConnections(ctx context.Context, userID int
 }
 
 // PendingConnectionRequests return a list of profile IDs of the users accepted by the user.
-// GET /connections/requests
-func (cs *ConnectionService) PendingConnectionRequests(ctx context.Context, userID int64) ([]int64, error) {
+func (cs *ConnectionService) PendingConnections(ctx context.Context, userID int64) ([]int64, error) {
 	const op = "service.connectionService.PendingConnectionRequests"
 	// log := cs.log.With(slog.String("op", op))
 
-	return nil, nil
-}
+	connections, err := cs.repo.PendingConnectionRecords(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 
-// AddConnection creates connection with pending status for the provided userID.
-// POST /connections Body: {"to_user_id": 123}
-func (cs *ConnectionService) AddConnection(ctx context.Context, fromUserID, toUserID int64) error {
-	const op = "service.connectionService.AddConnection"
-	// log := cs.log.With(slog.String("op", op))
+	if connections == nil {
+		return []int64{}, nil
+	}
 
-	return nil
-}
-
-// ChangeConnectionStatus changes pending connection request status to accepted or dismissed.
-// PATCH /connections/:id
-func (cs *ConnectionService) ChangeConnectionStatus(ctx context.Context, fromUserID, toUserID int64, status domain.ConnectionStatus) error {
-	const op = "service.connectionService.ChangeConnectionStatus"
-	// log := cs.log.With(slog.String("op", op))
-
-	return nil
-}
-
-// DeleteConnection deletes connection with status accepted between users.
-// DELETE /connections/:id
-func (cs *ConnectionService) DeleteConnection(ctx context.Context, fromUserID, toUserID int64) error {
-	const op = "service.connectionService.DeleteConnection"
-	// log := cs.log.With(slog.String("op", op))
-
-	return nil
+	return connections, nil
 }
