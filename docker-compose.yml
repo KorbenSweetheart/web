@@ -7,15 +7,34 @@ services:
     restart: unless-stopped
     environment:
       # Configuration for the first db lauch
-      POSTGRES_DB: postgres
-      POSTGRES_USER: dbuser
-      POSTGRES_PASSWORD: my_db_password
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-dbuser}
+      POSTGRES_PASSWORD: ${DB_PASS}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dbuser -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dbuser} -d ${DB_NAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: matchme_minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_password}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API Endpoint
+      - "9001:9001"   # MinIO Web Console UI (http://localhost:9001)
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -30,12 +49,12 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - ENVIRONMENT=dev
-      - DB_USER=dbuser
-      - DB_PASS=my_db_password
-      - DB_NAME=postgres
-      - DB_PORT=5432
+      - ENVIRONMENT=${ENVIRONMENT:-dev}
+      - DB_NAME=${DB_NAME:-postgres}
+      - DB_USER=${DB_USER:-dbuser}
+      - DB_PASS=${DB_PASS}
       - DB_HOST=db
+      - DB_PORT=5432
     depends_on:
       db:
         condition: service_healthy
@@ -52,22 +71,29 @@ services:
       - ./backend:/app
       - /app/tmp
     environment:
-      - ENVIRONMENT=dev
-      - JWT_SECRET=super-secure-random-key
+      - ENVIRONMENT=${ENVIRONMENT:-dev}
+      - JWT_SECRET=${JWT_SECRET}
       
       # Server variables
       - SERVER_ADDRESS=0.0.0.0:8080
-      - SERVER_TIMEOUT=4s
-      - SERVER_IDLE_TIMEOUT=60s
-      - SERVER_SHUTDOWN_TIMEOUT=10s
+      - SERVER_TIMEOUT=${SERVER_TIMEOUT:-4s}
+      - SERVER_IDLE_TIMEOUT=${SERVER_IDLE_TIMEOUT:-60s}
+      - SERVER_SHUTDOWN_TIMEOUT=${SERVER_SHUTDOWN_TIMEOUT:-10s}
       
       # DB variables
-      - DB_USER=dbuser
-      - DB_PASS=my_db_password
-      - DB_NAME=postgres
+      - DB_USER=${DB_USER:-dbuser}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME:-postgres}
       - DB_PORT=5432
-      # Important: to connect with DB inside a Docker — 'db'
       - DB_HOST=db
+
+      # MinIO variables
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minio_admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+      - MINIO_PROFILE_PICTURES_BUCKET=${MINIO_PROFILE_PICTURES_BUCKET:-profile_pictures}
+
     depends_on:
       db:
         # backend launches only when PostgreSQL pass healthcheck
@@ -75,6 +101,8 @@ services:
       migrator:
         # Backend launches only after the migrator successfully finishes its work (exit 0)
         condition: service_completed_successfully
+      minio:
+        condition: service_healthy
 
   # frontend:
   #   build:
@@ -93,3 +121,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:

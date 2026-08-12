@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -13,12 +14,14 @@ const (
 	defaultSrvTimeout         = 4 * time.Second
 	defaultSrvIdleTimeout     = 60 * time.Second
 	defaultSrvShutdownTimeout = 10 * time.Second
+	defaultMinIOUseSSL        = false
 )
 
 type Config struct {
 	Env        string
 	TM         TokenMgr
 	DB         Database
+	MinIO      MinIOConfig
 	HTTPServer HTTPServer
 }
 
@@ -42,6 +45,15 @@ type TokenMgr struct {
 	TokenIssuer     string
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
+}
+
+type MinIOConfig struct {
+	Endpoint              string
+	PublicEndpoint        string
+	AccessKey             string
+	SecretKey             string
+	UseSSL                bool
+	ProfilePicturesBucket string
 }
 
 func MustLoad() *Config {
@@ -98,9 +110,38 @@ func MustLoad() *Config {
 	cfg.HTTPServer.IdleTimeout = parseDurationEnv("SERVER_IDLE_TIMEOUT", defaultSrvIdleTimeout)
 	cfg.HTTPServer.ShutdownTimeout = parseDurationEnv("SERVER_SHUTDOWN_TIMEOUT", defaultSrvShutdownTimeout)
 
+	// MinIO Env load
+	cfg.MinIO.Endpoint = os.Getenv("MINIO_ENDPOINT")
+	if cfg.MinIO.Endpoint == "" {
+		cfg.MinIO.Endpoint = "minio:9000"
+	}
+
+	cfg.MinIO.PublicEndpoint = os.Getenv("MINIO_PUBLIC_ENDPOINT")
+	if cfg.MinIO.PublicEndpoint == "" {
+		cfg.MinIO.PublicEndpoint = "http://localhost:9000"
+	}
+
+	cfg.MinIO.AccessKey = os.Getenv("MINIO_ROOT_USER")
+	if cfg.MinIO.AccessKey == "" {
+		cfg.MinIO.AccessKey = "minio_admin"
+	}
+
+	cfg.MinIO.SecretKey = os.Getenv("MINIO_ROOT_PASSWORD")
+	if cfg.MinIO.SecretKey == "" {
+		cfg.MinIO.SecretKey = "minio_password"
+	}
+
+	cfg.MinIO.ProfilePicturesBucket = os.Getenv("MINIO_PROFILE_PICTURES_BUCKET")
+	if cfg.MinIO.ProfilePicturesBucket == "" {
+		cfg.MinIO.ProfilePicturesBucket = "profile_pictures"
+	}
+
+	cfg.MinIO.UseSSL = parseBoolEnv("MINIO_USE_SSL", defaultMinIOUseSSL)
+
 	return &cfg
 }
 
+// parseDurationEnv is a helper function to parse time.Duration values from env variables.
 func parseDurationEnv(envKey string, defaultVal time.Duration) time.Duration {
 	valStr := os.Getenv(envKey)
 	if valStr == "" {
@@ -108,6 +149,21 @@ func parseDurationEnv(envKey string, defaultVal time.Duration) time.Duration {
 	}
 
 	val, err := time.ParseDuration(valStr)
+	if err != nil {
+		return defaultVal
+	}
+
+	return val
+}
+
+// parseBoolEnv is a helper function to parse bool env variable (e.g., "true", "false", "1", "0").
+func parseBoolEnv(envKey string, defaultVal bool) bool {
+	valStr := os.Getenv(envKey)
+	if valStr == "" {
+		return defaultVal
+	}
+
+	val, err := strconv.ParseBool(valStr)
 	if err != nil {
 		return defaultVal
 	}
