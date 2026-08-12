@@ -48,12 +48,11 @@ type TokenMgr struct {
 }
 
 type MinIOConfig struct {
-	Endpoint              string
-	PublicEndpoint        string
-	AccessKey             string
-	SecretKey             string
-	UseSSL                bool
-	ProfilePicturesBucket string
+	Endpoint       string
+	PublicEndpoint string
+	AccessKeyID    string
+	SecretKey      string
+	UseSSL         bool
 }
 
 func MustLoad() *Config {
@@ -121,19 +120,14 @@ func MustLoad() *Config {
 		cfg.MinIO.PublicEndpoint = "http://localhost:9000"
 	}
 
-	cfg.MinIO.AccessKey = os.Getenv("MINIO_ROOT_USER")
-	if cfg.MinIO.AccessKey == "" {
-		cfg.MinIO.AccessKey = "minio_admin"
+	cfg.MinIO.AccessKeyID = os.Getenv("MINIO_ROOT_USER")
+	if cfg.MinIO.AccessKeyID == "" {
+		cfg.MinIO.AccessKeyID = "minio_admin"
 	}
 
 	cfg.MinIO.SecretKey = os.Getenv("MINIO_ROOT_PASSWORD")
 	if cfg.MinIO.SecretKey == "" {
 		cfg.MinIO.SecretKey = "minio_password"
-	}
-
-	cfg.MinIO.ProfilePicturesBucket = os.Getenv("MINIO_PROFILE_PICTURES_BUCKET")
-	if cfg.MinIO.ProfilePicturesBucket == "" {
-		cfg.MinIO.ProfilePicturesBucket = "profile_pictures"
 	}
 
 	cfg.MinIO.UseSSL = parseBoolEnv("MINIO_USE_SSL", defaultMinIOUseSSL)

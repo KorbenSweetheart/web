@@ -88,11 +88,10 @@ services:
       - DB_HOST=db
 
       # MinIO variables
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minio_admin}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minio_admin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_ENDPOINT=minio:9000
       - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
-      - MINIO_PROFILE_PICTURES_BUCKET=${MINIO_PROFILE_PICTURES_BUCKET:-profile_pictures}
 
     depends_on:
       db:
