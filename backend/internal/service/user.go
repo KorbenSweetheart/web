@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"match-me-api/internal/domain"
 	"match-me-api/internal/logger"
@@ -32,7 +33,7 @@ func (us *UserService) Account(ctx context.Context, id int64) (*domain.Account, 
 	user, err := us.repo.AccountByID(ctx, id)
 	if err != nil {
 		log.Debug("failed to get account by id", "id", id, "error", logger.Err(err))
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return user, nil
@@ -46,7 +47,7 @@ func (us *UserService) Profile(ctx context.Context, id int64) (*domain.Profile, 
 	profile, err := us.repo.ProfileByID(ctx, id)
 	if err != nil {
 		log.Debug("failed to get profile by id", "id", id, "error", logger.Err(err))
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return profile, nil
@@ -71,7 +72,7 @@ func (us *UserService) UpdateProfile(ctx context.Context, id int64, params *doma
 
 	if err := us.repo.UpdateProfileRecord(ctx, id, params); err != nil {
 		log.Debug("failed to update profile", "id", id, "error", logger.Err(err))
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil

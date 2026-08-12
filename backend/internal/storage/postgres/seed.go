@@ -26,7 +26,7 @@ func (s *Storage) SeedDummyUsers(ctx context.Context) error {
 	// Seed users
 	var count int64
 	if err := s.db.WithContext(ctx).Model(&domain.Account{}).Count(&count).Error; err != nil {
-		return fmt.Errorf("failed to count existing accounts: op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to count existing accounts: %w", op, err)
 	}
 
 	if count > 0 {
@@ -40,7 +40,7 @@ func (s *Storage) SeedDummyUsers(ctx context.Context) error {
 		Columns:   []clause.Column{{Name: "email"}},
 		DoNothing: true,
 	}).CreateInBatches(&users, batchLimit).Error; err != nil {
-		return fmt.Errorf("failed to seed users, op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to seed users: %w", op, err)
 	}
 
 	connections := generateDummyConnections()
@@ -48,7 +48,7 @@ func (s *Storage) SeedDummyUsers(ctx context.Context) error {
 		Columns:   []clause.Column{{Name: "from_user_id"}, {Name: "to_user_id"}},
 		DoNothing: true,
 	}).Create(&connections).Error; err != nil {
-		return fmt.Errorf("failed to seed connections, op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to seed connections: %w", op, err)
 	}
 
 	return nil

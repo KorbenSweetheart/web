@@ -42,7 +42,7 @@ func (s *Storage) FindCandidates(ctx context.Context, profile *domain.Profile) (
 		Find(&candidates).Error
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get candidates profiles, id: %d, op: %s, error: %w", profile.UserID, op, err)
+		return nil, fmt.Errorf("%s: failed to get candidates profiles for userid: %d: %w", op, profile.UserID, err)
 	}
 
 	return candidates, nil

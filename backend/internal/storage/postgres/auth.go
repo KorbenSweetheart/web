@@ -11,7 +11,7 @@ func (s *Storage) SaveRefreshToken(ctx context.Context, rtRecord *domain.Refresh
 	// log := s.log.With(slog.String("op", op))
 
 	if err := s.db.WithContext(ctx).Create(rtRecord).Error; err != nil {
-		return fmt.Errorf("failed to create refresh token, op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to create refresh token: %w", op, err)
 	}
 
 	return nil
@@ -25,7 +25,7 @@ func (s *Storage) DeleteRefreshTokenByAccountID(ctx context.Context, id int64) e
 		Delete(&domain.RefreshToken{}).Error
 
 	if err != nil {
-		return fmt.Errorf("failed to delete refresh token, op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to delete refresh token: %w", op, err)
 	}
 
 	return nil

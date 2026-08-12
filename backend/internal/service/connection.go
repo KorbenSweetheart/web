@@ -33,18 +33,37 @@ func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUs
 	// log := cs.log.With(slog.String("op", op))
 
 	if fromUserID == toUserID {
-		return nil, fmt.Errorf("can't connect to self, op: %s, fromId: %d, toID: %d", op, fromUserID, toUserID)
+		return nil, fmt.Errorf("%s: can't connect to self, fromId: %d, toID: %d", op, fromUserID, toUserID)
 	}
 
-	var err error
+	existingConn, err := cs.repo.FindConnectionRecord(ctx, fromUserID, toUserID)
+	if err != nil && !errors.Is(err, domain.ErrConnectionNotFound) {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
-	_, err = cs.repo.FindConnectionRecord(ctx, fromUserID, toUserID)
 	if err == nil {
-		return nil, domain.ErrConnectionAlreadyExists
-	}
+		switch existingConn.Status {
+		case domain.Accepted:
+			return nil, domain.ErrConnectionAlreadyExists
+		case domain.Pending:
+			// Case when pending connection already exist from toUserID.
+			// Then we can convert it to "accepted".
+			if existingConn.ToUserID == fromUserID {
+				existingConn.Status = domain.Accepted
 
-	if !errors.Is(err, domain.ErrConnectionNotFound) {
-		return nil, err
+				if err := cs.repo.UpdateConnectionRecord(ctx, existingConn); err != nil {
+					return nil, fmt.Errorf("%s: %w", op, err)
+				}
+
+				return existingConn, nil
+			}
+
+			return nil, domain.ErrConnectionAlreadyExists
+
+		case domain.Declined:
+			// Case when one of the users declined connection previously.
+			return nil, domain.ErrConnectionAlreadyExists
+		}
 	}
 
 	conn := &domain.Connection{
@@ -54,7 +73,7 @@ func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUs
 	}
 
 	if err = cs.repo.CreateConnectionRecord(ctx, conn); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return conn, nil
@@ -70,13 +89,13 @@ func (cs *ConnectionService) RespondUserConnectionRequest(ctx context.Context, u
 
 	conn, err = cs.repo.FindConnectionRecord(ctx, targetUserID, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	conn.Status = status
 
 	if err := cs.repo.UpdateConnectionRecord(ctx, conn); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return conn, nil
@@ -89,11 +108,11 @@ func (cs *ConnectionService) RemoveConnectionToUser(ctx context.Context, fromUse
 
 	conn, err := cs.repo.FindConnectionRecord(ctx, fromUserID, toUserID)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	if err := cs.repo.DeleteConnectionRecord(ctx, conn); err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
@@ -106,7 +125,7 @@ func (cs *ConnectionService) AcceptedConnections(ctx context.Context, userID int
 
 	connections, err := cs.repo.AcceptedConnectionRecords(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if connections == nil {
@@ -123,7 +142,7 @@ func (cs *ConnectionService) PendingConnections(ctx context.Context, userID int6
 
 	connections, err := cs.repo.PendingConnectionRecords(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if connections == nil {
