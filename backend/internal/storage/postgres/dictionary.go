@@ -14,7 +14,7 @@ func (s *Storage) FindActivities(ctx context.Context) ([]*domain.Activity, error
 
 	err := s.db.WithContext(ctx).Find(&activities).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get activities dictionary, op: %s, error: %w", op, err)
+		return nil, fmt.Errorf("%s: failed to get activities dictionary: %w", op, err)
 	}
 
 	return activities, nil

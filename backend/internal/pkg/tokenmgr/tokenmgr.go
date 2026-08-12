@@ -46,16 +46,21 @@ func (tm *TokenManager) GenerateToken(userID int64, ttl time.Duration) (string, 
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(tm.secretKey)
+	signedToken, err := token.SignedString(tm.secretKey)
+	if err != nil {
+		return "", fmt.Errorf("%s: failed to sign JWT token: %w", op, err)
+	}
+	return signedToken, nil
 }
 
 // GenerateRawToken generates a random cryptographic string of 32 bytes (64 hex symbols)
 // Used during login/registration/rotation to send to the client
 func (tm *TokenManager) GenerateRefreshToken() (string, error) {
+	const op = "pkg.tokenmgr.GenerateRefreshToken"
 	token := make([]byte, 32)
 	_, err := rand.Read(token)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate raw token: %w", err)
+		return "", fmt.Errorf("%s: failed to generate raw token: %w", op, err)
 	}
 
 	return hex.EncodeToString(token), nil

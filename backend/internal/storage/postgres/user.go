@@ -17,7 +17,7 @@ func (s *Storage) CreateAccount(ctx context.Context, account *domain.Account) er
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return domain.ErrEmailIsTaken
 		}
-		return fmt.Errorf("failed to create account, op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to create account: %w", op, err)
 	}
 
 	return nil
@@ -37,7 +37,7 @@ func (s *Storage) AccountByID(ctx context.Context, id int64) (*domain.Account, e
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrUserNotFound
 		} else {
-			return nil, fmt.Errorf("failed to get account, id: %d, op: %s, error: %w", id, op, err)
+			return nil, fmt.Errorf("%s: failed to get account, id %d: %w", op, id, err)
 		}
 	}
 
@@ -58,7 +58,7 @@ func (s *Storage) AccountByEmail(ctx context.Context, email string) (*domain.Acc
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrUserNotFound
 		} else {
-			return nil, fmt.Errorf("failed to get account by email, op: %s, error: %w", op, err)
+			return nil, fmt.Errorf("%s: failed to get account by email: %w", op, err)
 		}
 	}
 
@@ -80,7 +80,7 @@ func (s *Storage) ProfileByID(ctx context.Context, id int64) (*domain.Profile, e
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrUserNotFound
 		} else {
-			return nil, fmt.Errorf("failed to get profile, id: %d, op: %s, error: %w", id, op, err)
+			return nil, fmt.Errorf("%s: failed to get profile by id: %d: %w", op, id, err)
 		}
 	}
 
@@ -128,7 +128,7 @@ func (s *Storage) UpdateProfileRecord(ctx context.Context, id int64, params *dom
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return domain.ErrUserNotFound
 			} else {
-				return fmt.Errorf("failed to update profile by id, id: %d, op: %s, error: %w", id, op, err)
+				return fmt.Errorf("%s: failed to update profile, id: %d: %w", op, id, err)
 			}
 		}
 		return nil
@@ -141,13 +141,13 @@ func (s *Storage) UpdateProfileRecord(ctx context.Context, id int64, params *dom
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					return domain.ErrUserNotFound
 				} else {
-					return fmt.Errorf("failed to update profile, id: %d, op: %s, error: %w", id, op, err)
+					return fmt.Errorf("%s: failed to update profile, id: %d: %w", op, id, err)
 				}
 			}
 		}
 
 		if err := tx.Where("profile_user_id = ?", id).Delete(&domain.ProfileActivity{}).Error; err != nil {
-			return fmt.Errorf("failed to delete profile activities, id: %d, op: %s, error: %w", id, op, err)
+			return fmt.Errorf("%s: failed to delete profile activities, id: %d: %w", op, id, err)
 		}
 
 		if len(*params.Activities) > 0 {
@@ -162,7 +162,7 @@ func (s *Storage) UpdateProfileRecord(ctx context.Context, id int64, params *dom
 				}
 			}
 			if err := tx.Create(&newActivities).Error; err != nil {
-				return fmt.Errorf("failed to create new profile activities, id: %d, op: %s, error: %w", id, op, err)
+				return fmt.Errorf("%s: failed to create new profile activities, id: %d: %w", op, id, err)
 			}
 		}
 

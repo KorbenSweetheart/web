@@ -54,7 +54,7 @@ func NewPostgresDB(ctx context.Context, dbCfg config.Database, log *slog.Logger)
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("failed to connect, context canceled before attempt: op: %s, error: %w", op, ctx.Err())
+			return nil, fmt.Errorf("%s: failed to connect, context canceled before attempt: %w", op, ctx.Err())
 		default:
 		}
 
@@ -80,14 +80,14 @@ func NewPostgresDB(ctx context.Context, dbCfg config.Database, log *slog.Logger)
 
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("failed to connect, context canceled during backoff: op: %s, error: %w", op, ctx.Err())
+			return nil, fmt.Errorf("%s: failed to connect, context canceled during backoff: %w", op, ctx.Err())
 		case <-time.After(backoff):
 		}
 
 		backoff *= backoffMultiplier
 	}
 
-	return nil, fmt.Errorf("failed to connect to db after %d attempts: op: %s, error: %w", maxRetries, op, err)
+	return nil, fmt.Errorf("%s: failed to connect to db after %d attempts: %w", op, maxRetries, err)
 }
 
 // AutoMigrate creates required tables in database
@@ -108,7 +108,7 @@ func (s *Storage) AutoMigrate(ctx context.Context) error {
 		&domain.Chat{},
 		&domain.Message{},
 	); err != nil {
-		return fmt.Errorf("failed to auto-migrate: op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to auto-migrate: %w", op, err)
 	}
 
 	locationColQuery := `
@@ -117,13 +117,13 @@ func (s *Storage) AutoMigrate(ctx context.Context) error {
         GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography) STORED;
     `
 	if err := s.db.WithContext(ctx).Exec(locationColQuery).Error; err != nil {
-		return fmt.Errorf("failed to add generated location column: op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to add generated location column: %w", op, err)
 	}
 
 	// GIST index for radius search
 	gistIndexQuery := `CREATE INDEX IF NOT EXISTS idx_profiles_location ON profiles USING GIST (location);`
 	if err := s.db.WithContext(ctx).Exec(gistIndexQuery).Error; err != nil {
-		return fmt.Errorf("failed to create GIST index: op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to create GIST index: %w", op, err)
 	}
 
 	log.Info("database auto-migration completed successfully")
@@ -158,7 +158,7 @@ func (s *Storage) SeedDictionaries(ctx context.Context) error {
 		Columns:   []clause.Column{{Name: "id"}},
 		DoNothing: true,
 	}).Create(&activities).Error; err != nil {
-		return fmt.Errorf("failed to seed activities: op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to seed activities: %w", op, err)
 	}
 
 	// Reset Postgres serial sequences so dynamic INSERTs don't crash on primary key conflicts
@@ -168,7 +168,7 @@ func (s *Storage) SeedDictionaries(ctx context.Context) error {
 		table, table,
 	)
 	if err := s.db.WithContext(ctx).Exec(query).Error; err != nil {
-		return fmt.Errorf("failed to execute reset sequences for table %s: op: %s, error: %w", table, op, err)
+		return fmt.Errorf("%s: failed to execute reset sequences for table %s: %w", op, table, err)
 	}
 
 	return nil
@@ -179,14 +179,14 @@ func (s *Storage) Ping(ctx context.Context) error {
 
 	sqlDB, err := s.db.DB()
 	if err != nil {
-		return fmt.Errorf("failed to get sql.DB: op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to get sql.DB: %w", op, err)
 	}
 
 	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 2*time.Second)
 	defer pingCtxCancel()
 
 	if err := sqlDB.PingContext(pingCtx); err != nil {
-		return fmt.Errorf("failed to ping sql.DB: op: %s, error: %w", op, err)
+		return fmt.Errorf("%s: failed to ping sql.DB: %w", op, err)
 	}
 
 	return nil
@@ -199,26 +199,26 @@ func connectAndSetup(ctx context.Context, dsn string, gormLogger logger.Interfac
 	// Note: AutomaticPing: true
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: gormLogger})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to connect to postgres: op: %s, error: %w", op, err)
+		return nil, nil, fmt.Errorf("%s: failed to connect to postgres: %w", op, err)
 	}
 
 	// For additional DB configuration
 	sqlDB, err := db.DB()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get sql.DB: op: %s, error: %w", op, err)
+		return nil, nil, fmt.Errorf("%s: failed to get sql.DB: %w", op, err)
 	}
 
 	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer pingCtxCancel()
 	if err := sqlDB.PingContext(pingCtx); err != nil {
-		return nil, sqlDB, fmt.Errorf("failed to ping sql.DB: op: %s, error: %w", op, err)
+		return nil, sqlDB, fmt.Errorf("%s: failed to ping sql.DB: %w", op, err)
 	}
 
 	// Adding PostGIS extension
 	extCtx, extCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer extCancel()
 	if err := db.WithContext(extCtx).Exec("CREATE EXTENSION IF NOT EXISTS postgis;").Error; err != nil {
-		return nil, sqlDB, fmt.Errorf("failed to create postgis extension: op: %s, error: %w", op, err)
+		return nil, sqlDB, fmt.Errorf("%s: failed to create postgis extension: %w", op, err)
 	}
 
 	return db, sqlDB, nil

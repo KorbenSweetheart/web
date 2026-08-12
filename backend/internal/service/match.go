@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"match-me-api/internal/domain"
 	"match-me-api/internal/logger"
@@ -29,7 +30,7 @@ func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]*d
 	profile, err := ms.repo.ProfileByID(ctx, userID)
 	if err != nil {
 		log.Debug("failed to get profile by id", "id", userID, "error", logger.Err(err))
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	isComplete := isProfileComplete(profile)
@@ -40,7 +41,7 @@ func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]*d
 	candidates, err := ms.repo.FindCandidates(ctx, profile)
 	if err != nil {
 		log.Debug("failed to find candidates", "id", userID, "error", logger.Err(err))
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	// TODO: implement Match Score and algorithm

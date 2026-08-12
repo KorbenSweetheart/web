@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// FindConnectionRecord
+// FindConnectionRecord returns a connection record if it exists between users in any direction.
 func (s *Storage) FindConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error) {
 	const op = "storage.postgres.FindConnectionRecord"
 
@@ -25,7 +25,7 @@ func (s *Storage) FindConnectionRecord(ctx context.Context, fromUserID, toUserID
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrConnectionNotFound
 		}
-		return nil, fmt.Errorf("failed to find connection record, op: %s, fromId: %d, toID: %d, error: %w",
+		return nil, fmt.Errorf("%s: failed to find connection record fromId: %d toID: %d: %w",
 			op, fromUserID, toUserID, err)
 	}
 
@@ -40,7 +40,7 @@ func (s *Storage) CreateConnectionRecord(ctx context.Context, conn *domain.Conne
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return domain.ErrConnectionAlreadyExists
 		}
-		return fmt.Errorf("failed to create connection record, op: %s, fromId: %d, toID: %d, error: %w",
+		return fmt.Errorf("%s: failed to create connection record fromId: %d toID: %d: %w",
 			op, conn.FromUserID, conn.ToUserID, err)
 	}
 
@@ -53,7 +53,7 @@ func (s *Storage) UpdateConnectionRecord(ctx context.Context, conn *domain.Conne
 
 	err := s.db.WithContext(ctx).Save(conn).Error
 	if err != nil {
-		return fmt.Errorf("failed to update connection record, op: %s, fromId: %d, toID: %d, error: %w",
+		return fmt.Errorf("%s: failed to update connection record fromId: %d  toID: %d: %w",
 			op, conn.FromUserID, conn.ToUserID, err)
 
 	}
@@ -67,9 +67,8 @@ func (s *Storage) DeleteConnectionRecord(ctx context.Context, conn *domain.Conne
 
 	err := s.db.WithContext(ctx).Delete(conn).Error
 	if err != nil {
-		return fmt.Errorf("failed to delete connection record, op: %s, fromId: %d, toID: %d, error: %w",
+		return fmt.Errorf("%s: failed to delete connection record fromId: %d toID: %d: %w",
 			op, conn.FromUserID, conn.ToUserID, err)
-
 	}
 
 	return nil
@@ -87,7 +86,7 @@ func (s *Storage) AcceptedConnectionRecords(ctx context.Context, userID int64) (
 		Pluck("case", &userIDs).Error
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get connected userIDs, op: %s, userid: %d, error: %w", op, userID, err)
+		return nil, fmt.Errorf("%s: failed to get accepted connections for userid: %d: %w", op, userID, err)
 	}
 
 	return userIDs, nil
@@ -104,7 +103,7 @@ func (s *Storage) PendingConnectionRecords(ctx context.Context, userID int64) ([
 		Pluck("from_user_id", &userIDs).Error
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pending connection requests, op: %s, userid: %d, error: %w", op, userID, err)
+		return nil, fmt.Errorf("%s: failed to get pending connections for userid: %d: %w", op, userID, err)
 	}
 
 	return userIDs, nil
@@ -122,7 +121,7 @@ func (s *Storage) AllConnectionRecords(ctx context.Context, userID int64) ([]int
 		Pluck("case", &userIDs).Error
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all connections for the userID, op: %s, userid: %d, error: %w", op, userID, err)
+		return nil, fmt.Errorf("%s: failed to get all connections for userid: %d: %w", op, userID, err)
 	}
 
 	return userIDs, nil

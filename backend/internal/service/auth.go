@@ -62,12 +62,12 @@ func (as *AuthService) Register(ctx context.Context, name, email, password strin
 
 	if err := validateRegistrationInput(name, email, password); err != nil {
 		log.Debug("invalid registration input")
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCostFactor) // Rounds (Cost Factor): 12
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate hash from password: %w", err)
+		return nil, fmt.Errorf("%s: failed to generate password hash: %w", op, err)
 	}
 
 	u := &domain.Account{
@@ -84,9 +84,9 @@ func (as *AuthService) Register(ctx context.Context, name, email, password strin
 	if err := as.repo.CreateAccount(ctx, u); err != nil {
 		if errors.Is(err, domain.ErrEmailIsTaken) {
 			log.Debug("email already taken")
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
-		return nil, fmt.Errorf("failed to create account: %w", err)
+		return nil, fmt.Errorf("%s: failed to create account: %w", op, err)
 	}
 
 	log.Info("account created successfully")
@@ -106,7 +106,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 	account, err := as.repo.AccountByEmail(ctx, email)
 	if err != nil {
 		log.Debug("failed to get account by email", "email", email, "error", logger.Err(err))
-		return "", "", fmt.Errorf("failed to get account by email: %w", err)
+		return "", "", fmt.Errorf("%s: failed to get account by email: %w", op, err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(password)); err != nil {
@@ -115,7 +115,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 			return "", "", domain.ErrInvalidCreds
 		} else {
 			log.Debug("failed to compare hash and password", "email", email, "error", logger.Err(err))
-			return "", "", fmt.Errorf("failed to compare hash and password: %w", err)
+			return "", "", fmt.Errorf("%s: failed to compare hash and password: %w", op, err)
 		}
 	}
 
@@ -124,7 +124,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 	accessToken, err := as.tokenMgr.GenerateToken(account.ID, as.AccessTokenTTL)
 	if err != nil {
 		log.Debug("failed to generate jwt token", "user:", account.ID, "error", logger.Err(err))
-		return "", "", fmt.Errorf("failed to generate jwt token: %w", err)
+		return "", "", fmt.Errorf("%s: failed to generate jwt token: %w", op, err)
 	}
 
 	log.Debug("JWT token generated successfully")
@@ -133,7 +133,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 
 	rawRefreshToken, err := as.tokenMgr.GenerateRefreshToken()
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
+		return "", "", fmt.Errorf("%s: failed to generate refresh token: %w", op, err)
 	}
 
 	RefreshToken := &domain.RefreshToken{
@@ -144,7 +144,7 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 
 	if err := as.tokenRepo.SaveRefreshToken(ctx, RefreshToken); err != nil {
 		log.Debug("failed to save refresh token to db", "user:", account.ID, "error", logger.Err(err))
-		return "", "", fmt.Errorf("failed to save refresh token to db: %w", err)
+		return "", "", fmt.Errorf("%s: failed to save refresh token to db: %w", op, err)
 	}
 
 	log.Debug("refresh token generated and saved to db successfully")
@@ -164,7 +164,7 @@ func (as *AuthService) Logout(ctx context.Context, userID int64) error {
 
 	err := as.tokenRepo.DeleteRefreshTokenByAccountID(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to delete refresh token: %w", err)
+		return fmt.Errorf("%s: failed to delete refresh token: %w", op, err)
 	}
 
 	log.Info("logout completed successfully")

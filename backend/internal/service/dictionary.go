@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"match-me-api/internal/domain"
 	"match-me-api/internal/logger"
@@ -28,7 +29,7 @@ func (ds *DictionaryService) Activities(ctx context.Context) ([]*domain.Activity
 	activities, err := ds.repo.FindActivities(ctx)
 	if err != nil {
 		log.Debug("failed to list of activities", "error", logger.Err(err))
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return activities, nil
