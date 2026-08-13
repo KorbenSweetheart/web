@@ -49,6 +49,8 @@ func SetupRouter(
 	private.GET("/me/profile", h.User.MyProfile) // /me/profile
 	private.GET("/me/bio", h.User.MyBio)         // /me/bio
 	private.PATCH("/me/profile", h.User.UpdateProfile)
+	private.POST("/me/picture", h.User.UploadProfilePicture)
+	private.DELETE("/me/picture", h.User.DeleteProfilePicture)
 
 	// Connections
 	private.GET("/connections", h.Conn.Connections) // /connections

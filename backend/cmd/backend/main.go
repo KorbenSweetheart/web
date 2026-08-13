@@ -56,11 +56,15 @@ func main() {
 	)
 
 	minioStorage, err := minio.NewMinioStorage(shutdownCtx, cfg.MinIO, log)
+	if err != nil {
+		log.Error("minio storage connection failed", logger.Err(err))
+		os.Exit(1)
+	}
 
 	// create services
 	authService := service.NewAuthService(storage, storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	dictionaryService := service.NewDictionaryService(storage, log)
-	userService := service.NewUserService(storage, log)
+	userService := service.NewUserService(storage, minioStorage, log)
 	matchService := service.NewMatchService(storage, log)
 	connectionService := service.NewConnectionService(storage, log)
 

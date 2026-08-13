@@ -8,13 +8,15 @@ import (
 )
 
 const (
-	tokenIssuer               = "match-me-api"
-	accessTokenTTL            = 60 * time.Minute    // 15 min
-	refreshTokenTTL           = 30 * 24 * time.Hour // 30 days
-	defaultSrvTimeout         = 4 * time.Second
-	defaultSrvIdleTimeout     = 60 * time.Second
-	defaultSrvShutdownTimeout = 10 * time.Second
-	defaultMinIOUseSSL        = false
+	tokenIssuer                = "match-me-api"
+	accessTokenTTL             = 60 * time.Minute    // 15 min
+	refreshTokenTTL            = 30 * 24 * time.Hour // 30 days
+	defaultSrvTimeout          = 4 * time.Second
+	defaultSrvIdleTimeout      = 60 * time.Second
+	defaultSrvShutdownTimeout  = 10 * time.Second
+	defaultMinIOUseSSL         = false
+	MinIOProfilePicturesBucket = "profile-pictures"
+	MinIOChatMediaBucket       = "chat-attachments"
 )
 
 type Config struct {
@@ -50,8 +52,8 @@ type TokenMgr struct {
 type MinIOConfig struct {
 	Endpoint       string
 	PublicEndpoint string
-	AccessKeyID    string
-	SecretKey      string
+	RootUser       string
+	RootPassword   string
 	UseSSL         bool
 }
 
@@ -120,14 +122,14 @@ func MustLoad() *Config {
 		cfg.MinIO.PublicEndpoint = "http://localhost:9000"
 	}
 
-	cfg.MinIO.AccessKeyID = os.Getenv("MINIO_ROOT_USER")
-	if cfg.MinIO.AccessKeyID == "" {
-		cfg.MinIO.AccessKeyID = "minio_admin"
+	cfg.MinIO.RootUser = os.Getenv("MINIO_ROOT_USER")
+	if cfg.MinIO.RootUser == "" {
+		cfg.MinIO.RootUser = "minio_admin"
 	}
 
-	cfg.MinIO.SecretKey = os.Getenv("MINIO_ROOT_PASSWORD")
-	if cfg.MinIO.SecretKey == "" {
-		cfg.MinIO.SecretKey = "minio_password"
+	cfg.MinIO.RootPassword = os.Getenv("MINIO_ROOT_PASSWORD")
+	if cfg.MinIO.RootPassword == "" {
+		cfg.MinIO.RootPassword = "minio_password"
 	}
 
 	cfg.MinIO.UseSSL = parseBoolEnv("MINIO_USE_SSL", defaultMinIOUseSSL)
