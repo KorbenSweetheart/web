@@ -1,3 +1,16 @@
+x-api-env: &api-env
+  ENVIRONMENT: ${ENVIRONMENT:-dev}
+  DB_NAME: ${DB_NAME:-postgres}
+  DB_USER: ${DB_USER:-dbuser}
+  DB_PASS: ${DB_PASS:-my_db_password}
+  DB_HOST: ${DB_HOST:-db}
+  DB_PORT: ${DB_PORT:-5432}
+  MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+  MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+  MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
+  MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_password}
+  MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+
 services:
 
   db:
@@ -6,16 +19,34 @@ services:
     container_name: matchme-db
     restart: unless-stopped
     environment:
-      # Configuration for the first db lauch
-      POSTGRES_DB: postgres
-      POSTGRES_USER: dbuser
-      POSTGRES_PASSWORD: my_db_password
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-dbuser}
+      POSTGRES_PASSWORD: ${DB_PASS:-my_db_password}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dbuser -d postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-dbuser} -d ${DB_NAME:-postgres}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: matchme_minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_password}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # S3 API Endpoint
+      - "9001:9001" # MinIO Web Console UI (http://localhost:9001)
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,19 +56,15 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: matchme-migrator
-    # Launch migrator directly via go run, later could be moved to separete Dockerfile
-    command: ["go", "run", "./cmd/migrator/main.go"]
+    command: [ "go", "run", "./cmd/migrator/main.go" ]
     volumes:
       - ./backend:/app
     environment:
-      - ENVIRONMENT=dev
-      - DB_USER=dbuser
-      - DB_PASS=my_db_password
-      - DB_NAME=postgres
-      - DB_PORT=5432
-      - DB_HOST=db
+      <<: *api-env
     depends_on:
       db:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   backend:
@@ -52,30 +79,19 @@ services:
       - ./backend:/app
       - /app/tmp
     environment:
-      - ENVIRONMENT=dev
-      - JWT_SECRET=super-secure-random-key
-      
-      # Server variables
-      - SERVER_ADDRESS=0.0.0.0:8080
-      - SERVER_TIMEOUT=4s
-      - SERVER_IDLE_TIMEOUT=60s
-      - SERVER_SHUTDOWN_TIMEOUT=10s
-      
-      # DB variables
-      - DB_USER=dbuser
-      - DB_PASS=my_db_password
-      - DB_NAME=postgres
-      - DB_PORT=5432
-      # Important: to connect with DB inside a Docker — 'db'
-      - DB_HOST=db
+      <<: *api-env
+      JWT_SECRET: ${JWT_SECRET:-super-secure-random-key}
+      SERVER_ADDRESS: 0.0.0.0:8080
+      SERVER_TIMEOUT: ${SERVER_TIMEOUT:-4s}
+      SERVER_IDLE_TIMEOUT: ${SERVER_IDLE_TIMEOUT:-60s}
+      SERVER_SHUTDOWN_TIMEOUT: ${SERVER_SHUTDOWN_TIMEOUT:-10s}
     depends_on:
       db:
-        # backend launches only when PostgreSQL pass healthcheck
         condition: service_healthy
       migrator:
-        # Backend launches only after the migrator successfully finishes its work (exit 0)
         condition: service_completed_successfully
-
+      minio:
+        condition: service_healthy
   # frontend:
   #   build:
   #     context: ./frontend
@@ -93,3 +109,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:

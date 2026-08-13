@@ -16,7 +16,6 @@ import (
 
 const (
 	bcryptCostFactor = 12
-	DefaultAvatar    = "https://placehold.net/avatar.svg"
 	DefaultRadius    = 10.0
 )
 
@@ -75,7 +74,7 @@ func (as *AuthService) Register(ctx context.Context, name, email, password strin
 		PasswordHash: string(hash),
 		Profile: domain.Profile{
 			Name:       name,
-			PictureURL: DefaultAvatar,
+			PictureURL: "",
 		},
 	}
 

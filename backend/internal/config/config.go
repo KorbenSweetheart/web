@@ -3,22 +3,27 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"time"
 )
 
 const (
-	tokenIssuer               = "match-me-api"
-	accessTokenTTL            = 60 * time.Minute    // 15 min
-	refreshTokenTTL           = 30 * 24 * time.Hour // 30 days
-	defaultSrvTimeout         = 4 * time.Second
-	defaultSrvIdleTimeout     = 60 * time.Second
-	defaultSrvShutdownTimeout = 10 * time.Second
+	tokenIssuer                = "match-me-api"
+	accessTokenTTL             = 60 * time.Minute    // 15 min
+	refreshTokenTTL            = 30 * 24 * time.Hour // 30 days
+	defaultSrvTimeout          = 4 * time.Second
+	defaultSrvIdleTimeout      = 60 * time.Second
+	defaultSrvShutdownTimeout  = 10 * time.Second
+	defaultMinIOUseSSL         = false
+	MinIOProfilePicturesBucket = "profile-pictures"
+	MinIOChatMediaBucket       = "chat-attachments"
 )
 
 type Config struct {
 	Env        string
 	TM         TokenMgr
 	DB         Database
+	MinIO      MinIOConfig
 	HTTPServer HTTPServer
 }
 
@@ -42,6 +47,14 @@ type TokenMgr struct {
 	TokenIssuer     string
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
+}
+
+type MinIOConfig struct {
+	Endpoint       string
+	PublicEndpoint string
+	RootUser       string
+	RootPassword   string
+	UseSSL         bool
 }
 
 func MustLoad() *Config {
@@ -98,9 +111,33 @@ func MustLoad() *Config {
 	cfg.HTTPServer.IdleTimeout = parseDurationEnv("SERVER_IDLE_TIMEOUT", defaultSrvIdleTimeout)
 	cfg.HTTPServer.ShutdownTimeout = parseDurationEnv("SERVER_SHUTDOWN_TIMEOUT", defaultSrvShutdownTimeout)
 
+	// MinIO Env load
+	cfg.MinIO.Endpoint = os.Getenv("MINIO_ENDPOINT")
+	if cfg.MinIO.Endpoint == "" {
+		cfg.MinIO.Endpoint = "minio:9000"
+	}
+
+	cfg.MinIO.PublicEndpoint = os.Getenv("MINIO_PUBLIC_ENDPOINT")
+	if cfg.MinIO.PublicEndpoint == "" {
+		cfg.MinIO.PublicEndpoint = "http://localhost:9000"
+	}
+
+	cfg.MinIO.RootUser = os.Getenv("MINIO_ROOT_USER")
+	if cfg.MinIO.RootUser == "" {
+		cfg.MinIO.RootUser = "minio_admin"
+	}
+
+	cfg.MinIO.RootPassword = os.Getenv("MINIO_ROOT_PASSWORD")
+	if cfg.MinIO.RootPassword == "" {
+		cfg.MinIO.RootPassword = "minio_password"
+	}
+
+	cfg.MinIO.UseSSL = parseBoolEnv("MINIO_USE_SSL", defaultMinIOUseSSL)
+
 	return &cfg
 }
 
+// parseDurationEnv is a helper function to parse time.Duration values from env variables.
 func parseDurationEnv(envKey string, defaultVal time.Duration) time.Duration {
 	valStr := os.Getenv(envKey)
 	if valStr == "" {
@@ -108,6 +145,21 @@ func parseDurationEnv(envKey string, defaultVal time.Duration) time.Duration {
 	}
 
 	val, err := time.ParseDuration(valStr)
+	if err != nil {
+		return defaultVal
+	}
+
+	return val
+}
+
+// parseBoolEnv is a helper function to parse bool env variable (e.g., "true", "false", "1", "0").
+func parseBoolEnv(envKey string, defaultVal bool) bool {
+	valStr := os.Getenv(envKey)
+	if valStr == "" {
+		return defaultVal
+	}
+
+	val, err := strconv.ParseBool(valStr)
 	if err != nil {
 		return defaultVal
 	}

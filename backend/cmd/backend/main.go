@@ -8,6 +8,7 @@ import (
 	"match-me-api/internal/logger"
 	"match-me-api/internal/pkg/tokenmgr"
 	"match-me-api/internal/service"
+	"match-me-api/internal/storage/minio"
 	"match-me-api/internal/storage/postgres"
 	"match-me-api/internal/transport/httpserver"
 	"match-me-api/internal/transport/httpserver/handlers"
@@ -54,10 +55,16 @@ func main() {
 		cfg.TM.TokenIssuer,
 	)
 
+	minioStorage, err := minio.NewMinioStorage(shutdownCtx, cfg.MinIO, log)
+	if err != nil {
+		log.Error("minio storage connection failed", logger.Err(err))
+		os.Exit(1)
+	}
+
 	// create services
 	authService := service.NewAuthService(storage, storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	dictionaryService := service.NewDictionaryService(storage, log)
-	userService := service.NewUserService(storage, log)
+	userService := service.NewUserService(storage, minioStorage, log)
 	matchService := service.NewMatchService(storage, log)
 	connectionService := service.NewConnectionService(storage, log)
 

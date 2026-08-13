@@ -3,8 +3,11 @@ package handlers
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"match-me-api/internal/domain"
+	"match-me-api/internal/logger"
+	"match-me-api/internal/pkg/imgutil"
 	"match-me-api/internal/transport/httpserver/dto"
 	"net/http"
 	"strconv"
@@ -13,9 +16,13 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
+const maxProfilePictureSize = 1 << 20 // 1 MB
+
 type UserManager interface {
 	Profile(ctx context.Context, id int64) (*domain.Profile, error)
 	UpdateProfile(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
+	UpdateProfilePicture(ctx context.Context, userID int64, rawFile io.Reader) (string, error)
+	DeleteProfilePicture(ctx context.Context, userID int64) (string, error)
 }
 
 type UserHandler struct {
@@ -294,3 +301,68 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]any{"status": "Profile updated successfully"})
 }
+
+// UploadProfilePicture uploads, processes, and updates the profile picture for the authorized user.
+// POST /me/picture
+func (h *UserHandler) UploadProfilePicture(c *echo.Context) error {
+	const op = "httpserver.handlers.UploadProfilePicture"
+	ctx := c.Request().Context()
+
+	userID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	fileHeader, err := c.FormFile("picture")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Form field 'picture' is required"})
+	}
+
+	if fileHeader.Size > maxProfilePictureSize {
+		return c.JSON(http.StatusRequestEntityTooLarge, map[string]any{"error": "File size exceeds 1MB limit"})
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Failed to read uploaded file"})
+	}
+	defer file.Close()
+
+	pictureURL, err := h.userService.UpdateProfilePicture(ctx, userID, file)
+	if err != nil {
+		if errors.Is(err, imgutil.ErrUnsupportedFormat) || errors.Is(err, imgutil.ErrInvalidDimensions) {
+			return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+		}
+		h.log.Error("failed to update profile picture", slog.String("op", op), "user_id", userID, logger.Err(err))
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to update profile picture"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"status":      "Profile picture updated successfully",
+		"picture_url": pictureURL,
+	})
+}
+
+// DeleteProfilePicture resets the profile picture for the authorized user to the default placeholder.
+// DELETE /me/picture
+func (h *UserHandler) DeleteProfilePicture(c *echo.Context) error {
+	const op = "httpserver.handlers.DeleteProfilePicture"
+	ctx := c.Request().Context()
+
+	userID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	defaultURL, err := h.userService.DeleteProfilePicture(ctx, userID)
+	if err != nil {
+		h.log.Error("failed to delete profile picture", slog.String("op", op), "user_id", userID, logger.Err(err))
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to reset profile picture"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"status":      "Profile picture removed successfully",
+		"picture_url": defaultURL,
+	})
+}
+

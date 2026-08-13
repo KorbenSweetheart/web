@@ -2,7 +2,7 @@
 
 ## Technical Requirements:
 
-- Implemented in Go or Typescript.
+- Implemented in Go.
 - Data must be persisted in a PostgreSQL database.
 - The application must be secure. It must not leak private information, or allow access to data which must not be seen.
 - Passwords should be encripted with bcrypt & salt

@@ -89,7 +89,7 @@ type RefreshToken struct {
 type Profile struct {
 	UserID     int64  `gorm:"primaryKey" json:"id"`
 	Name       string `gorm:"type:varchar(255);not null" json:"name"`
-	PictureURL string `gorm:"type:text;default:https://placehold.net/avatar.svg" json:"picture_url"` // Note: "placeholder image should be shown if no picture"
+	PictureURL string `gorm:"type:text;default:''" json:"picture_url"`
 	Age        int    `gorm:"type:smallint;column:age" json:"age"`
 	// Birthday        time.Time         `gorm:"type:date" json:"birthday"`                                             // to get age AGE(birthday) in SQL or time.Since(profile.Birthday) in Go
 	Bio             string            `gorm:"type:text" json:"bio"` // Bio
