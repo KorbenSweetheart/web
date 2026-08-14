@@ -21,6 +21,7 @@ const (
 type Authenticator interface {
 	Register(ctx context.Context, name, email, password string) (*domain.Account, error)
 	Login(ctx context.Context, email, password string) (string, string, error)
+	Refresh(ctx context.Context, rawRefreshToken string) (string, string, error)
 	Logout(ctx context.Context, userID int64) error
 }
 
@@ -108,29 +109,37 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 		}
 	}
 
-	// Issue access token cookie
-	accessCookie := &http.Cookie{
-		Name:     AccessTokenCookieName,
-		Value:    accessToken,
-		Expires:  time.Now().Add(h.accessCookieTTL),
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false, // true в production (HTTPS)
-		SameSite: http.SameSiteLaxMode,
-	}
-	c.SetCookie(accessCookie)
+	h.setAuthCookies(c, accessToken, refreshToken)
 
-	// Issue refresh token cookie
-	refreshCookie := &http.Cookie{
-		Name:     RefreshTokenCookieName,
-		Value:    refreshToken,
-		Expires:  time.Now().Add(h.refreshCookieTTL),
-		Path:     "/auth/refresh",
-		HttpOnly: true,
-		Secure:   false, // true в production (HTTPS)
-		SameSite: http.SameSiteLaxMode,
+	return c.JSON(http.StatusOK, map[string]any{
+		"message":      "success",
+		"access_token": accessToken,
+	})
+}
+
+// Refresh handler
+func (h *AuthHandler) Refresh(c *echo.Context) error {
+	ctx := c.Request().Context()
+
+	cookie, err := c.Cookie(RefreshTokenCookieName)
+	if err != nil || cookie.Value == "" {
+		return c.JSON(http.StatusUnauthorized, map[string]any{
+			"error": "missing refresh token",
+		})
 	}
-	c.SetCookie(refreshCookie)
+
+	accessToken, refreshToken, err := h.auth.Refresh(ctx, cookie.Value)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidOrExpiredToken) {
+			h.clearAuthCookies(c)
+			return c.JSON(http.StatusUnauthorized, map[string]any{
+				"error": domain.ErrInvalidOrExpiredToken.Error(),
+			})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+	}
+
+	h.setAuthCookies(c, accessToken, refreshToken)
 
 	return c.JSON(http.StatusOK, map[string]any{
 		"message":      "success",
@@ -150,6 +159,38 @@ func (h *AuthHandler) Logout(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
 	}
 
+	h.clearAuthCookies(c)
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"message": "Logged out",
+	})
+}
+
+func (h *AuthHandler) setAuthCookies(c *echo.Context, accessToken, refreshToken string) {
+	accessCookie := &http.Cookie{
+		Name:     AccessTokenCookieName,
+		Value:    accessToken,
+		Expires:  time.Now().Add(h.accessCookieTTL),
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // true in production (HTTPS)
+		SameSite: http.SameSiteLaxMode,
+	}
+	c.SetCookie(accessCookie)
+
+	refreshCookie := &http.Cookie{
+		Name:     RefreshTokenCookieName,
+		Value:    refreshToken,
+		Expires:  time.Now().Add(h.refreshCookieTTL),
+		Path:     "/auth/refresh",
+		HttpOnly: true,
+		Secure:   false, // true in production (HTTPS)
+		SameSite: http.SameSiteLaxMode,
+	}
+	c.SetCookie(refreshCookie)
+}
+
+func (h *AuthHandler) clearAuthCookies(c *echo.Context) {
 	c.SetCookie(&http.Cookie{
 		Name:     AccessTokenCookieName,
 		Value:    "",
@@ -167,8 +208,5 @@ func (h *AuthHandler) Logout(c *echo.Context) error {
 		MaxAge:   -1,
 		HttpOnly: true,
 	})
-
-	return c.JSON(http.StatusOK, map[string]any{
-		"message": "Logged out",
-	})
 }
+

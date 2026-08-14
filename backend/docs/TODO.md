@@ -15,8 +15,8 @@
     - [x] Add JWT and session cookies
     - [x] Add refresh token and RT cookie
     - [x] Add save refresh token to db
-    - [ ] Add refresh token endpoint for refresh
-    - [ ] Add renew JWT token based on RT
+    - [x] Add refresh token endpoint for refresh
+    - [x] Add renew JWT token based on RT
     - [ ] Decide when to mark user Online, when he logged in, or when he sends messages?
   - [x] System healthchecks
     - [x] Healthz

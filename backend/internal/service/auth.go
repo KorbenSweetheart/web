@@ -32,6 +32,8 @@ type AccountRepository interface {
 
 type TokenRepository interface {
 	SaveRefreshToken(ctx context.Context, rt *domain.RefreshToken) error
+	GetRefreshTokenByHash(ctx context.Context, hash string) (*domain.RefreshToken, error)
+	DeleteRefreshTokenByHash(ctx context.Context, hash string) error
 	DeleteRefreshTokenByAccountID(ctx context.Context, id int64) error
 }
 
@@ -151,6 +153,61 @@ func (as *AuthService) Login(ctx context.Context, email, password string) (strin
 	log.Info("login completed successfully")
 
 	return accessToken, rawRefreshToken, nil
+}
+
+// Refresh validates the refresh token, performs token rotation, and returns new access and refresh tokens.
+func (as *AuthService) Refresh(ctx context.Context, rawRefreshToken string) (string, string, error) {
+	const op = "service.authService.Refresh"
+	log := as.log.With(slog.String("op", op))
+
+	log.Info("starting token refresh")
+
+	if rawRefreshToken == "" {
+		return "", "", domain.ErrInvalidOrExpiredToken
+	}
+
+	tokenHash := as.tokenMgr.HashToken(rawRefreshToken)
+
+	rt, err := as.tokenRepo.GetRefreshTokenByHash(ctx, tokenHash)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidOrExpiredToken) {
+			return "", "", err
+		}
+		return "", "", fmt.Errorf("%s: failed to get refresh token: %w", op, err)
+	}
+
+	if rt.ExpiresAt.Before(time.Now()) {
+		_ = as.tokenRepo.DeleteRefreshTokenByHash(ctx, tokenHash)
+		return "", "", domain.ErrInvalidOrExpiredToken
+	}
+
+	accessToken, err := as.tokenMgr.GenerateToken(rt.AccountID, as.AccessTokenTTL)
+	if err != nil {
+		return "", "", fmt.Errorf("%s: failed to generate jwt token: %w", op, err)
+	}
+
+	newRawRefreshToken, err := as.tokenMgr.GenerateRefreshToken()
+	if err != nil {
+		return "", "", fmt.Errorf("%s: failed to generate refresh token: %w", op, err)
+	}
+
+	newRT := &domain.RefreshToken{
+		AccountID: rt.AccountID,
+		TokenHash: as.tokenMgr.HashToken(newRawRefreshToken),
+		ExpiresAt: time.Now().Add(as.RefreshTokenTTL),
+	}
+
+	if err := as.tokenRepo.DeleteRefreshTokenByHash(ctx, tokenHash); err != nil {
+		return "", "", fmt.Errorf("%s: failed to delete old refresh token: %w", op, err)
+	}
+
+	if err := as.tokenRepo.SaveRefreshToken(ctx, newRT); err != nil {
+		return "", "", fmt.Errorf("%s: failed to save new refresh token: %w", op, err)
+	}
+
+	log.Info("token refresh completed successfully")
+
+	return accessToken, newRawRefreshToken, nil
 }
 
 func (as *AuthService) Logout(ctx context.Context, userID int64) error {

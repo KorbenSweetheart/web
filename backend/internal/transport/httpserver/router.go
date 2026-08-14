@@ -32,7 +32,7 @@ func SetupRouter(
 	public := e.Group("")
 	public.POST("/auth/register", h.Auth.Register)
 	public.POST("/auth/login", h.Auth.Login)
-	// public.POST("/auth/refresh", h.Auth.Refresh)
+	public.POST("/auth/refresh", h.Auth.Refresh)
 
 	// Private routes
 	private := e.Group("")
