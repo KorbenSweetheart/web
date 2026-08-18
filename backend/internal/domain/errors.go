@@ -13,6 +13,10 @@ var (
 	ErrIncompleteProfile       = errors.New("incomplete profile")
 	ErrConnectionNotFound      = errors.New("connection not found")
 	ErrConnectionAlreadyExists = errors.New("connection already exists")
+	ErrChatNotFound            = errors.New("chat not found")
+	ErrNotChatParticipant      = errors.New("user is not a participant in this chat")
+	ErrUsersNotConnected       = errors.New("users do not have an accepted connection")
 	// ErrUsernameIsTaken       = errors.New("username is taken")
 	// ErrInvalidSession        = errors.New("invalid or expired session")
 )
+
