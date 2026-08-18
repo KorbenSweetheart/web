@@ -12,11 +12,12 @@
     - [x] Add switch for different types of error, to return different statuses.
     <!-- - [ ] Add Login in or redirect to login upon successful registration -->
   - [x] Login
-    - [x] Add JWT and session cookies
+    - [x] Add access token and session cookies
     - [x] Add refresh token and RT cookie
     - [x] Add save refresh token to db
     - [x] Add refresh token endpoint for refresh
-    - [x] Add renew JWT token based on RT
+    - [x] Add renew access token based on RT
+    - [ ] Maybe store access token inside React app memory (state)???
     - [ ] Decide when to mark user Online, when he logged in, or when he sends messages?
   - [x] System healthchecks
     - [x] Healthz

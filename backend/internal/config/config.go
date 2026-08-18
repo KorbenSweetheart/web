@@ -76,6 +76,7 @@ func MustLoad() *Config {
 	cfg.TM.RefreshTokenTTL = refreshTokenTTL
 
 	// DB Env load
+	// TODO: maybe just minimize it to simple dsn string parsed from .env?
 	cfg.DB.Name = os.Getenv("DB_NAME")
 	if cfg.DB.Name == "" {
 		cfg.DB.Name = "postgres"

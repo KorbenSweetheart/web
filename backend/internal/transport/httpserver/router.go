@@ -5,6 +5,7 @@ import (
 	"match-me-api/internal/config"
 	"match-me-api/internal/transport/httpserver/handlers"
 	mdlwrconfig "match-me-api/internal/transport/httpserver/middleware"
+	"net/http"
 
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
@@ -22,7 +23,11 @@ func SetupRouter(
 	e.Use(middleware.RequestID())
 	e.Use(middleware.RequestLoggerWithConfig(mdlwrconfig.LoggerConfig(log)))
 	e.Use(middleware.Recover())
-	e.Use(middleware.CORS("http://localhost:8080", "http://localhost:5173")) // TODO: move to config vars
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:8080", "http://localhost:5173"}, // TODO: move to config vars
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderXCSRFToken},
+		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions},
+	}))
 
 	// Healthchecks routes
 	e.GET("/healthz", h.Health.Healthz)
@@ -61,6 +66,9 @@ func SetupRouter(
 
 	// Recommendations
 	private.GET("/recommendations", h.Match.Recommendations)
+
+	// Chat
+	private.GET("/ws", wsHandler.HandleUpgrade)
 
 	// Dictionary
 	private.GET("/activities", h.Dictionary.Activities) // /actvities
