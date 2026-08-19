@@ -68,7 +68,7 @@ func SetupRouter(
 	private.GET("/recommendations", h.Match.Recommendations)
 
 	// Chat
-	private.GET("/ws", wsHandler.HandleUpgrade)
+	private.GET("/ws", h.WS.Upgrade)
 
 	// Dictionary
 	private.GET("/activities", h.Dictionary.Activities) // /actvities

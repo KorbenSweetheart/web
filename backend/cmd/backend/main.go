@@ -12,6 +12,7 @@ import (
 	"match-me-api/internal/storage/postgres"
 	"match-me-api/internal/transport/httpserver"
 	"match-me-api/internal/transport/httpserver/handlers"
+	"match-me-api/internal/transport/websocket"
 	"net/http"
 	"os"
 	"os/signal"
@@ -67,9 +68,15 @@ func main() {
 	userService := service.NewUserService(storage, minioStorage, log)
 	matchService := service.NewMatchService(storage, log)
 	connectionService := service.NewConnectionService(storage, log)
+	chatService := service.NewChatService(storage, storage, log)
 
 	// init validator
 	validator := validator.New(validator.WithRequiredStructEnabled())
+
+	// create websocket hub & handler
+	wsHub := websocket.NewHub(chatService, connectionService, validator, log)
+	go wsHub.Run(shutdownCtx)
+	wsHandler := websocket.NewHandler(wsHub, log)
 
 	// Handlers
 	healthHandler := handlers.NewHealthHandler(storage)
@@ -87,6 +94,7 @@ func main() {
 		User:       userHandler,
 		Match:      matchHandler,
 		Conn:       connectionHandler,
+		WS:         wsHandler,
 	})
 
 	// server config
