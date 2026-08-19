@@ -16,10 +16,12 @@ export interface ProfileActivity {
 // The full profile the user fills in
 export interface Profile {
   name: string;
-  birth_date: string;
+  age: number;
   bio: string;
   picture_url: string;
   interaction_mode_id: number;   // Silent / Social / Open to anything
   activities: ProfileActivity[]; // their sports + levels
   max_radius: number;            // km, for location matching
+  lat: number;
+  lon: number;
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getMyProfile, isProfileComplete } from '../../services/users';
 import type { FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../../services/auth';
@@ -24,9 +25,15 @@ export default function LoginPage() {
     try {
       const data = await loginUser(email, password);
       localStorage.setItem('token', data.access_token);
-      // Profile-completed flag isn't ready on the backend yet,
-      // so for now we always go to profile setup.
-      navigate('/app/profile-setup');
+
+      // Check if the profile is complete, and route accordingly:
+      // complete → Discover, incomplete → profile setup.
+      const profile = await getMyProfile();
+      if (isProfileComplete(profile)) {
+        navigate('/app/discover');
+      } else {
+        navigate('/app/profile-setup');
+      }
     } catch (err) {
       setError('Invalid email or password.');
       console.error(err);

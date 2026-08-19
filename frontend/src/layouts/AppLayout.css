@@ -34,6 +34,7 @@
   margin: auto 0;
 }
 
+
 .sidebar__logout:hover {
   color: var(--accent-hover);
 }
@@ -58,7 +59,7 @@
   transition: color var(--speed-fast);
 }
 .app-header__logout:hover {
-  color: var(--error);
+  color: var(--accent-hover);
 }
 
 /* On mobile, stack header above content */

@@ -1,31 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users } from 'lucide-react';
 import UserCard from '../components/UserCard';
-import { RECEIVED, SENT, CONNECTED } from '../services/mockConnections';
+import type { UserProfile } from '../services/mockUsers';
+import {
+  getConnections,
+  getConnectionRequests,
+  respondToConnection,
+  deleteConnection,
+} from '../services/connections';
 import './ConnectionsPage.css';
 
-type Tab = 'received' | 'sent' | 'connected';
+type Tab = 'received' | 'connected';
 
 export default function ConnectionsPage() {
   const [tab, setTab] = useState<Tab>('received');
-  const [received, setReceived] = useState(RECEIVED);
-  const [sent, setSent] = useState(SENT);
-  const [connected] = useState(CONNECTED);
+  const [received, setReceived] = useState<UserProfile[]>([]);
+  const [connected, setConnected] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  function handleAccept(id: number) {
-    console.log('Accept', id);
-    setReceived((prev) => prev.filter((u) => u.id !== id));
-    // later: move into `connected` once backend confirms
+  // Load both lists on mount.
+  useEffect(() => {
+    Promise.all([getConnectionRequests(), getConnections()])
+      .then(([requests, conns]) => {
+        setReceived(requests);
+        setConnected(conns);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError('Could not load connections.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleAccept(id: number) {
+    try {
+      await respondToConnection(id, 'accepted');
+      // Move the person from received → connected.
+      const person = received.find((u) => u.id === id);
+      setReceived((prev) => prev.filter((u) => u.id !== id));
+      if (person) setConnected((prev) => [...prev, person]);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
-  function handleDecline(id: number) {
-    console.log('Decline', id);
-    setReceived((prev) => prev.filter((u) => u.id !== id));
+  async function handleDecline(id: number) {
+    try {
+      await respondToConnection(id, 'declined');
+      setReceived((prev) => prev.filter((u) => u.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
   }
 
-  function handleCancel(id: number) {
-    console.log('Cancel request', id);
-    setSent((prev) => prev.filter((u) => u.id !== id));
+  async function handleRemove(id: number) {
+    try {
+      await deleteConnection(id);
+      setConnected((prev) => prev.filter((u) => u.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   function handleMessage(id: number) {
@@ -33,7 +68,7 @@ export default function ConnectionsPage() {
     // later: navigate(`/app/chats/${id}`)
   }
 
-  const lists: Record<Tab, typeof received> = { received, sent, connected };
+  const lists: Record<Tab, UserProfile[]> = { received, connected };
   const current = lists[tab];
 
   return (
@@ -51,17 +86,17 @@ export default function ConnectionsPage() {
           onClick={() => setTab('received')}>
           Received {received.length > 0 && <span className="badge">{received.length}</span>}
         </button>
-        <button className={`connections__tab ${tab === 'sent' ? 'is-active' : ''}`}
-          onClick={() => setTab('sent')}>
-          Sent
-        </button>
         <button className={`connections__tab ${tab === 'connected' ? 'is-active' : ''}`}
           onClick={() => setTab('connected')}>
           Connected
         </button>
       </div>
 
-      {current.length === 0 ? (
+      {loading ? (
+        <p className="text-body mt-lg">Loading…</p>
+      ) : error ? (
+        <p className="form-error-msg mt-lg">{error}</p>
+      ) : current.length === 0 ? (
         <p className="text-body mt-lg">Nothing here yet.</p>
       ) : (
         <div className="connections__grid">
@@ -69,11 +104,11 @@ export default function ConnectionsPage() {
             <UserCard
               key={user.id}
               user={user}
-              variant={tab}
+              variant={tab === 'received' ? 'received' : 'connected'}
               onAccept={handleAccept}
               onDecline={handleDecline}
-              onCancel={handleCancel}
               onMessage={handleMessage}
+              onCancel={handleRemove}
             />
           ))}
         </div>

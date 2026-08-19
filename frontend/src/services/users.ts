@@ -24,7 +24,7 @@ export async function getMyProfile(): Promise<UserProfile> {
     id: summary.id,
     name: summary.name ?? '',
     picture_url: summary.picture_url ?? '',
-    birth_date: profile.birth_date ?? '',
+    age: profile.age ?? 0,
     bio: profile.bio ?? '',
     max_radius: bio.max_radius ?? 0,
     interaction_mode: bio.interaction_mode ?? 1,
@@ -34,4 +34,121 @@ export async function getMyProfile(): Promise<UserProfile> {
     is_online: profile.is_online ?? false,
     match_score: 0,
   };
+}
+
+// Checks whether a profile has all the required fields filled in.
+// The task says the user can't see recommendations/connections until
+// their profile is complete. "Complete" = these 5 required fields.
+// Picture is intentionally NOT checked — it's optional (placeholder shown instead).
+export function isProfileComplete(profile: UserProfile): boolean {
+  return (
+    profile.name.trim() !== '' &&        // has a name
+    profile.age > 0 &&                   // has an age
+    profile.bio.trim() !== '' &&         // has an "about me"
+    profile.interaction_mode > 0 &&      // picked a training mode
+    profile.activities.length > 0        // picked at least one sport
+  );
+}
+
+// Fetch recommendations from the backend.
+// Backend returns { recommendations: [1, 2, ...] } — just a list of ids.
+// For each id we combine /users/:id + /users/:id/profile + /users/:id/bio
+// into one full UserProfile the card can show (same idea as getMyProfile).
+// Takes a user id and builds their full UserProfile by combining
+// /users/:id + /users/:id/profile + /users/:id/bio (the API requires
+// combining several endpoints). Reused by recommendations and connections.
+export async function fetchFullProfile(id: number): Promise<UserProfile> {
+  const [summary, profile, bio] = await Promise.all([
+    apiGet(`/users/${id}`),          // name, picture_url
+    apiGet(`/users/${id}/profile`),  // bio (about me), age
+    apiGet(`/users/${id}/bio`),      // max_radius, mode, activities
+  ]);
+
+  return {
+    id: summary.id,
+    name: summary.name ?? '',
+    picture_url: summary.picture_url ?? '',
+    age: profile.age ?? 0,
+    bio: profile.bio ?? '',
+    max_radius: bio.max_radius ?? 0,
+    interaction_mode: bio.interaction_mode ?? 1,
+    activities: bio.activities ?? [],
+    lat: profile.lat ?? 0,
+    lon: profile.lon ?? 0,
+    is_online: profile.is_online ?? false,
+    match_score: 0, // backend doesn't send a score yet
+  };
+}
+
+// Fetch recommendations: backend returns { recommendations: [ids] }.
+// For each id we build the full profile.
+export async function getRecommendations(): Promise<UserProfile[]> {
+  const data = await apiGet('/recommendations');
+  const ids: number[] = data.recommendations ?? [];
+  return Promise.all(ids.map((id) => fetchFullProfile(id)));
+}
+
+// Sends the user's current browser location to the backend (PATCH /me/profile).
+// Used before fetching recommendations so matching uses fresh coordinates.
+// Resolves silently if location isn't available — we don't want to block Discover.
+export async function updateMyLocation(): Promise<void> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve();
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          await fetch('/me/profile', {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+            body: JSON.stringify({
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+            }),
+          });
+        } catch (err) {
+          console.warn('Could not update location:', err);
+        }
+        resolve();
+      },
+      () => resolve() // denied or failed → just continue
+    );
+  });
+}
+
+// Uploads a profile picture file (POST /me/picture).
+// Sends the file as FormData (not JSON — that's how files are uploaded).
+// Backend crops/resizes/cleans it and returns the new picture_url.
+export async function uploadProfilePicture(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('picture', file); // 'picture' is the field name the backend expects
+
+  const res = await fetch('/me/picture', {
+    method: 'POST',
+    headers: {
+      // NOTE: no 'Content-Type' here — the browser sets it automatically for FormData
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: form,
+  });
+
+  if (!res.ok) throw new Error('Failed to upload picture');
+  const data = await res.json();
+  return data.picture_url;
+}
+
+// Removes the profile picture (DELETE /me/picture), resets to default.
+export async function deleteProfilePicture(): Promise<string> {
+  const res = await fetch('/me/picture', {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+
+  if (!res.ok) throw new Error('Failed to remove picture');
+  const data = await res.json();
+  return data.picture_url;
 }

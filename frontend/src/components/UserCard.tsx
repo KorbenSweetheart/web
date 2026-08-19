@@ -2,14 +2,6 @@ import type { UserProfile } from '../services/mockUsers';
 import './UserCard.css';
 import { Headphones, Users, Sparkles, ChevronRight } from 'lucide-react';
 
-function calculateAge(birth: string): number {
-  const today = new Date();
-  const b = new Date(birth);
-  let age = today.getFullYear() - b.getFullYear();
-  const monthDiff = today.getMonth() - b.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < b.getDate())) age--;
-  return age;
-}
 
 // Map interaction_mode → icon + label
 const MODES: Record<number, { icon: typeof Headphones; label: string }> = {
@@ -85,7 +77,7 @@ export default function UserCard({
               const ModeIcon = MODES[user.interaction_mode].icon;
               return (
                 <>
-                  {calculateAge(user.birth_date)} · <ModeIcon size={14} strokeWidth={2.5} className="user-card__mode-icon" />
+                  {user.age} · <ModeIcon size={14} strokeWidth={2.5} className="user-card__mode-icon" />
                   {MODES[user.interaction_mode].label}
                 </>
               );
@@ -162,10 +154,16 @@ export default function UserCard({
           )}
 
           {variant === 'connected' && (
-            <button className="btn btn-primary"
-              onClick={(e) => { e.stopPropagation(); onMessage?.(user.id); }}>
-              Message
-            </button>
+            <>
+              <button className="btn btn-outline"
+                onClick={(e) => { e.stopPropagation(); onCancel?.(user.id); }}>
+                Remove
+              </button>
+              <button className="btn btn-primary"
+                onClick={(e) => { e.stopPropagation(); onMessage?.(user.id); }}>
+                Message
+              </button>
+            </>
           )}
         </div>
       </div>

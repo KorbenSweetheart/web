@@ -1,20 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Compass } from 'lucide-react';
 import UserCard from '../components/UserCard';
 import ProfilePanel from '../components/ProfilePanel';
-import { MOCK_USERS } from '../services/mockUsers';
+import { getRecommendations, updateMyLocation } from '../services/users';
+import { sendConnectionRequest } from '../services/connections';
+import type { UserProfile } from '../services/mockUsers';
 import './DiscoverPage.css';
 
 export default function DiscoverPage() {
-  const [users, setUsers] = useState(MOCK_USERS);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // On mount: send fresh location first, then fetch recommendations.
+  useEffect(() => {
+    updateMyLocation()
+      .then(() => getRecommendations())
+      .then((data) => setUsers(data))
+      .catch((err) => {
+        console.error(err);
+        setError('Could not load recommendations.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const selectedUser = users.find((u) => u.id === selectedId) ?? null;
 
-  function handleConnect(id: number) {
-    console.log('Connect with user', id);
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-    setSelectedId(null);
+  async function handleConnect(id: number) {
+      try {
+      await sendConnectionRequest(id);
+      // Remove them from the list once the request is sent.
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+        setSelectedId(null);
+      } catch (err) {
+      console.error('Could not send connection request:', err);
+    }
   }
 
   function handleDismiss(id: number) {
@@ -34,7 +55,11 @@ export default function DiscoverPage() {
         <p className="text-body mt-xs">People who match how you like to train.</p>
       </div>
 
-      {users.length === 0 ? (
+      {loading ? (
+        <p className="text-body">Loading recommendations…</p>
+      ) : error ? (
+        <p className="form-error-msg">{error}</p>
+      ) : users.length === 0 ? (
         <p className="text-body">No more suggestions right now — check back later!</p>
       ) : (
         <div className={`discover__layout ${selectedUser ? 'has-panel' : ''}`}>

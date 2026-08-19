@@ -62,9 +62,11 @@ export async function saveProfile(profile: Profile) {
   const body = {
     name: profile.name,
     picture_url: profile.picture_url,
-    birth_date: profile.birth_date,
+    age: profile.age,
     bio: profile.bio,
     max_radius: profile.max_radius,
+    lat: profile.lat,
+    lon: profile.lon,
     interaction_mode: profile.interaction_mode_id,
     activities: profile.activities.map((a) => ({
       id: a.activity_id,

@@ -1,15 +1,15 @@
-import type { FormEvent } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SPORTS, MODES, LEVELS, saveProfile } from '../services/profile';
 import type { Profile, ProfileActivity } from '../types';
 import { User, Dumbbell, SlidersHorizontal, MapPin, Headphones, Users, Sparkles } from 'lucide-react';
-import { getMyProfile } from '../services/users';
+import { getMyProfile, uploadProfilePicture, deleteProfilePicture } from '../services/users';
 import './ProfileSetupPage.css';
 import { useState, useEffect } from 'react';
 
 export default function ProfileSetupPage() {
   const [name, setName] = useState('');
-  const [birthDate, setBirthDate] = useState('');
+  const [age, setAge] = useState('');
   const [bio, setBio] = useState('');
   const [pictureUrl, setPictureUrl] = useState('');
   const [modeId, setModeId] = useState<number | null>(null);
@@ -17,22 +17,25 @@ export default function ProfileSetupPage() {
   const [activities, setActivities] = useState<ProfileActivity[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [lat, setLat] = useState<number | null>(null);
+  const [lon, setLon] = useState<number | null>(null);
 
   // On mount, load the existing profile (if any) to pre-fill the form.
   // First-time users get an empty form; returning users get their data.
   useEffect(() => {
     getMyProfile()
       .then((data) => {
-         // If there's already a name, this is an existing profile → editing
+        // If there's already a name, this is an existing profile → editing
         if (data.name) setIsEditing(true);
         if (data.name) setName(data.name);
         if (data.bio) setBio(data.bio);
         if (data.picture_url) setPictureUrl(data.picture_url);
         if (data.max_radius) setMaxRadius(data.max_radius);
         if (data.interaction_mode) setModeId(data.interaction_mode);
-        if (data.birth_date) setBirthDate(data.birth_date);
+        if (data.age) setAge(String(data.age));
         if (data.activities && data.activities.length > 0) {
           // Backend gives {id, experience_level, interest_level}
           // We use {activity_id, experience, interest_level} internally, so translate:
@@ -49,6 +52,59 @@ export default function ProfileSetupPage() {
         // No profile yet or not logged in — leave the form empty.
       });
   }, []);
+
+  // Ask the browser for the user's location (for distance matching).
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setLat(pos.coords.latitude); setLon(pos.coords.longitude); },
+      (err) => { console.warn('Location not available:', err.message); }
+    );
+  }, []);
+
+  // Upload a picture as soon as the user picks a file.
+  // The backend stores it and returns the final URL for the avatar preview.
+  async function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Quick client-side checks (backend validates too, but this is instant feedback)
+    const allowedTypes = ['image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Please choose a JPEG or PNG image.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      setError('Image must be 1MB or smaller.');
+      e.target.value = '';
+      return;
+    }
+
+    setError('');
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadProfilePicture(file);
+      setPictureUrl(url);
+    } catch (err) {
+      setError('Could not upload the photo. Please try again.');
+      console.error(err);
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = ''; // reset so the same file can be picked again
+    }
+  }
+
+  // Remove the current picture and fall back to the placeholder.
+  async function handleRemovePhoto() {
+    try {
+      await deleteProfilePicture();
+      setPictureUrl('');
+    } catch (err) {
+      setError('Could not remove the photo. Please try again.');
+      console.error(err);
+    }
+  }
 
   // Toggle a sport on/off
   function toggleSport(sportId: number) {
@@ -82,7 +138,7 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     setError('');
 
-    if (!name || !birthDate || !bio) {
+    if (!name || !age || !bio) {
       setError('Please fill in name, date of birth and bio.');
       return;
     }
@@ -97,12 +153,14 @@ export default function ProfileSetupPage() {
 
     const profile: Profile = {
       name,
-      birth_date: birthDate,
+      age: Number(age),
       bio,
       picture_url: pictureUrl,
       interaction_mode_id: modeId,
       activities,
       max_radius: maxRadius,
+      lat: lat ?? 0,
+      lon: lon ?? 0,
     };
 
     setLoading(true);
@@ -160,21 +218,37 @@ export default function ProfileSetupPage() {
               )}
             </div>
 
-            {/* URL input */}
+            {/* Upload controls */}
             <div style={{ flex: 1 }}>
-              <input type="url" className="input" placeholder="Paste an image URL"
-                value={pictureUrl} onChange={(e) => setPictureUrl(e.target.value)}
-                disabled={loading} />
-              <p className="form-helper mt-xs">Optional — leave empty to use a placeholder.</p>
+              {/* The label acts as a button; the real file input is hidden inside it. */}
+              <label className="btn btn-outline"
+                style={{
+                  pointerEvents: (uploadingPhoto || loading) ? 'none' : 'auto',
+                  opacity: (uploadingPhoto || loading) ? 0.6 : 1,
+                }}>
+                {uploadingPhoto ? 'Uploading...' : (pictureUrl ? 'Change photo' : 'Upload photo')}
+                <input type="file" accept="image/jpeg,image/png" className="visually-hidden"
+                  onChange={handlePhotoChange} disabled={uploadingPhoto || loading} />
+              </label>
+
+              {/* Remove button: only when there's a photo */}
+              {pictureUrl && !uploadingPhoto && (
+                <button type="button" className="btn btn-ghost btn-small mt-xs"
+                  onClick={handleRemovePhoto} disabled={loading}>
+                  Remove photo
+                </button>
+              )}
+
+              <p className="form-helper mt-xs">JPEG or PNG, max 1MB. Optional — a placeholder is used if empty.</p>
             </div>
           </div>
         </div>
 
         <div className="form-group">
-          <label className="form-label" htmlFor="birthDate">Date of birth</label>
-          <input id="birthDate" type="date" className="input"
-            value={birthDate} onChange={(e) => setBirthDate(e.target.value)} disabled={loading}
-            max={new Date().toISOString().split('T')[0]} />
+          <label className="form-label" htmlFor="age">Age</label>
+          <input id="age" type="number" className="input" placeholder="28"
+            value={age} onChange={(e) => setAge(e.target.value)} disabled={loading}
+            min={16} max={120} />
         </div>
 
         <div className="form-group">
