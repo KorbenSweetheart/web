@@ -18,7 +18,6 @@
     - [x] Add refresh token endpoint for refresh
     - [x] Add renew access token based on RT
     - [ ] Maybe store access token inside React app memory (state)???
-    - [ ] Decide when to mark user Online, when he logged in, or when he sends messages?
   - [x] System healthchecks
     - [x] Healthz
     - [x] Readyz
