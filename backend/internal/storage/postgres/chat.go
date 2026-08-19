@@ -9,6 +9,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// CreateDirectChat inserts a new 1-on-1 direct chat record into the database.
+func (s *Storage) CreateDirectChat(ctx context.Context, chat *domain.Chat) error {
+	const op = "storage.postgres.CreateDirectChat"
+
+	chat.UserOneID, chat.UserTwoID = domain.NormalizeUserPair(chat.UserOneID, chat.UserTwoID)
+
+	if err := s.db.WithContext(ctx).Create(chat).Error; err != nil {
+		return fmt.Errorf("%s: failed to create direct chat: %w", op, err)
+	}
+
+	return nil
+}
+
 // FindDirectChat finds an existing 1-on-1 direct chat record between two users.
 func (s *Storage) FindDirectChat(ctx context.Context, userA, userB int64) (*domain.Chat, error) {
 	const op = "storage.postgres.FindDirectChat"
@@ -30,19 +43,6 @@ func (s *Storage) FindDirectChat(ctx context.Context, userA, userB int64) (*doma
 	}
 
 	return &chat, nil
-}
-
-// CreateDirectChat inserts a new 1-on-1 direct chat record into the database.
-func (s *Storage) CreateDirectChat(ctx context.Context, chat *domain.Chat) error {
-	const op = "storage.postgres.CreateDirectChat"
-
-	chat.UserOneID, chat.UserTwoID = domain.NormalizeUserPair(chat.UserOneID, chat.UserTwoID)
-
-	if err := s.db.WithContext(ctx).Create(chat).Error; err != nil {
-		return fmt.Errorf("%s: failed to create direct chat: %w", op, err)
-	}
-
-	return nil
 }
 
 // FindChatByID retrieves a single chat by its primary ID.
@@ -70,7 +70,7 @@ func (s *Storage) FindChatByID(ctx context.Context, chatID int64) (*domain.Chat,
 func (s *Storage) FindUserChats(ctx context.Context, userID int64) ([]*domain.Chat, error) {
 	const op = "storage.postgres.FindUserChats"
 
-	var chats []*domain.Chat
+	chats := make([]*domain.Chat, 0)
 	err := s.db.WithContext(ctx).
 		Preload("UserOne").
 		Preload("UserTwo").
@@ -108,7 +108,7 @@ func (s *Storage) LoadChatHistory(ctx context.Context, chatID, lastMessageID int
 		query = query.Where("id < ?", lastMessageID)
 	}
 
-	var messages []*domain.Message
+	messages := make([]*domain.Message, 0)
 	err := query.
 		Order("id DESC").
 		Limit(limit).
