@@ -69,9 +69,13 @@ func SetupRouter(
 
 	// Chat
 	private.GET("/ws", h.WS.Upgrade)
+	private.POST("/chats/direct", h.Chat.DirectChat)
+	private.GET("/chats", h.Chat.UserChats)
+	private.GET("/chats/:id/messages", h.Chat.ChatHistory)
 
 	// Dictionary
 	private.GET("/activities", h.Dictionary.Activities) // /actvities
 
 	return e
 }
+

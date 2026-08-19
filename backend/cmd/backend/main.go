@@ -85,6 +85,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService, validator, log)
 	matchHandler := handlers.NewMatchHandler(matchService, validator, log)
 	connectionHandler := handlers.NewConnectionHandler(connectionService, validator, log)
+	chatHandler := handlers.NewChatHandler(chatService, validator, log)
 
 	// setup router/server (Echo)
 	e := httpserver.SetupRouter(cfg, log, handlers.Handlers{
@@ -94,6 +95,7 @@ func main() {
 		User:       userHandler,
 		Match:      matchHandler,
 		Conn:       connectionHandler,
+		Chat:       chatHandler,
 		WS:         wsHandler,
 	})
 

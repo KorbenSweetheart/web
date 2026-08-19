@@ -12,6 +12,7 @@ type Handlers struct {
 	User       *UserHandler
 	Match      *MatchHandler
 	Conn       *ConnectionHandler
+	Chat       *ChatHandler
 	WS         *websocket.Handler
 }
 
