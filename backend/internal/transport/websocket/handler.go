@@ -1,8 +1,10 @@
 package websocket
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v5"
@@ -34,7 +36,7 @@ func NewHandler(hub *Hub, logger *slog.Logger) *Handler {
 // Upgrade upgrades the incoming HTTP request to a WebSocket session.
 func (h *Handler) Upgrade(c *echo.Context) error {
 	userID, ok := c.Get("user_id").(int64)
-	if !ok || userID <= 0 {
+	if !ok {
 		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
 	}
 
@@ -43,7 +45,8 @@ func (h *Handler) Upgrade(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Failed to upgrade to WebSocket"})
 	}
 
-	client := NewClient(userID, conn, h.hub, h.log)
+	connID := fmt.Sprintf("%d-%d", userID, time.Now().UnixNano())
+	client := NewClient(connID, userID, conn, h.hub, h.log)
 
 	h.hub.Register <- client
 

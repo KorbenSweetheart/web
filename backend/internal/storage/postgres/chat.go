@@ -19,6 +19,13 @@ func (s *Storage) CreateDirectChat(ctx context.Context, chat *domain.Chat) error
 		return fmt.Errorf("%s: failed to create direct chat: %w", op, err)
 	}
 
+	if err := s.db.WithContext(ctx).
+		Preload("UserOne").
+		Preload("UserTwo").
+		First(chat, chat.ID).Error; err != nil {
+		return fmt.Errorf("%s: failed to preload chat profiles: %w", op, err)
+	}
+
 	return nil
 }
 

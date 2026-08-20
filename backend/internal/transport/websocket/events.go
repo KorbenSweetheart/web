@@ -7,11 +7,12 @@ import (
 
 // Event type constants for the WebSocket wire protocol.
 const (
-	EventChatMessage = "chat:message"
-	EventChatTyping  = "chat:typing"
-	EventChatRead    = "chat:read"
-	EventUserStatus  = "user:status"
-	EventError       = "error"
+	EventChatMessage   = "chat:message"
+	EventChatTyping    = "chat:typing"
+	EventChatRead      = "chat:read"
+	EventPresenceCheck = "presence:check"
+	EventPresenceBatch = "presence:batch"
+	EventError         = "error"
 )
 
 // InboundEvent is the generic envelope for all messages sent from client to server.
@@ -67,10 +68,14 @@ type ReadBroadcastPayload struct {
 	ReaderID int64 `json:"reader_id"`
 }
 
-// UserStatusPayload notifies connected friends when a user comes online or goes offline.
-type UserStatusPayload struct {
-	UserID int64  `json:"user_id"`
-	Status string `json:"status"` // "online" | "offline"
+// PresenceCheckPayload is received when a client queries online status for a specific list of users.
+type PresenceCheckPayload struct {
+	UserIDs []int64 `json:"user_ids" validate:"required,min=1,max=100"`
+}
+
+// PresenceBatchPayload returns the presence statuses for requested user IDs.
+type PresenceBatchPayload struct {
+	Statuses map[int64]bool `json:"statuses"`
 }
 
 // ErrorPayload notifies the client about validation or permission errors.

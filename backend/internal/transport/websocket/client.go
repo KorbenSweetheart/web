@@ -19,6 +19,7 @@ const (
 
 // Client represents a single active WebSocket connection for an authenticated user.
 type Client struct {
+	ConnID string
 	UserID int64
 	Conn   *websocket.Conn
 	Send   chan []byte
@@ -27,8 +28,9 @@ type Client struct {
 }
 
 // NewClient instantiates a new Client session.
-func NewClient(userID int64, conn *websocket.Conn, hub *Hub, logger *slog.Logger) *Client {
+func NewClient(connID string, userID int64, conn *websocket.Conn, hub *Hub, logger *slog.Logger) *Client {
 	return &Client{
+		ConnID: connID,
 		UserID: userID,
 		Conn:   conn,
 		Send:   make(chan []byte, sendBufferSize),

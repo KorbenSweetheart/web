@@ -65,6 +65,7 @@ func (us *UserService) Profile(ctx context.Context, id int64) (*domain.Profile, 
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	// TODO: need to think, and maybe change it. this logic skips Preload situations, e.g. when you return Chat with user.
 	if profile.PictureURL == "" {
 		profile.PictureURL = us.defaultPictureURL()
 	}

@@ -8,6 +8,7 @@ import (
 	"match-me-api/internal/logger"
 	"match-me-api/internal/pkg/tokenmgr"
 	"match-me-api/internal/service"
+	"match-me-api/internal/storage/memory"
 	"match-me-api/internal/storage/minio"
 	"match-me-api/internal/storage/postgres"
 	"match-me-api/internal/transport/httpserver"
@@ -62,6 +63,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// create storage
+	memoryStorage := memory.NewStorage()
+
 	// create services
 	authService := service.NewAuthService(storage, storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	dictionaryService := service.NewDictionaryService(storage, log)
@@ -69,12 +73,13 @@ func main() {
 	matchService := service.NewMatchService(storage, log)
 	connectionService := service.NewConnectionService(storage, log)
 	chatService := service.NewChatService(storage, storage, log)
+	presenceService := service.NewPresenceService(memoryStorage, log)
 
 	// init validator
 	validator := validator.New(validator.WithRequiredStructEnabled())
 
 	// create websocket hub & handler
-	wsHub := websocket.NewHub(chatService, connectionService, validator, log)
+	wsHub := websocket.NewHub(chatService, presenceService, validator, log)
 	go wsHub.Run(shutdownCtx)
 	wsHandler := websocket.NewHandler(wsHub, log)
 

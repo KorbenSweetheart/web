@@ -1,3 +1,4 @@
+// Package websocket provides WebSocket connection lifecycle management and real-time event routing.
 package websocket
 
 import (
@@ -18,33 +19,35 @@ type ChatManager interface {
 	ChatParticipants(ctx context.Context, chatID int64) (userOneID, userTwoID int64, err error)
 }
 
-// ConnectionProvider defines connection queries required for presence broadcasts.
-type ConnectionProvider interface {
-	AcceptedConnections(ctx context.Context, userID int64) ([]int64, error)
+// PresenceManager defines user presence tracking required by the WebSocket Hub.
+type PresenceManager interface {
+	UserConnected(ctx context.Context, userID int64, connID string) (isFirst bool, err error)
+	UserDisconnected(ctx context.Context, userID int64, connID string) (isLast bool, err error)
+	BatchIsOnline(ctx context.Context, userIDs []int64) (map[int64]bool, error)
 }
 
-// Hub coordinates all active WebSocket client connections, presence state, and event routing.
+// Hub coordinates all active WebSocket client connections and event routing.
 type Hub struct {
 	mu          sync.RWMutex
-	clients     map[int64]*Client
+	clients     map[int64]map[string]*Client // userID -> connID -> *Client
 	Register    chan *Client
 	Unregister  chan *Client
 	Inbound     chan *ClientInboundMessage
 	chatService ChatManager
-	connService ConnectionProvider
+	presence    PresenceManager
 	validator   *validator.Validate
 	log         *slog.Logger
 }
 
-// NewHub creates an instance of Hub with its service dependencies.
-func NewHub(chatService ChatManager, connService ConnectionProvider, validator *validator.Validate, logger *slog.Logger) *Hub {
+// NewHub creates an instance of Hub with its dependencies.
+func NewHub(chatService ChatManager, presence PresenceManager, validator *validator.Validate, logger *slog.Logger) *Hub {
 	return &Hub{
-		clients:     make(map[int64]*Client),
+		clients:     make(map[int64]map[string]*Client),
 		Register:    make(chan *Client),
 		Unregister:  make(chan *Client),
 		Inbound:     make(chan *ClientInboundMessage, 128),
 		chatService: chatService,
-		connService: connService,
+		presence:    presence,
 		validator:   validator,
 		log:         logger,
 	}
@@ -70,39 +73,59 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
-// IsOnline checks whether a given user is currently connected to this Hub.
-func (h *Hub) IsOnline(userID int64) bool {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	_, online := h.clients[userID]
-	return online
-}
-
 func (h *Hub) registerClient(ctx context.Context, client *Client) {
 	h.mu.Lock()
-	h.clients[client.UserID] = client
+	userConns, exists := h.clients[client.UserID]
+	if !exists {
+		userConns = make(map[string]*Client)
+		h.clients[client.UserID] = userConns
+	}
+	userConns[client.ConnID] = client
 	h.mu.Unlock()
 
-	h.log.Debug("client connected to websocket", "user_id", client.UserID)
+	h.log.Debug("client connected to websocket", "user_id", client.UserID, "conn_id", client.ConnID)
 
-	// Broadcast online presence to all accepted connections
-	h.broadcastUserStatus(ctx, client.UserID, "online")
+	isFirst, err := h.presence.UserConnected(ctx, client.UserID, client.ConnID)
+	if err != nil {
+		h.log.Debug("failed to register presence for user", "user_id", client.UserID, logger.Err(err))
+		return
+	}
+
+	if isFirst {
+		h.log.Debug("user transitioned to online", "user_id", client.UserID)
+	}
 }
 
 func (h *Hub) unregisterClient(ctx context.Context, client *Client) {
 	h.mu.Lock()
-	existing, ok := h.clients[client.UserID]
-	if ok && existing == client {
-		delete(h.clients, client.UserID)
-		close(client.Send)
+	userConns, exists := h.clients[client.UserID]
+	var removed bool
+	if exists {
+		if _, ok := userConns[client.ConnID]; ok {
+			delete(userConns, client.ConnID)
+			close(client.Send)
+			removed = true
+			if len(userConns) == 0 {
+				delete(h.clients, client.UserID)
+			}
+		}
 	}
 	h.mu.Unlock()
 
-	if ok && existing == client {
-		h.log.Debug("client disconnected from websocket", "user_id", client.UserID)
-		// Broadcast offline presence to all accepted connections
-		h.broadcastUserStatus(ctx, client.UserID, "offline")
+	if !removed {
+		return
+	}
+
+	h.log.Debug("client disconnected from websocket", "user_id", client.UserID, "conn_id", client.ConnID)
+
+	isLast, err := h.presence.UserDisconnected(ctx, client.UserID, client.ConnID)
+	if err != nil {
+		h.log.Debug("failed to deregister presence for user", "user_id", client.UserID, logger.Err(err))
+		return
+	}
+
+	if isLast {
+		h.log.Debug("user transitioned to offline", "user_id", client.UserID)
 	}
 }
 
@@ -114,6 +137,8 @@ func (h *Hub) handleInboundMessage(ctx context.Context, msg *ClientInboundMessag
 		h.handleChatTyping(ctx, msg)
 	case EventChatRead:
 		h.handleChatRead(ctx, msg)
+	case EventPresenceCheck:
+		h.handlePresenceCheck(ctx, msg)
 	default:
 		msg.Client.SendError("unknown event type: " + msg.Event.Type)
 	}
@@ -149,8 +174,8 @@ func (h *Hub) handleChatMessage(ctx context.Context, msg *ClientInboundMessage) 
 		},
 	}
 
-	// 1. Deliver ACK/saved event back to sender
-	msg.Client.SendEvent(outEvent)
+	// 1. Deliver ACK/saved event back to sender (all active tabs)
+	h.deliverToUser(msg.Client.UserID, outEvent)
 
 	// 2. Deliver event to recipient if currently online
 	recipientID := h.resolveOtherParticipant(ctx, payload.ChatID, msg.Client.UserID)
@@ -213,6 +238,32 @@ func (h *Hub) handleChatRead(ctx context.Context, msg *ClientInboundMessage) {
 	}
 }
 
+func (h *Hub) handlePresenceCheck(ctx context.Context, msg *ClientInboundMessage) {
+	var payload PresenceCheckPayload
+	if err := json.Unmarshal(msg.Event.Payload, &payload); err != nil {
+		msg.Client.SendError("invalid presence check payload")
+		return
+	}
+
+	if err := h.validator.Struct(payload); err != nil {
+		msg.Client.SendError("validation error: " + err.Error())
+		return
+	}
+
+	statuses, err := h.presence.BatchIsOnline(ctx, payload.UserIDs)
+	if err != nil {
+		msg.Client.SendError(err.Error())
+		return
+	}
+
+	msg.Client.SendEvent(OutboundEvent{
+		Type: EventPresenceBatch,
+		Payload: PresenceBatchPayload{
+			Statuses: statuses,
+		},
+	})
+}
+
 func (h *Hub) resolveOtherParticipant(ctx context.Context, chatID, senderID int64) int64 {
 	userOneID, userTwoID, err := h.chatService.ChatParticipants(ctx, chatID)
 	if err != nil {
@@ -228,31 +279,20 @@ func (h *Hub) resolveOtherParticipant(ctx context.Context, chatID, senderID int6
 
 func (h *Hub) deliverToUser(userID int64, event OutboundEvent) {
 	h.mu.RLock()
-	client, online := h.clients[userID]
-	h.mu.RUnlock()
-
-	if online {
-		client.SendEvent(event)
-	}
-}
-
-func (h *Hub) broadcastUserStatus(ctx context.Context, userID int64, status string) {
-	connectedUserIDs, err := h.connService.AcceptedConnections(ctx, userID)
-	if err != nil {
-		h.log.Debug("failed to fetch accepted connections for presence update", "user_id", userID, logger.Err(err))
+	userConns, exists := h.clients[userID]
+	if !exists || len(userConns) == 0 {
+		h.mu.RUnlock()
 		return
 	}
 
-	event := OutboundEvent{
-		Type: EventUserStatus,
-		Payload: UserStatusPayload{
-			UserID: userID,
-			Status: status,
-		},
+	targetClients := make([]*Client, 0, len(userConns))
+	for _, client := range userConns {
+		targetClients = append(targetClients, client)
 	}
+	h.mu.RUnlock()
 
-	for _, friendID := range connectedUserIDs {
-		h.deliverToUser(friendID, event)
+	for _, client := range targetClients {
+		client.SendEvent(event)
 	}
 }
 
@@ -260,8 +300,10 @@ func (h *Hub) cleanupAllClients() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	for userID, client := range h.clients {
+	for userID, userConns := range h.clients {
+		for _, client := range userConns {
+			close(client.Send)
+		}
 		delete(h.clients, userID)
-		close(client.Send)
 	}
 }
