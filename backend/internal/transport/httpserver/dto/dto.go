@@ -100,3 +100,27 @@ type ConnectionRequest struct {
 type UpdateConnectionRequest struct {
 	Status string `json:"status" validate:"required,oneof=accepted declined"`
 }
+
+// /chats
+type DirectChatRequest struct {
+	TargetUserID int64 `json:"target_user_id" validate:"required,number,gt=0"`
+}
+
+type ChatResponse struct {
+	ID        int64               `json:"id"`
+	UserOneID int64               `json:"user_one_id"`
+	UserTwoID int64               `json:"user_two_id"`
+	CreatedAt time.Time           `json:"created_at"`
+	UserOne   UserSummaryResponse `json:"user_one"`
+	UserTwo   UserSummaryResponse `json:"user_two"`
+}
+
+type MessageResponse struct {
+	ID        int64     `json:"id"`
+	ChatID    int64     `json:"chat_id"`
+	SenderID  int64     `json:"sender_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	IsViewed  bool      `json:"is_viewed"`
+}
+

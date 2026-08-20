@@ -140,24 +140,32 @@ type Connection struct {
 	ToUser     Profile          `gorm:"foreignKey:ToUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
+// NormalizeUserPair returns user IDs in canonical (min, max) order to guarantee unique 1-on-1 direct chats.
+func NormalizeUserPair(userA, userB int64) (int64, int64) {
+	if userA < userB {
+		return userA, userB
+	}
+	return userB, userA
+}
+
 type Chat struct {
-	ID        int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	UserOneID int64     `gorm:"not null;index" json:"user_one_id"`
-	UserTwoID int64     `gorm:"not null;index" json:"user_two_id"`
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UserOne   Profile   `gorm:"foreignKey:UserOneID;references:UserID;constraint:OnDelete:CASCADE" json:"user_one,omitzero"`
-	UserTwo   Profile   `gorm:"foreignKey:UserTwoID;references:UserID;constraint:OnDelete:CASCADE" json:"user_two,omitzero"`
-	Messages  []Message `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE" json:"messages,omitzero"`
+	ID        int64     `gorm:"primaryKey;autoIncrement"`
+	UserOneID int64     `gorm:"not null;uniqueIndex:idx_chat_user_pair,priority:1"`
+	UserTwoID int64     `gorm:"not null;uniqueIndex:idx_chat_user_pair,priority:2"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	UserOne   Profile   `gorm:"foreignKey:UserOneID;references:UserID;constraint:OnDelete:CASCADE"`
+	UserTwo   Profile   `gorm:"foreignKey:UserTwoID;references:UserID;constraint:OnDelete:CASCADE"`
+	Messages  []Message `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 type Message struct {
-	ID        int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	ChatID    int64     `gorm:"not null;index" json:"chat_id"`
-	SenderID  int64     `gorm:"not null" json:"sender_id"`
-	Content   string    `gorm:"type:text;not null" json:"content"`
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
-	IsViewed  bool      `gorm:"default:false" json:"is_viewed"` // optional, extra
-	IsTyping  bool      `gorm:"-" json:"is_typing,omitempty"`   // optional, extra, e.g., {"type": "typing", "chat_id": 12, "user_id": 42}.
-	Chat      Chat      `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
-	Sender    Profile   `gorm:"foreignKey:SenderID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	ID        int64     `gorm:"primaryKey;autoIncrement;index:idx_chat_messages,priority:2"`
+	ChatID    int64     `gorm:"not null;index:idx_chat_messages,priority:1"`
+	SenderID  int64     `gorm:"not null"`
+	Content   string    `gorm:"type:text;not null"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	IsViewed  bool      `gorm:"default:false"`
+	Chat      Chat      `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE"`
+	Sender    Profile   `gorm:"foreignKey:SenderID;references:UserID;constraint:OnDelete:CASCADE"`
 }
+

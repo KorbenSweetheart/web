@@ -8,10 +8,12 @@ import (
 	"match-me-api/internal/logger"
 	"match-me-api/internal/pkg/tokenmgr"
 	"match-me-api/internal/service"
+	"match-me-api/internal/storage/memory"
 	"match-me-api/internal/storage/minio"
 	"match-me-api/internal/storage/postgres"
 	"match-me-api/internal/transport/httpserver"
 	"match-me-api/internal/transport/httpserver/handlers"
+	"match-me-api/internal/transport/websocket"
 	"net/http"
 	"os"
 	"os/signal"
@@ -61,15 +63,25 @@ func main() {
 		os.Exit(1)
 	}
 
+	// create storage
+	memoryStorage := memory.NewStorage()
+
 	// create services
 	authService := service.NewAuthService(storage, storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	dictionaryService := service.NewDictionaryService(storage, log)
 	userService := service.NewUserService(storage, minioStorage, log)
 	matchService := service.NewMatchService(storage, log)
 	connectionService := service.NewConnectionService(storage, log)
+	chatService := service.NewChatService(storage, storage, log)
+	presenceService := service.NewPresenceService(memoryStorage, log)
 
 	// init validator
 	validator := validator.New(validator.WithRequiredStructEnabled())
+
+	// create websocket hub & handler
+	wsHub := websocket.NewHub(chatService, presenceService, validator, log)
+	go wsHub.Run(shutdownCtx)
+	wsHandler := websocket.NewHandler(wsHub, log)
 
 	// Handlers
 	healthHandler := handlers.NewHealthHandler(storage)
@@ -78,6 +90,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService, validator, log)
 	matchHandler := handlers.NewMatchHandler(matchService, validator, log)
 	connectionHandler := handlers.NewConnectionHandler(connectionService, validator, log)
+	chatHandler := handlers.NewChatHandler(chatService, validator, log)
 
 	// setup router/server (Echo)
 	e := httpserver.SetupRouter(cfg, log, handlers.Handlers{
@@ -87,6 +100,8 @@ func main() {
 		User:       userHandler,
 		Match:      matchHandler,
 		Conn:       connectionHandler,
+		Chat:       chatHandler,
+		WS:         wsHandler,
 	})
 
 	// server config

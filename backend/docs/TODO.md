@@ -12,12 +12,12 @@
     - [x] Add switch for different types of error, to return different statuses.
     <!-- - [ ] Add Login in or redirect to login upon successful registration -->
   - [x] Login
-    - [x] Add JWT and session cookies
+    - [x] Add access token and session cookies
     - [x] Add refresh token and RT cookie
     - [x] Add save refresh token to db
     - [x] Add refresh token endpoint for refresh
-    - [x] Add renew JWT token based on RT
-    - [ ] Decide when to mark user Online, when he logged in, or when he sends messages?
+    - [x] Add renew access token based on RT
+    - [ ] Maybe store access token inside React app memory (state)???
   - [x] System healthchecks
     - [x] Healthz
     - [x] Readyz
@@ -31,6 +31,7 @@
   - [x] `/me/bio` - a shortcut to `/users/{id}/bio` for the authenticated user.
   - [x] `POST: /users/{id}/profile` - profile update.
   - [x] `POST: /me/picture` - Upload Profile Picture.
+    - [ ] Issue with default picture in cases with Profile Preload.
   - [x] `DELETE: /me/picture` - Delete Profile Picture.
   - [x] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
     - [ ] Exclude conections from recommendations.
@@ -47,6 +48,15 @@
   - [x] `/auth/logout` - Logout
     - [x] Add delete refresh token from db
     - [x] Add cookie deletion (expired)
+  - [x] Chat
+    - [x] `GET: /chats/direct`
+    - [x] `GET: /chats`
+    - [x] `GET: /chats/:id/messages`
+    - [ ] IsTyping
+  - [ ] Online indicator
+    - [ ] `func (h *Hub) IsOnline(userID int64) bool` is not used at all. Rethink the logic.
+    - [ ] No need to send any Type:status, if user is registered in Hub, his status is online, and need to display it. If he unregistered, then opposite. I don't think that status should be stored in DB.
+    - [ ] Should be visible only in userprofile and in chat and chatlist.
 - [x] update name min length, could be 2 char
 - [x] remove omitzero from bio and some other fields that could be removed/emptied by the user in bio
 - [ ] Check all TODOs inside the code.
@@ -55,3 +65,4 @@
 - [ ] Review gracefull shutdown
 - [x] maybe move migration to separete docker container
 - [ ] Review POST requests, they should return full state of the created resourse. The same for PUT and PATCH.
+- [ ] Review Loggin practices and especially "log once at the boundary" rule to prevent duplicated/noisy log entries.
