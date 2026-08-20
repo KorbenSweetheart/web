@@ -23,8 +23,7 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const data = await loginUser(email, password);
-      localStorage.setItem('token', data.access_token);
+      await loginUser(email, password);
 
       // Check if the profile is complete, and route accordingly:
       // complete → Discover, incomplete → profile setup.

@@ -2,37 +2,34 @@
    API HELPER
    ============================================
    One place for authenticated requests.
-   Automatically attaches the token so we don't
-   repeat it in every call.
+   The browser holds the JWT in an HttpOnly cookie
+   and attaches it automatically — we no longer
+   read or send the token by hand.
 
    Usage:
      const data = await apiGet('/users/1');
      await apiPost('/auth/logout');
    ============================================ */
 
-// Reads the token once, builds the auth headers.
-// Shared by every request helper below.
-function authHeaders() {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-}
+// No token to read anymore. We only declare that our POST bodies
+// are JSON. The cookie travels on its own (see credentials below).
+const jsonHeaders = {
+  'Content-Type': 'application/json',
+};
 
-// Called when the backend says our token is no longer valid (401).
-// The token is expired/invalid, so we clear it and send the user
-// back to login. window.location is used (not navigate) because this
-// file isn't a React component and can't use router hooks.
+// Called when the backend says we're not authenticated (401).
+// The cookie is HttpOnly, so there's nothing for JS to clear —
+// we just send the user back to login. window.location is used
+// (not navigate) because this file isn't a React component.
 function handleUnauthorized() {
-  localStorage.removeItem('token');
   window.location.href = '/login';
 }
 
 // GET: fetch data from the backend.
 async function apiGet(path: string) {
   const res = await fetch(path, {
-    headers: authHeaders(),
+    headers: jsonHeaders,
+    credentials: 'include', // ← send the auth cookie with the request
   });
 
   // Token expired or invalid → force logout + redirect to login.
@@ -55,7 +52,8 @@ async function apiGet(path: string) {
 async function apiPost(path: string, body?: unknown) {
   const res = await fetch(path, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: jsonHeaders,
+    credentials: 'include', // ← same here
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -71,8 +69,6 @@ async function apiPost(path: string, body?: unknown) {
     throw new Error(`Request failed: ${res.status}`);
   }
 
-  // Some endpoints (like logout) reply with no content (204).
-  // Trying to parse JSON there would crash, so we guard for it.
   if (res.status === 204) {
     return null;
   }

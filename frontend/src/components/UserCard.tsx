@@ -72,13 +72,18 @@ export default function UserCard({
             <h3 className="user-card__name">{user.name}</h3>
             <span className={`user-card__status ${user.is_online ? 'is-online' : ''}`} />
           </div>
+
           <p className="user-card__meta">
             {(() => {
-              const ModeIcon = MODES[user.interaction_mode].icon;
+              // Fall back to mode 1 if the backend sends a mode we don't
+              // know (0, null, or anything outside 1–3). Without this,
+              // MODES[unknown] is undefined and reading .icon crashes the page.
+              const mode = MODES[user.interaction_mode] ?? MODES[1];
+              const ModeIcon = mode.icon;
               return (
                 <>
                   {user.age} · <ModeIcon size={14} strokeWidth={2.5} className="user-card__mode-icon" />
-                  {MODES[user.interaction_mode].label}
+                  {mode.label}
                 </>
               );
             })()}
