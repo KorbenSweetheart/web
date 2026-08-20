@@ -75,4 +75,56 @@ async function apiPost(path: string, body?: unknown) {
   return res.json();
 }
 
-export { apiGet, apiPost };
+// PATCH: update part of a resource (e.g. accept/decline a connection).
+async function apiPatch(path: string, body?: unknown) {
+  const res = await fetch(path, {
+    method: 'PATCH',
+    headers: jsonHeaders,
+    credentials: 'include',
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error('Unauthorized');
+  }
+  if (res.status === 404) {
+    throw new Error('Not found');
+  }
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status}`);
+  }
+
+  if (res.status === 204) {
+    return null;
+  }
+  return res.json();
+}
+
+// DELETE: remove a resource (e.g. delete a connection).
+async function apiDelete(path: string) {
+  const res = await fetch(path, {
+    method: 'DELETE',
+    headers: jsonHeaders,
+    credentials: 'include',
+    body: undefined,
+  });
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error('Unauthorized');
+  }
+  if (res.status === 404) {
+    throw new Error('Not found');
+  }
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status}`);
+  }
+
+  if (res.status === 204) {
+    return null;
+  }
+  return res.json();
+}
+
+export { apiGet, apiPost, apiPatch, apiDelete };

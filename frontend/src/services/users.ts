@@ -8,7 +8,7 @@
    endpoints, as Iván's API requires.
    ============================================ */
 
-import { apiGet } from './api';
+import { apiGet, apiPatch, apiDelete } from './api';
 import type { UserProfile } from './mockUsers';
 
 // Fetch the logged-in user's full profile.
@@ -97,16 +97,9 @@ export async function updateMyLocation(): Promise<void> {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          await fetch('/me/profile', {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-            body: JSON.stringify({
-              lat: pos.coords.latitude,
-              lon: pos.coords.longitude,
-            }),
+          await apiPatch('/me/profile', {
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
           });
         } catch (err) {
           console.warn('Could not update location:', err);
@@ -120,17 +113,15 @@ export async function updateMyLocation(): Promise<void> {
 
 // Uploads a profile picture file (POST /me/picture).
 // Sends the file as FormData (not JSON — that's how files are uploaded).
-// Backend crops/resizes/cleans it and returns the new picture_url.
+// This stays a raw fetch because apiPost forces a JSON Content-Type, which
+// would break the file upload. We only add credentials so the cookie travels.
 export async function uploadProfilePicture(file: File): Promise<string> {
   const form = new FormData();
   form.append('picture', file); // 'picture' is the field name the backend expects
 
   const res = await fetch('/me/picture', {
     method: 'POST',
-    headers: {
-      // NOTE: no 'Content-Type' here — the browser sets it automatically for FormData
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
+    credentials: 'include', // ← send the auth cookie (no Content-Type: the browser sets it for FormData)
     body: form,
   });
 
@@ -141,14 +132,5 @@ export async function uploadProfilePicture(file: File): Promise<string> {
 
 // Removes the profile picture (DELETE /me/picture), resets to default.
 export async function deleteProfilePicture(): Promise<string> {
-  const res = await fetch('/me/picture', {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
-
-  if (!res.ok) throw new Error('Failed to remove picture');
-  const data = await res.json();
-  return data.picture_url;
+  return apiDelete('/me/picture');
 }

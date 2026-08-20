@@ -7,7 +7,7 @@
    (same pattern as recommendations).
    ============================================ */
 
-import { apiGet, apiPost } from './api';
+import { apiGet, apiPost, apiPatch, apiDelete } from './api';
 import { fetchFullProfile } from './users';
 import type { UserProfile } from './mockUsers';
 
@@ -33,25 +33,10 @@ export async function sendConnectionRequest(toUserId: number) {
 
 // PATCH /connections/:id → accept or decline a received request.
 export async function respondToConnection(id: number, status: 'accepted' | 'declined') {
-  const res = await fetch(`/connections/${id}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify({ status }),
-  });
-  if (!res.ok) throw new Error('Failed to update connection');
-  return res.json();
+  return apiPatch(`/connections/${id}`, { status });
 }
 
 // DELETE /connections/:id → remove a connection.
 export async function deleteConnection(id: number) {
-  const res = await fetch(`/connections/${id}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
-  if (!res.ok) throw new Error('Failed to delete connection');
+  return apiDelete(`/connections/${id}`);
 }
