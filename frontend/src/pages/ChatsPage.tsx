@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { getMyProfile } from '../services/users';
 import { getChats, getChatMessages } from '../services/chats';
 import type { ChatSummary, Message } from '../services/chats';
+import { ChatSocket } from '../services/websocket';
 import './ChatsPage.css';
 
 // HH:MM from an ISO timestamp
@@ -37,6 +38,7 @@ export default function ChatsPage() {
 
   const location = useLocation();
   const threadRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<ChatSocket | null>(null);
 
   // Mount: who am I → my chats. Preselect if we arrived from "Message".
   useEffect(() => {
@@ -77,13 +79,43 @@ export default function ChatsPage() {
     threadRef.current?.scrollTo(0, threadRef.current.scrollHeight);
   }, [messages]);
 
+  // Open the WebSocket once on mount, listen for incoming messages.
+useEffect(() => {
+  const socket = new ChatSocket();
+  socketRef.current = socket;
+  socket.connect();
+
+  const off = socket.onMessage((msg) => {
+    // Only append if it belongs to the chat we're currently viewing.
+    // (Other chats' messages will update unread badges later, in step 4.)
+    setMessages((prev) => {
+      if (msg.chat_id !== selectedChatIdRef.current) return prev;
+      if (prev.some((m) => m.id === msg.id)) return prev; // guard against dupes
+      return [...prev, msg];
+    });
+  });
+
+  return () => {
+    off();
+    socket.disconnect();
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+  const selectedChatIdRef = useRef<number | null>(null);
+  useEffect(() => {
+  selectedChatIdRef.current = selectedChatId;
+  }, [selectedChatId]);
+
   const selectedChat = chats.find((c) => c.id === selectedChatId) ?? null;
 
   function handleSend() {
-    if (!draft.trim()) return;
-    // TODO paso 3: enviar por WebSocket (chat:message). Por ahora no hace nada.
-    setDraft('');
-  }
+  const text = draft.trim();
+  if (!text || selectedChatId == null) return;
+  const sent = socketRef.current?.sendMessage(selectedChatId, text);
+  if (sent) setDraft(''); // clear only if it actually went out
+  // The message will appear when the server echoes it back via onMessage.
+}
 
       return (
     <div className="chats">
