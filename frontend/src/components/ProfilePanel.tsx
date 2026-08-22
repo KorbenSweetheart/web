@@ -12,16 +12,62 @@ const EXP_LABELS: Record<number, string> = {
   1: 'Beginner', 2: 'Active Novice', 3: 'Intermediate', 4: 'Advanced', 5: 'Professional',
 };
 
+// Which context the panel is shown in — decides the footer buttons.
+type PanelVariant = 'discover' | 'received' | 'connected';
+
 interface ProfilePanelProps {
   user: UserProfile;
   onClose: () => void;
-  onConnect: (id: number) => void;
-  onDismiss: (id: number) => void;
+  variant?: PanelVariant;
+  // All optional: each variant only wires the handlers it needs.
+  onConnect?: (id: number) => void;
+  onDismiss?: (id: number) => void;
+  onAccept?: (id: number) => void;
+  onDecline?: (id: number) => void;
+  onMessage?: (id: number) => void;
+  onRemove?: (id: number) => void;
 }
 
-export default function ProfilePanel({ user, onClose, onConnect, onDismiss }: ProfilePanelProps) {
+export default function ProfilePanel({
+  user,
+  onClose,
+  variant = 'discover',
+  onConnect,
+  onDismiss,
+  onAccept,
+  onDecline,
+  onMessage,
+  onRemove,
+}: ProfilePanelProps) {
   const ModeIcon = MODES[user.interaction_mode].icon;
   const initials = user.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+
+  // Footer buttons per context, mirroring UserCard's variant logic.
+  function renderActions() {
+    switch (variant) {
+      case 'received':
+        return (
+          <>
+            <button className="btn btn-outline" onClick={() => onDecline?.(user.id)}>Decline</button>
+            <button className="btn btn-primary" onClick={() => onAccept?.(user.id)}>Accept</button>
+          </>
+        );
+      case 'connected':
+        return (
+          <>
+            <button className="btn btn-danger" onClick={() => onRemove?.(user.id)}>Remove</button>
+            <button className="btn btn-primary" onClick={() => onMessage?.(user.id)}>Message</button>
+          </>
+        );
+      default: // 'discover'
+        return (
+          <>
+            <button className="btn btn-outline" onClick={() => onDismiss?.(user.id)}>Dismiss</button>
+            <button className="btn btn-primary" onClick={() => onConnect?.(user.id)}>Connect</button>
+          </>
+        );
+    }
+  }
 
   return (
     <div className="profile-panel">
@@ -87,10 +133,9 @@ export default function ProfilePanel({ user, onClose, onConnect, onDismiss }: Pr
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Actions (per variant) */}
       <div className="profile-panel__actions">
-        <button className="btn btn-outline" onClick={() => onDismiss(user.id)}>Dismiss</button>
-        <button className="btn btn-primary" onClick={() => onConnect(user.id)}>Connect</button>
+        {renderActions()}
       </div>
     </div>
   );

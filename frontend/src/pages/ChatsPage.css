@@ -87,6 +87,17 @@
 .convo-day { text-align: center; margin: clamp(0.5rem, 1vw, 0.75rem) 0; }
 .convo-day span { font-size: 0.75rem; color: var(--text-3); }
 
+.convo-header__person {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1vw, 0.75rem);
+  cursor: pointer;
+  border-radius: var(--r-lg);
+  padding: 0.25rem;
+  transition: background-color var(--speed-fast);
+}
+.convo-header__person:hover { background: var(--surface-elevated); }
+
 /* Mobile: one view at a time */
 @media (max-width: 900px) {
   .chats-layout {

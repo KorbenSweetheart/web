@@ -9,9 +9,10 @@ import {
   deleteConnection,
 } from '../services/connections';
 import './ConnectionsPage.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getMyProfile } from '../services/users';
 import { openDirectChat } from '../services/chats';
+import ProfilePanel from '../components/ProfilePanel';
 
 type Tab = 'received' | 'connected';
 
@@ -24,7 +25,10 @@ export default function ConnectionsPage() {
   const [myId, setMyId] = useState<number | null>(null);
   const [openingChat, setOpeningChat] = useState(false);
   const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const location = useLocation();
 
+  // Load both lists on mount.
   // Load both lists on mount.
   useEffect(() => {
     Promise.all([getConnectionRequests(), getConnections(), getMyProfile()])
@@ -32,12 +36,20 @@ export default function ConnectionsPage() {
         setReceived(requests);
         setConnected(conns);
         setMyId(me.id);
+
+        // Arriving from a chat → open that person's panel (they're a connection).
+        const openUserId = (location.state as { openUserId?: number } | null)?.openUserId;
+        if (openUserId != null) {
+          setTab('connected');
+          setSelectedId(openUserId);
+        }
       })
       .catch((err) => {
         console.error(err);
         setError('Could not load connections.');
       })
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleAccept(id: number) {
@@ -83,8 +95,9 @@ export default function ConnectionsPage() {
   }
 }
 
-  const lists: Record<Tab, UserProfile[]> = { received, connected };
+    const lists: Record<Tab, UserProfile[]> = { received, connected };
   const current = lists[tab];
+  const selectedUser = current.find((u) => u.id === selectedId) ?? null;
 
   return (
     <div className="connections">
@@ -98,11 +111,11 @@ export default function ConnectionsPage() {
 
       <div className="connections__tabs">
         <button className={`connections__tab ${tab === 'received' ? 'is-active' : ''}`}
-          onClick={() => setTab('received')}>
+          onClick={() => { setTab('received'); setSelectedId(null); }}>
           Received {received.length > 0 && <span className="badge">{received.length}</span>}
         </button>
         <button className={`connections__tab ${tab === 'connected' ? 'is-active' : ''}`}
-          onClick={() => setTab('connected')}>
+          onClick={() => { setTab('connected'); setSelectedId(null); }}>
           Connected
         </button>
       </div>
@@ -114,18 +127,35 @@ export default function ConnectionsPage() {
       ) : current.length === 0 ? (
         <p className="text-body mt-lg">Nothing here yet.</p>
       ) : (
-        <div className="connections__grid">
-          {current.map((user) => (
-            <UserCard
-              key={user.id}
-              user={user}
-              variant={tab === 'received' ? 'received' : 'connected'}
-              onAccept={handleAccept}
-              onDecline={handleDecline}
-              onMessage={handleMessage}
-              onCancel={handleRemove}
-            />
-          ))}
+        <div className={`discover__layout ${selectedUser ? 'has-panel' : ''}`}>
+          <div className="discover__grid">
+            {current.map((user) => (
+              <UserCard
+                key={user.id}
+                user={user}
+                variant={tab === 'received' ? 'received' : 'connected'}
+                onAccept={handleAccept}
+                onDecline={handleDecline}
+                onMessage={handleMessage}
+                onCancel={handleRemove}
+                onClick={setSelectedId}
+              />
+            ))}
+          </div>
+
+          {selectedUser && (
+            <div className="discover__panel">
+              <ProfilePanel
+                user={selectedUser}
+                variant={tab}
+                onClose={() => setSelectedId(null)}
+                onAccept={handleAccept}
+                onDecline={handleDecline}
+                onMessage={handleMessage}
+                onRemove={handleRemove}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

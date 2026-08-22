@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { MessageCircle, ArrowLeft, Send } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getMyProfile } from '../services/users';
 import { getChats, getChatMessages } from '../services/chats';
 import type { ChatSummary, Message } from '../services/chats';
 import { ChatSocket } from '../services/websocket';
+
 import './ChatsPage.css';
 
 // HH:MM from an ISO timestamp
@@ -39,6 +40,7 @@ export default function ChatsPage() {
   const location = useLocation();
   const threadRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<ChatSocket | null>(null);
+  const navigate = useNavigate();
 
   // Mount: who am I → my chats. Preselect if we arrived from "Message".
   useEffect(() => {
@@ -168,20 +170,27 @@ useEffect(() => {
           <div className="chats-convo-pane">
             <div className="convo-header">
               <button
-                className="convo-back hide-desktop"
+                className="convo-back"
                 onClick={() => setSelectedChatId(null)}
                 aria-label="Back"
               >
                 <ArrowLeft size={22} />
               </button>
-              <div className="avatar avatar-md">
-                {selectedChat.other_user.picture_url ? (
-                  <img src={selectedChat.other_user.picture_url} alt={selectedChat.other_user.name} />
-                ) : (
-                  <span>{selectedChat.other_user.name.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              <span className="text-body-strong">{selectedChat.other_user.name}</span>
+              {/* Tapping the person opens their panel in Connections */}
+              <button
+                className="convo-header__person"
+                onClick={() => navigate('/app/connections', { state: { openUserId: selectedChat.other_user.id } })}
+                title="View profile"
+              >
+                <div className="avatar avatar-md">
+                  {selectedChat.other_user.picture_url ? (
+                    <img src={selectedChat.other_user.picture_url} alt={selectedChat.other_user.name} />
+                  ) : (
+                    <span>{selectedChat.other_user.name.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <span className="text-body-strong">{selectedChat.other_user.name}</span>
+              </button>
             </div>
 
             <div className="convo-thread" ref={threadRef}>
