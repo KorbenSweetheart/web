@@ -9,6 +9,9 @@ import {
   deleteConnection,
 } from '../services/connections';
 import './ConnectionsPage.css';
+import { useNavigate } from 'react-router-dom';
+import { getMyProfile } from '../services/users';
+import { openDirectChat } from '../services/chats';
 
 type Tab = 'received' | 'connected';
 
@@ -18,13 +21,17 @@ export default function ConnectionsPage() {
   const [connected, setConnected] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [myId, setMyId] = useState<number | null>(null);
+  const [openingChat, setOpeningChat] = useState(false);
+  const navigate = useNavigate();
 
   // Load both lists on mount.
   useEffect(() => {
-    Promise.all([getConnectionRequests(), getConnections()])
-      .then(([requests, conns]) => {
+    Promise.all([getConnectionRequests(), getConnections(), getMyProfile()])
+      .then(([requests, conns, me]) => {
         setReceived(requests);
         setConnected(conns);
+        setMyId(me.id);
       })
       .catch((err) => {
         console.error(err);
@@ -63,10 +70,18 @@ export default function ConnectionsPage() {
     }
   }
 
-  function handleMessage(id: number) {
-    console.log('Open chat with', id);
-    // later: navigate(`/app/chats/${id}`)
+  async function handleMessage(id: number) {
+  if (myId == null || openingChat) return;   // guard: no dispares sin myId ni doble-click
+  setOpeningChat(true);
+  try {
+    const chat = await openDirectChat(id, myId);
+    navigate('/app/chats', { state: { openChatId: chat.id } });
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setOpeningChat(false);
   }
+}
 
   const lists: Record<Tab, UserProfile[]> = { received, connected };
   const current = lists[tab];
