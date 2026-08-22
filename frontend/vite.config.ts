@@ -11,6 +11,11 @@ export default defineConfig({
       '/me': 'http://localhost:8080',
       '/recommendations': 'http://localhost:8080',
       '/connections': 'http://localhost:8080',
+      '/chats': 'http://localhost:8080',
+      '/ws': {
+        target: 'http://localhost:8080',
+        ws: true,
+      },
     },
   },
 })
