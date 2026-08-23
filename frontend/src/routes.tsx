@@ -9,6 +9,7 @@ import ProfileSetupPage from './pages/ProfileSetupPage';
 import DiscoverPage from './pages/DiscoverPage';
 import ProfilePage from './pages/ProfilePage';
 import ConnectionsPage from './pages/ConnectionsPage';
+import ChatsPage from './pages/ChatsPage';
 
 
 export default function AppRoutes() {
@@ -25,7 +26,7 @@ export default function AppRoutes() {
           <Route index element={<Navigate to="discover" replace />} />
           <Route path="discover" element={<RequireProfile><DiscoverPage /></RequireProfile>} />
           <Route path="connections" element={<ConnectionsPage />} />
-          <Route path="chats" element={<div className="text-hero" style={{ color: 'var(--text-1)' }}>💬 Chats</div>} />
+          <Route path="chats" element={<ChatsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile-setup" element={<ProfileSetupPage />} />
         </Route>

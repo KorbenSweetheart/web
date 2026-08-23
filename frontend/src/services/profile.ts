@@ -13,6 +13,7 @@
    ============================================ */
 
 import type { Profile } from '../types';
+import { apiPatch } from './api';
 
 const MOCK = false;
 
@@ -54,14 +55,12 @@ export const LEVELS = [
 ];
 
 export async function saveProfile(profile: Profile) {
-  // Transform our data into the exact shape Iván's backend expects.
-  // Our internal names differ, so we translate here before sending:
+    // Transform our data into the exact shape Iván's backend expects.
   //   interaction_mode_id → interaction_mode
   //   activity_id         → id
   //   experience          → experience_level
-  const body = {
+  const body: Record<string, unknown> = {
     name: profile.name,
-    picture_url: profile.picture_url,
     age: profile.age,
     bio: profile.bio,
     max_radius: profile.max_radius,
@@ -75,20 +74,18 @@ export async function saveProfile(profile: Profile) {
     })),
   };
 
+  // Only send picture_url if there's a real one. An empty string fails the
+  // backend's "url" validation (400). Photos are managed separately through
+  // the /me/picture endpoints, so the profile PATCH doesn't need this field
+  // when it's empty.
+  if (profile.picture_url && profile.picture_url.trim() !== '') {
+    body.picture_url = profile.picture_url;
+  }
+
   if (MOCK) {
     console.log('Saving profile (mock):', body);
     return { success: true };
   }
 
-  const res = await fetch('/me/profile', {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) throw new Error('Failed to save profile');
-  return res.json();
+  return apiPatch('/me/profile', body);
 }
