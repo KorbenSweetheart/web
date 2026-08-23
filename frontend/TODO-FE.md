@@ -7,7 +7,7 @@ Frontend task list. Updated as Ivan progresses on the backend.
 ## Done
 
 - [x] Real auth: register + login against the backend
-- [x] `PrivateRoute` protects `/app/*` (now validates the session against the backend, since the cookie is HttpOnly and JS can't read it)
+- [x] `PrivateRoute` protects `/app/*` (validates the session against the backend, since the cookie is HttpOnly and JS can't read it)
 - [x] Layout: sidebar (desktop) + header/bottom-nav (mobile), with logout
 - [x] Design system in `index.css` (accent colors, typography, spacing, `.sport-tag`)
 - [x] Profile setup form (`ProfileSetupPage`): name, age, photo, bio, sports w/ level, mode, distance
@@ -38,7 +38,7 @@ Frontend task list. Updated as Ivan progresses on the backend.
 
 ---
 
-## Done — Auth cookie migration (completed today)
+## Done — Auth cookie migration
 
 - [x] Migrated auth from localStorage `Bearer` token to HttpOnly cookies
       - `api.ts`: removed token reading, added `credentials: 'include'` on every request
@@ -56,17 +56,32 @@ Frontend task list. Updated as Ivan progresses on the backend.
 
 ---
 
+## Done — Chat (full) + Connections panel
+
+- [x] CHAT — Ivan's backend merged (PR #15), REST + WebSocket. CONFIRMED WORKING end to end.
+      1. [x] `services/chats.ts` — REST: POST /chats/direct, GET /chats, GET /chats/:id/messages (paginated). Resolves `other_user` via myId -> clean ChatSummary.
+      2. [x] Chat list view — full-width stacked rows (avatar + name) inside a darker panel box.
+      3. [x] Conversation view — real messages via getChatMessages, sent/received bubbles, day separators (Today/Yesterday/date), auto-scroll to latest. Mobile: 1 view at a time via `selectedChatId`, back arrow < 900px.
+      4. [x] WebSocket (`services/websocket.ts`) — connect w/ cookie, send/receive `chat:message` live.
+             - Server echoes sender's own message back (hub `deliverToUser` to sender) -> no optimistic update needed.
+             - WritePump packs multiple events per frame separated by '\n' -> client splits on newline.
+             - Handler created once ([] effect); uses `selectedChatIdRef` + `myIdRef` to avoid stale closures.
+- [x] Unread badge + list reorder on incoming messages (real-time). Per-chat count shown on the avatar (bottom-right), clears on open; chat jumps to top of the list when a message arrives. Covers the audit's mandatory "unread icon" + "most recent chat first" (live).
+- [x] Fixed duplicate-socket bug (React StrictMode double-mount opened 2 sockets): `ChatSocket` is now a shared singleton via `getChatSocket()`; `connect()` no-ops if already open/connecting; ChatsPage subscribes to the shared socket and only unsubscribes on unmount (doesn't close it).
+- [x] "Message" button in Connections opens/creates the real chat (`openDirectChat`) and navigates to `/app/chats` with `openChatId` in router state (opens that conversation directly).
+- [x] Side panel in Connections (reuses Discover's `ProfilePanel`).
+      - `ProfilePanel` made variant-aware: `variant` prop swaps footer buttons per context ('discover' Dismiss/Connect, 'received' Decline/Accept, 'connected' Remove/Message). Default 'discover' -> Discover untouched.
+      - Connections reuses `discover__layout`/`__grid`/`__panel` CSS. Switching tabs clears selection.
+- [x] Chat -> profile: tapping the person's name/avatar in the conversation header navigates to `/app/connections` with `openUserId` in state; Connections forces the Connected tab and opens that person's panel.
+
+---
+
 ## Pending — my work, not blocked
 
-- [ ] CHAT (frontend) — biggest remaining piece. Ivan's backend is merged (PR #15) with REST + WebSocket. Build order:
-      1. `services/chat.ts` — REST: `POST /chats/direct`, `GET /chats`, `GET /chats/:id/messages` (paginated)
-      2. Chat list view (left column: name, photo, last message preview, unread, online dot)
-      3. Conversation view (messages, input, send) — mobile: 1 view at a time via `selectedChatId`
-      4. WebSocket connection (the real-time layer) — needs the cookie on the handshake
-      5. Live extras: typing indicator, read receipts, presence (online/offline)
-      - See Ivan's chat docs (REST endpoints + WS wire protocol) for exact payloads.
-- [ ] Side panel in Connections (like Discover's `ProfilePanel`)
-      - Needs `ProfilePanel` made variant-aware (buttons currently fixed to Discover's Connect/Dismiss). Swap buttons per context like UserCard does.
+- [ ] CHAT extras (all optional, none clearly required by the audit):
+      - Typing indicator (`chat:typing`), read receipts (`chat:read`), online/offline presence (`presence:check`/`batch`). Backend already exposes all of them — client-only work.
+      - Global unread counter on the sidebar chat icon. Needs the unread state lifted from ChatsPage to a global context so it survives navigating away — bigger refactor, do in a fresh session.
+- [ ] Minor UX: clicking the sidebar chat icon while a chat is open keeps that chat open instead of returning to the list. Decided to leave as-is for now (low priority).
 - [ ] Public pages navigation: Login/Register have no way back to landing except browser back. Add logo->landing + link between login/register.
 - [ ] `mockUsers.ts` is misnamed (only holds the `UserProfile` type). Rename to `types.ts` someday — low priority, touches many imports.
 
@@ -74,6 +89,7 @@ Frontend task list. Updated as Ivan progresses on the backend.
 
 ## Pending — waiting on backend or decisions (Ivan)
 
+- [ ] CHAT reload-persistence: GET /chats needs `last_message_at` + `unread_count` (or `has_unread`) per chat, so the unread badge and "most recent first" order survive a page refresh. Right now they're live-only (rebuilt from WebSocket events, lost on reload). ASK IVAN.
 - [ ] DISCOVER: connected/dismissed users reappear when reopening Discover. ROOT CAUSE IS BACKEND — confirmed in Ivan's own code:
       - `service/match.go:49` — Ivan's comment: "don't forget to exclude users who was previously declined." So `/recommendations` doesn't filter yet.
       - `service/connection.go:18` — `AllConnectionRecords` commented out with "needed for recommendations".
@@ -89,15 +105,19 @@ Frontend task list. Updated as Ivan progresses on the backend.
 
 ---
 
-## Chat — data shapes to align with Ivan (from his docs)
+## Chat — data shapes (from Ivan's docs)
 
+- STATUS: REST + WebSocket working, incl. live unread badge + list reorder. Remaining: extras (typing/read/presence) + reload-persistence (needs Ivan's two new fields on GET /chats).
 - REST:
   - `POST /chats/direct` { target_user_id } -> chat object (id, user_one, user_two, each with id/name/picture_url). 400 if no accepted connection.
   - `GET /chats` -> list of chat objects
-  - `GET /chats/:id/messages?limit=15&last_message_id=105` -> paginated messages (id, chat_id, sender_id, content, created_at, is_viewed)
-- WebSocket `/ws` (auth via cookie on handshake):
-  - `chat:message` (send/receive), `chat:typing` (debounce 3s), `chat:read` (read receipts), `presence:check` -> `presence:batch`, `error`
-- Design already done: 2 panels desktop (list + conversation), 1 view at a time mobile (`selectedChatId`: null=list, id=conversation). Reuse existing chat CSS classes. Mockup sent to Ivan.
+  - `GET /chats/:id/messages?limit=15&last_message_id=105` -> paginated messages (id, chat_id, sender_id, content, created_at, is_viewed), ordered id DESC (client reverses to chronological).
+- WebSocket `/ws` (auth via cookie on handshake), envelope `{ type, payload }`:
+  - `chat:message` send `{chat_id, content}` / receive full MessagePayload. DONE.
+  - `chat:typing` `{chat_id, is_typing}` (debounce 3s) — extra, not done.
+  - `chat:read` `{chat_id}` (read receipts) — extra, not done.
+  - `presence:check` `{user_ids}` -> `presence:batch` `{statuses}` — extra, not done.
+  - `error` `{message}`.
 
 ---
 

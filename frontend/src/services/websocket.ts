@@ -50,6 +50,10 @@ export class ChatSocket {
 
   connect() {
     this.shouldReconnect = true;
+    // Don't open a second socket if one is already open or connecting.
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
     this.open();
   }
 
@@ -121,4 +125,18 @@ export class ChatSocket {
     this.ws = null;
     this.messageHandlers.clear();
   }
+}
+
+
+// Shared single connection for the whole app. Using this everywhere
+// (instead of `new ChatSocket()`) guarantees only ONE socket exists,
+// even when React re-mounts components in development.
+let sharedSocket: ChatSocket | null = null;
+
+export function getChatSocket(): ChatSocket {
+  if (!sharedSocket) {
+    sharedSocket = new ChatSocket();
+    sharedSocket.connect();
+  }
+  return sharedSocket;
 }

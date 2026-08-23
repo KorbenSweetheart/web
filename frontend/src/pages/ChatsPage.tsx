@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getMyProfile } from '../services/users';
 import { getChats, getChatMessages } from '../services/chats';
 import type { ChatSummary, Message } from '../services/chats';
-import { ChatSocket } from '../services/websocket';
+import { getChatSocket, type ChatSocket } from '../services/websocket';
 
 import './ChatsPage.css';
 
@@ -41,6 +41,8 @@ export default function ChatsPage() {
   const threadRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<ChatSocket | null>(null);
   const navigate = useNavigate();
+  // chatId -> number of unread messages
+  const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({});
 
   // Mount: who am I → my chats. Preselect if we arrived from "Message".
   useEffect(() => {
@@ -81,47 +83,81 @@ export default function ChatsPage() {
     threadRef.current?.scrollTo(0, threadRef.current.scrollHeight);
   }, [messages]);
 
-  // Open the WebSocket once on mount, listen for incoming messages.
-useEffect(() => {
-  const socket = new ChatSocket();
-  socketRef.current = socket;
-  socket.connect();
+  // Subscribe to incoming messages on the shared socket.
+  useEffect(() => {
+    const socket = getChatSocket();
+    socketRef.current = socket;
 
-  const off = socket.onMessage((msg) => {
-    // Only append if it belongs to the chat we're currently viewing.
-    // (Other chats' messages will update unread badges later, in step 4.)
-    setMessages((prev) => {
-      if (msg.chat_id !== selectedChatIdRef.current) return prev;
-      if (prev.some((m) => m.id === msg.id)) return prev; // guard against dupes
-      return [...prev, msg];
+    const off = socket.onMessage((msg) => {
+      const isOpenChat = msg.chat_id === selectedChatIdRef.current;
+      const isMine = msg.sender_id === myIdRef.current;
+
+      console.log('BADGE DEBUG:', {
+        msgChatId: msg.chat_id,
+        senderId: msg.sender_id,
+        myId: myIdRef.current,
+        openChat: selectedChatIdRef.current,
+        isMine,
+        isOpenChat,
+        willCount: !isMine && !isOpenChat,
+      });
+
+      // 1. If it's the chat we're viewing, append it to the thread.
+      if (isOpenChat) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev; // guard against dupes
+          return [...prev, msg];
+        });
+      }
+
+      // 2. Count as unread if the message is from the other person AND we're
+      //    not currently looking at that chat.
+      if (!isMine && !isOpenChat) {
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [msg.chat_id]: (prev[msg.chat_id] ?? 0) + 1,
+        }));
+      }
+
+      // 3. Move the chat to the top of the list (most recent first).
+      setChats((prev) => {
+        const idx = prev.findIndex((c) => c.id === msg.chat_id);
+        if (idx <= 0) return prev; // already on top, or not in our list
+        const next = [...prev];
+        const [moved] = next.splice(idx, 1);
+        next.unshift(moved);
+        return next;
+      });
     });
-  });
 
-  return () => {
-    off();
-    socket.disconnect();
-  };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+    // Only unsubscribe on unmount — keep the shared socket alive.
+    return () => { off(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedChatIdRef = useRef<number | null>(null);
   useEffect(() => {
-  selectedChatIdRef.current = selectedChatId;
+    selectedChatIdRef.current = selectedChatId;
   }, [selectedChatId]);
+
+  const myIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    myIdRef.current = myId;
+  }, [myId]);
 
   const selectedChat = chats.find((c) => c.id === selectedChatId) ?? null;
 
   function handleSend() {
-  const text = draft.trim();
-  if (!text || selectedChatId == null) return;
-  const sent = socketRef.current?.sendMessage(selectedChatId, text);
-  if (sent) setDraft(''); // clear only if it actually went out
-  // The message will appear when the server echoes it back via onMessage.
-}
+    const text = draft.trim();
+    if (!text || selectedChatId == null) return;
+    const sent = socketRef.current?.sendMessage(selectedChatId, text);
+    if (sent) setDraft(''); // clear only if it actually went out
+    // The message will appear when the server echoes it back via onMessage.
+  }
 
-      return (
+  return (
     <div className="chats">
-      {/* Header card — igual que Discover/Connections */}
+      {/* Header card — same style as Discover/Connections */}
       <div className="chats__header">
         <div className="flex items-center gap-sm">
           <MessageCircle size={28} strokeWidth={2.5} className="text-accent" />
@@ -145,17 +181,30 @@ useEffect(() => {
                 <button
                   key={chat.id}
                   className={`chat-row ${chat.id === selectedChatId ? 'is-active' : ''}`}
-                  onClick={() => setSelectedChatId(chat.id)}
+                  onClick={() => {
+                    setSelectedChatId(chat.id);
+                    setUnreadCounts((prev) => {
+                      if (!prev[chat.id]) return prev;
+                      const next = { ...prev };
+                      delete next[chat.id];
+                      return next;
+                    });
+                  }}
                 >
-                  <div className="chat-row__avatar avatar avatar-sm">
-                    {chat.other_user.picture_url ? (
-                      <img
-                        src={chat.other_user.picture_url}
-                        alt={chat.other_user.name}
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                      />
-                    ) : (
-                      <span>{chat.other_user.name.charAt(0).toUpperCase()}</span>
+                  <div className="chat-row__avatar-wrap">
+                    <div className="chat-row__avatar avatar avatar-md">
+                      {chat.other_user.picture_url ? (
+                        <img
+                          src={chat.other_user.picture_url}
+                          alt={chat.other_user.name}
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <span>{chat.other_user.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    {unreadCounts[chat.id] > 0 && (
+                      <span className="chat-row__badge">{unreadCounts[chat.id]}</span>
                     )}
                   </div>
                   <span className="chat-row__name">{chat.other_user.name}</span>
@@ -165,7 +214,7 @@ useEffect(() => {
           )}
         </div>
 
-        {/* ---- RIGHT: conversation (solo si hay chat abierto) ---- */}
+        {/* ---- RIGHT: conversation (only if a chat is open) ---- */}
         {selectedChat != null && (
           <div className="chats-convo-pane">
             <div className="convo-header">
