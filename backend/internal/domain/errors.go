@@ -16,7 +16,7 @@ var (
 	ErrChatNotFound            = errors.New("chat not found")
 	ErrNotChatParticipant      = errors.New("user is not a participant in this chat")
 	ErrUsersNotConnected       = errors.New("users do not have an accepted connection")
-	// ErrUsernameIsTaken       = errors.New("username is taken")
-	// ErrInvalidSession        = errors.New("invalid or expired session")
+	ErrNoPermissionViewProfile = errors.New("no permission to view profile")
+	// ErrUsernameIsTaken          = errors.New("username is taken")
+	// ErrInvalidSession           = errors.New("invalid or expired session")
 )
-

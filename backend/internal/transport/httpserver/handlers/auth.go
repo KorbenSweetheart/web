@@ -68,13 +68,11 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 		}
 	}
 
-	// Login in or redirect to login upon successful registration
-
-	return c.JSON(http.StatusCreated, map[string]any{
-		"id":      account.ID,
-		"email":   account.Email,
-		"name":    account.Profile.Name,
-		"message": "user registered successfully",
+	return c.JSON(http.StatusCreated, dto.RegistrationResponse{
+		ID:      account.ID,
+		Email:   account.Email,
+		Name:    account.Profile.Name,
+		Message: "user registered successfully",
 	})
 }
 
@@ -111,9 +109,9 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 
 	h.setAuthCookies(c, accessToken, refreshToken)
 
-	return c.JSON(http.StatusOK, map[string]any{
-		"message":      "success",
-		"access_token": accessToken,
+	return c.JSON(http.StatusOK, dto.LoginResponse{
+		Message:     "success",
+		AccessToken: accessToken,
 	})
 }
 
@@ -141,9 +139,9 @@ func (h *AuthHandler) Refresh(c *echo.Context) error {
 
 	h.setAuthCookies(c, accessToken, refreshToken)
 
-	return c.JSON(http.StatusOK, map[string]any{
-		"message":      "success",
-		"access_token": accessToken,
+	return c.JSON(http.StatusOK, dto.LoginResponse{
+		Message:     "success",
+		AccessToken: accessToken,
 	})
 }
 
@@ -209,4 +207,3 @@ func (h *AuthHandler) clearAuthCookies(c *echo.Context) {
 		HttpOnly: true,
 	})
 }
-

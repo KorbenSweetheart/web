@@ -23,6 +23,10 @@ type UserRepository interface {
 	// IsEmailTaken(ctx context.Context, email string) (bool, error)
 }
 
+type ConnectionChecker interface {
+	FindConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error)
+}
+
 type MediaRepository interface {
 	Upload(ctx context.Context, bucketName, objectName string, reader io.Reader, size int64, contentType string) (string, error)
 	Delete(ctx context.Context, bucketName, objectName string) error
@@ -33,11 +37,12 @@ type MediaRepository interface {
 type UserService struct {
 	repo  UserRepository
 	media MediaRepository
+	conn  ConnectionChecker
 	log   *slog.Logger
 }
 
-func NewUserService(r UserRepository, m MediaRepository, logger *slog.Logger) *UserService {
-	return &UserService{repo: r, media: m, log: logger}
+func NewUserService(r UserRepository, m MediaRepository, conn ConnectionChecker, logger *slog.Logger) *UserService {
+	return &UserService{repo: r, media: m, conn: conn, log: logger}
 }
 
 // Account returns a user account data struct from db.
@@ -55,17 +60,25 @@ func (us *UserService) Account(ctx context.Context, id int64) (*domain.Account, 
 }
 
 // Profile returns a user profile data struct from db.
-func (us *UserService) Profile(ctx context.Context, id int64) (*domain.Profile, error) {
+func (us *UserService) Profile(ctx context.Context, userID, targetUserID int64) (*domain.Profile, error) {
 	const op = "service.userService.Profile"
 	log := us.log.With(slog.String("op", op))
 
-	profile, err := us.repo.ProfileByID(ctx, id)
+	canView, err := us.canViewProfile(ctx, userID, targetUserID)
 	if err != nil {
-		log.Debug("failed to get profile by id", "id", id, "error", logger.Err(err))
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// TODO: need to think, and maybe change it. this logic skips Preload situations, e.g. when you return Chat with user.
+	if !canView {
+		return nil, fmt.Errorf("%s: %w", op, domain.ErrNoPermissionViewProfile)
+	}
+
+	profile, err := us.repo.ProfileByID(ctx, targetUserID)
+	if err != nil {
+		log.Debug("failed to get profile by id", "targetUserID", targetUserID, "error", logger.Err(err))
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	if profile.PictureURL == "" {
 		profile.PictureURL = us.defaultPictureURL()
 	}
@@ -207,4 +220,29 @@ func (us *UserService) isCustomPicture(pictureURL string) bool {
 		return false
 	}
 	return true
+}
+
+func (us *UserService) canViewProfile(ctx context.Context, userID, targetUserID int64) (bool, error) {
+	const op = "service.userService.canViewProfile"
+
+	// need to check that userID has the permission to view targetUserID profile.
+	// Criteria:
+	// - its the same profile, userID == targetUserID
+	// - they are connected (friends) or has pending request from targetUserID to userID
+	// - targetUserID is recommended to userID
+
+	if userID == targetUserID {
+		return true, nil
+	}
+
+	conn, err := us.conn.FindConnectionRecord(ctx, userID, targetUserID)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if conn.Status != domain.Declined {
+		return true, nil
+	}
+
+	return false, nil
 }

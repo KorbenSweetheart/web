@@ -44,7 +44,7 @@ func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUs
 	if err == nil {
 		switch existingConn.Status {
 		case domain.Accepted:
-			return nil, domain.ErrConnectionAlreadyExists
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrConnectionAlreadyExists)
 		case domain.Pending:
 			// Case when pending connection already exist from toUserID.
 			// Then we can convert it to "accepted".
@@ -58,11 +58,11 @@ func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUs
 				return existingConn, nil
 			}
 
-			return nil, domain.ErrConnectionAlreadyExists
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrConnectionAlreadyExists)
 
 		case domain.Declined:
 			// Case when one of the users declined connection previously.
-			return nil, domain.ErrConnectionAlreadyExists
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrConnectionAlreadyExists)
 		}
 	}
 

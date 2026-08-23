@@ -17,7 +17,7 @@
     - [x] Add save refresh token to db
     - [x] Add refresh token endpoint for refresh
     - [x] Add renew access token based on RT
-    - [ ] Maybe store access token inside React app memory (state)???
+    - [ ] Maybe store access token inside React app memory (state)??? 
   - [x] System healthchecks
     - [x] Healthz
     - [x] Readyz
@@ -29,20 +29,22 @@
   - [x] `/me` - a shortcut to `/users/{id}` for the authenticated user.
   - [x] `/me/profile` - a shortcut to `/users/{id}/profile` for the authenticated user.
   - [x] `/me/bio` - a shortcut to `/users/{id}/bio` for the authenticated user.
+    - [ ] Add checks who can view profile
   - [x] `POST: /users/{id}/profile` - profile update.
   - [x] `POST: /me/picture` - Upload Profile Picture.
     - [ ] Issue with default picture in cases with Profile Preload.
   - [x] `DELETE: /me/picture` - Delete Profile Picture.
   - [x] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
-    - [ ] Exclude conections from recommendations.
-    - [ ] Exclude declined users from connections.
-    - [ ] Add location lon lat parse during recommendation request, front should pass it to backend, to use for distance matching
+    - [ ] Exclude accepted connections from recommendations.
+    - [ ] Exclude declined users from recommendations.
+    - [x] Add location lon lat parse during recommendation request, front should pass it to backend, to use for distance matching
   - [x] `/connections` - returns a list connected profiles, containing only the `id` and nothing else.
     - [x] `GET: /connections` - returns all accepted connections
     - [x] `GET: /connections/requests` - returns all pending connections
     - [x] `POST: /connections` - to create connection request, body: {"to_user_id": 123}, Response: 200 OK {"status": "pending"}
     - [x] `PATCH: /connections/:id` - updates pending request, body: {"status": "accepted" | "declined"}, Response: 200 OK
     - [x] `DELETE: /connections/:id` - deletes connection between users
+    - [ ] User can send connections request only to recommended user.
           Additional:
   - [x] `/activities` - list of activities to display on a profile page
   - [x] `/auth/logout` - Logout
@@ -52,11 +54,11 @@
     - [x] `GET: /chats/direct`
     - [x] `GET: /chats`
     - [x] `GET: /chats/:id/messages`
-    - [ ] IsTyping
-  - [ ] Online indicator
-    - [ ] `func (h *Hub) IsOnline(userID int64) bool` is not used at all. Rethink the logic.
-    - [ ] No need to send any Type:status, if user is registered in Hub, his status is online, and need to display it. If he unregistered, then opposite. I don't think that status should be stored in DB.
-    - [ ] Should be visible only in userprofile and in chat and chatlist.
+    - [x] IsTyping
+    - [x] message Read indicator
+  - [x] Online indicator
+    - [x] No need to send any Type:status, if user is registered in Hub, his status is online, and need to display it. If he unregistered, then opposite. I don't think that status should be stored in DB.
+    - [x] Should be visible only in userprofile and in chat and chatlist.
 - [x] update name min length, could be 2 char
 - [x] remove omitzero from bio and some other fields that could be removed/emptied by the user in bio
 - [ ] Check all TODOs inside the code.

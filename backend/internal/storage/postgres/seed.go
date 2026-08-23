@@ -376,7 +376,7 @@ func generateDummyUsers(n int) []domain.Account {
 				Age:             18 + rand.Intn(43), // 18 - 60
 				Bio:             fmt.Sprintf("Hi! I live in %s and love staying active. Looking for sports partners!", city.Name),
 				MaxRadius:       float64(10 + rand.Intn(91)), // 10 - 100 km (10 + [0..90])
-				InteractionMode: domain.InteractionMode(1 + rand.Intn(4)),
+				InteractionMode: domain.InteractionMode(1 + rand.Intn(3)),
 				Activities:      userActivities,
 				Lat:             city.Lat + latOffset,
 				Lon:             city.Lon + lonOffset,

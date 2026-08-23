@@ -46,7 +46,7 @@ const (
 	OpenToAnything InteractionMode = iota + 1 // 1
 	Social                                    // 2
 	Silent                                    // 3
-	Dating                                    // 4
+	// Dating                                    // 4
 )
 
 type ExperienceLevel int
@@ -168,4 +168,3 @@ type Message struct {
 	Chat      Chat      `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE"`
 	Sender    Profile   `gorm:"foreignKey:SenderID;references:UserID;constraint:OnDelete:CASCADE"`
 }
-

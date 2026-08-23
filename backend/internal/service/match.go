@@ -35,7 +35,7 @@ func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]*d
 
 	isComplete := isProfileComplete(profile)
 	if !isComplete {
-		return nil, domain.ErrIncompleteProfile
+		return nil, fmt.Errorf("%s: %w", op, domain.ErrIncompleteProfile)
 	}
 
 	candidates, err := ms.repo.FindCandidates(ctx, profile)
