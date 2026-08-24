@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -20,11 +21,14 @@ type UserRepository interface {
 	AccountByID(ctx context.Context, id int64) (*domain.Account, error)
 	ProfileByID(ctx context.Context, id int64) (*domain.Profile, error)
 	UpdateProfileRecord(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
-	// IsEmailTaken(ctx context.Context, email string) (bool, error)
 }
 
 type ConnectionChecker interface {
 	FindConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error)
+}
+
+type MatchChecker interface {
+	IsCandidate(ctx context.Context, userID, targetUserID int64) (bool, error)
 }
 
 type MediaRepository interface {
@@ -37,12 +41,13 @@ type MediaRepository interface {
 type UserService struct {
 	repo  UserRepository
 	media MediaRepository
+	match MatchChecker
 	conn  ConnectionChecker
 	log   *slog.Logger
 }
 
-func NewUserService(r UserRepository, m MediaRepository, conn ConnectionChecker, logger *slog.Logger) *UserService {
-	return &UserService{repo: r, media: m, conn: conn, log: logger}
+func NewUserService(repo UserRepository, media MediaRepository, match MatchChecker, conn ConnectionChecker, logger *slog.Logger) *UserService {
+	return &UserService{repo: repo, media: media, match: match, conn: conn, log: logger}
 }
 
 // Account returns a user account data struct from db.
@@ -64,15 +69,6 @@ func (us *UserService) Profile(ctx context.Context, userID, targetUserID int64) 
 	const op = "service.userService.Profile"
 	log := us.log.With(slog.String("op", op))
 
-	canView, err := us.canViewProfile(ctx, userID, targetUserID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	if !canView {
-		return nil, fmt.Errorf("%s: %w", op, domain.ErrNoPermissionViewProfile)
-	}
-
 	profile, err := us.repo.ProfileByID(ctx, targetUserID)
 	if err != nil {
 		log.Debug("failed to get profile by id", "targetUserID", targetUserID, "error", logger.Err(err))
@@ -81,6 +77,17 @@ func (us *UserService) Profile(ctx context.Context, userID, targetUserID int64) 
 
 	if profile.PictureURL == "" {
 		profile.PictureURL = us.defaultPictureURL()
+	}
+
+	canView, err := us.canViewProfile(ctx, userID, targetUserID)
+	if err != nil {
+		log.Debug("canViewProfile", "error", logger.Err(err))
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if !canView {
+		log.Debug("canViewProfile:false", "targetUserID", targetUserID)
+		return nil, fmt.Errorf("%s: %w", op, domain.ErrNoPermissionViewProfile)
 	}
 
 	return profile, nil
@@ -224,6 +231,7 @@ func (us *UserService) isCustomPicture(pictureURL string) bool {
 
 func (us *UserService) canViewProfile(ctx context.Context, userID, targetUserID int64) (bool, error) {
 	const op = "service.userService.canViewProfile"
+	log := us.log.With(slog.String("op", op))
 
 	// need to check that userID has the permission to view targetUserID profile.
 	// Criteria:
@@ -236,13 +244,19 @@ func (us *UserService) canViewProfile(ctx context.Context, userID, targetUserID 
 	}
 
 	conn, err := us.conn.FindConnectionRecord(ctx, userID, targetUserID)
+	if err == nil {
+		return conn.Status != domain.Declined, nil
+	}
+
+	if !errors.Is(err, domain.ErrConnectionNotFound) {
+		return false, fmt.Errorf("%s: failed to find connection: %w", op, err)
+	}
+	// if in recommendations
+	isCandidate, err := us.match.IsCandidate(ctx, userID, targetUserID)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		log.Debug("IsCandidate", "error", logger.Err(err))
+		return false, fmt.Errorf("%s: failed to check candidate: %w", op, err)
 	}
 
-	if conn.Status != domain.Declined {
-		return true, nil
-	}
-
-	return false, nil
+	return isCandidate, nil
 }

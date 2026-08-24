@@ -55,6 +55,14 @@ type UserSummaryResponse struct {
 	PictureURL string `json:"picture_url"`
 }
 
+// /me
+type MySummaryResponse struct {
+	ID         int64  `json:"id"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	PictureURL string `json:"picture_url"`
+}
+
 // /users/{id}/profile - the user's id and "about me" type information.
 type ProfileResponse struct {
 	ID int64 `json:"id"`

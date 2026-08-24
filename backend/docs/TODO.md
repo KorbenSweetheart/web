@@ -6,6 +6,9 @@
   - [x] Create PostGis extension
   - [x] Add seed data
   - [x] Add 100-1000 seeded users
+  - [ ] add seeding controls to turn it on/off
+  - [ ] Add aliases for queries (optional)
+  - [ ] find queries optimisations (optional)
 - [ ] Add Public Handlers
   - [x] Registration
     - [x] Add bcrypt (salt is the part of the algorithm)
@@ -26,17 +29,20 @@
   - [x] `/users/{id}` - returns the user's id, name, and link to the profile picture.
   - [x] `/users/{id}/profile` - returns the user's id and "about me" type information.
   - [x] `/users/{id}/bio` - returns the user's id and biographical data (the data used to power recommendations).
-  - [x] `/me` - a shortcut to `/users/{id}` for the authenticated user.
+  - [x] `/me` - a shortcut to `/users/{id}` for the authenticated user. Also returns user email for personal profile.
   - [x] `/me/profile` - a shortcut to `/users/{id}/profile` for the authenticated user.
   - [x] `/me/bio` - a shortcut to `/users/{id}/bio` for the authenticated user.
-    - [ ] Add checks who can view profile
+    - [x] Add checks who can view profile
+    - [x] Add email to one of the Me user handlers, its a mandatory requirement to show email in userprofile.
   - [x] `POST: /users/{id}/profile` - profile update.
   - [x] `POST: /me/picture` - Upload Profile Picture.
     - [ ] Issue with default picture in cases with Profile Preload.
   - [x] `DELETE: /me/picture` - Delete Profile Picture.
   - [x] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
-    - [ ] Exclude accepted connections from recommendations.
-    - [ ] Exclude declined users from recommendations.
+    - [ ] Finalize the isProfileComplete func
+    - [ ] add posibility to dissmiss recommendation.
+    - [x] Exclude accepted connections from recommendations.
+    - [x] Exclude declined users from recommendations.
     - [x] Add location lon lat parse during recommendation request, front should pass it to backend, to use for distance matching
   - [x] `/connections` - returns a list connected profiles, containing only the `id` and nothing else.
     - [x] `GET: /connections` - returns all accepted connections
@@ -44,7 +50,7 @@
     - [x] `POST: /connections` - to create connection request, body: {"to_user_id": 123}, Response: 200 OK {"status": "pending"}
     - [x] `PATCH: /connections/:id` - updates pending request, body: {"status": "accepted" | "declined"}, Response: 200 OK
     - [x] `DELETE: /connections/:id` - deletes connection between users
-    - [ ] User can send connections request only to recommended user.
+    - [x] User can send connections request only to recommended user.
           Additional:
   - [x] `/activities` - list of activities to display on a profile page
   - [x] `/auth/logout` - Logout

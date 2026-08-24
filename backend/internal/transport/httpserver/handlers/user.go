@@ -53,12 +53,17 @@ func (h *UserHandler) UserSummary(c *echo.Context) error {
 
 	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, domain.ErrUserNotFound):
 			return c.JSON(http.StatusNotFound, map[string]any{
 				"id":    userID,
 				"error": "User not found",
 			})
-		} else {
+		case errors.Is(err, domain.ErrNoPermissionViewProfile):
+			return c.JSON(http.StatusForbidden, map[string]any{
+				"error": "No permission to view profile",
+			})
+		default:
 			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
 		}
 	}
@@ -88,12 +93,17 @@ func (h *UserHandler) UserProfile(c *echo.Context) error {
 
 	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, domain.ErrUserNotFound):
 			return c.JSON(http.StatusNotFound, map[string]any{
 				"id":    userID,
 				"error": "User not found",
 			})
-		} else {
+		case errors.Is(err, domain.ErrNoPermissionViewProfile):
+			return c.JSON(http.StatusForbidden, map[string]any{
+				"error": "No permission to view profile",
+			})
+		default:
 			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
 		}
 	}
@@ -124,12 +134,17 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 
 	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, domain.ErrUserNotFound):
 			return c.JSON(http.StatusNotFound, map[string]any{
 				"id":    userID,
 				"error": "User not found",
 			})
-		} else {
+		case errors.Is(err, domain.ErrNoPermissionViewProfile):
+			return c.JSON(http.StatusForbidden, map[string]any{
+				"error": "No permission to view profile",
+			})
+		default:
 			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
 		}
 	}
@@ -180,8 +195,9 @@ func (h *UserHandler) MySummary(c *echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, dto.UserSummaryResponse{
+	return c.JSON(http.StatusOK, dto.MySummaryResponse{
 		ID:         profile.UserID,
+		Email:      profile.Email,
 		Name:       profile.Name,
 		PictureURL: profile.PictureURL,
 	})

@@ -76,6 +76,7 @@ func (as *AuthService) Register(ctx context.Context, name, email, password strin
 		PasswordHash: string(hash),
 		Profile: domain.Profile{
 			Name:       name,
+			Email:      email,
 			PictureURL: "",
 		},
 	}
