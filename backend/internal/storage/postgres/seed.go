@@ -17,7 +17,7 @@ type cityLocation struct {
 
 const (
 	defaultPasswordHash = "$2a$12$15dw2.nyH6xOf10DjQezcOIDY.PL.Jkr6ZjJOjpmqcL3xHtVeTWIq" // 12345678
-	dummyUsersAmount    = 100
+	dummyUsersAmount    = 1000
 )
 
 func (s *Storage) SeedDummyUsers(ctx context.Context) error {

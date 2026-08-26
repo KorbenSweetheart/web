@@ -19,9 +19,9 @@
     The email address is not returned in API calls for other users.
 - [x] The user can specify a location or preferred distance for matches.
 - [x] The user only sees recommendations from their location.
-- [ ] The user can see a list of no more than 10 recommendations at a time.
-- [ ] The recommendations are prioritized with the best first.
-- [ ] The recommendations behave in line with the student's described matching logic.
+- [x] The user can see a list of no more than 10 recommendations at a time.
+- [x] The recommendations are prioritized with the best first.
+- [x] The recommendations behave in line with the student's described matching logic.
 - [ ] It is possible to dismiss a recommendation.
     That recommendation is not shown again after it is dismissed.
 - [x] Connection requests can be sent.
@@ -61,5 +61,5 @@
 - [ ] The user experience is excellent, usable and well designed.
 - [ ] An offline/online indicator is shown on profile and chat views.
 - [ ] A typing in progress indicator is shown.
-- [ ] The recommendation algorithm is exceptional.
-- [ ] It implements proximity-based location filtering.
+- [x] The recommendation algorithm is exceptional.
+- [x] It implements proximity-based location filtering.
