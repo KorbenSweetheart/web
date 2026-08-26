@@ -55,6 +55,9 @@
   color: var(--text-1);
   margin: 0;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .user-card__status {

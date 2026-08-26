@@ -8,7 +8,7 @@
    endpoints, as Iván's API requires.
    ============================================ */
 
-import { apiGet, apiPatch, apiDelete } from './api';
+import { apiGet, apiPatch, apiDelete, apiPost } from './api';
 import type { UserProfile } from './mockUsers';
 
 // Fetch the logged-in user's full profile.
@@ -133,4 +133,10 @@ export async function uploadProfilePicture(file: File): Promise<string> {
 // Removes the profile picture (DELETE /me/picture), resets to default.
 export async function deleteProfilePicture(): Promise<string> {
   return apiDelete('/me/picture');
+}
+
+// POST /recommendations/:id/dismiss — persists the dismissal so the
+// backend stops recommending this user. Empty body; id goes in the path.
+export async function dismissRecommendation(userId: number): Promise<void> {
+  await apiPost(`/recommendations/${userId}/dismiss`, {});
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Compass } from 'lucide-react';
 import UserCard from '../components/UserCard';
 import ProfilePanel from '../components/ProfilePanel';
-import { getRecommendations, updateMyLocation } from '../services/users';
+import { getRecommendations, updateMyLocation, dismissRecommendation } from '../services/users';
 import { sendConnectionRequest } from '../services/connections';
 import type { UserProfile } from '../services/mockUsers';
 import './DiscoverPage.css';
@@ -38,11 +38,15 @@ export default function DiscoverPage() {
     }
   }
 
-  function handleDismiss(id: number) {
-    console.log('Dismiss user', id);
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-    setSelectedId(null);
+async function handleDismiss(userId: number) {
+  try {
+    await dismissRecommendation(userId);
+    setUsers((prev) => prev.filter((u) => u.id !== userId)); // ajusta al nombre real de tu estado
+  } catch (err) {
+    console.error('Dismiss failed:', err);
+    // opcional: mostrar un aviso; NO escondas la tarjeta si falló
   }
+}
 
   return (
     <div className="discover">
