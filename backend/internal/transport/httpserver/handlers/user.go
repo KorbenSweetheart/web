@@ -19,7 +19,7 @@ import (
 const maxProfilePictureSize = 1 << 20 // 1 MB
 
 type UserManager interface {
-	Profile(ctx context.Context, id int64) (*domain.Profile, error)
+	Profile(ctx context.Context, myID int64, targetUserID int64) (*domain.Profile, error)
 	UpdateProfile(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
 	UpdateProfilePicture(ctx context.Context, userID int64, rawFile io.Reader) (string, error)
 	DeleteProfilePicture(ctx context.Context, userID int64) (string, error)
@@ -40,20 +40,30 @@ func NewUserHandler(um UserManager, v *validator.Validate, logger *slog.Logger) 
 func (h *UserHandler) UserSummary(c *echo.Context) error {
 	ctx := c.Request().Context()
 
+	myID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
 	userIDStr := c.Param("id")
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
 	}
 
-	profile, err := h.userService.Profile(ctx, userID)
+	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, domain.ErrUserNotFound):
 			return c.JSON(http.StatusNotFound, map[string]any{
 				"id":    userID,
 				"error": "User not found",
 			})
-		} else {
+		case errors.Is(err, domain.ErrNoPermissionViewProfile):
+			return c.JSON(http.StatusForbidden, map[string]any{
+				"error": "No permission to view profile",
+			})
+		default:
 			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
 		}
 	}
@@ -76,14 +86,24 @@ func (h *UserHandler) UserProfile(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
 	}
 
-	profile, err := h.userService.Profile(ctx, userID)
+	myID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, domain.ErrUserNotFound):
 			return c.JSON(http.StatusNotFound, map[string]any{
 				"id":    userID,
 				"error": "User not found",
 			})
-		} else {
+		case errors.Is(err, domain.ErrNoPermissionViewProfile):
+			return c.JSON(http.StatusForbidden, map[string]any{
+				"error": "No permission to view profile",
+			})
+		default:
 			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
 		}
 	}
@@ -107,14 +127,24 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
 	}
 
-	profile, err := h.userService.Profile(ctx, userID)
+	myID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) {
+		switch {
+		case errors.Is(err, domain.ErrUserNotFound):
 			return c.JSON(http.StatusNotFound, map[string]any{
 				"id":    userID,
 				"error": "User not found",
 			})
-		} else {
+		case errors.Is(err, domain.ErrNoPermissionViewProfile):
+			return c.JSON(http.StatusForbidden, map[string]any{
+				"error": "No permission to view profile",
+			})
+		default:
 			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
 		}
 	}
@@ -153,7 +183,7 @@ func (h *UserHandler) MySummary(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
 	}
 
-	profile, err := h.userService.Profile(ctx, myID)
+	profile, err := h.userService.Profile(ctx, myID, myID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{
@@ -165,8 +195,9 @@ func (h *UserHandler) MySummary(c *echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, dto.UserSummaryResponse{
+	return c.JSON(http.StatusOK, dto.MySummaryResponse{
 		ID:         profile.UserID,
+		Email:      profile.Email,
 		Name:       profile.Name,
 		PictureURL: profile.PictureURL,
 	})
@@ -182,7 +213,7 @@ func (h *UserHandler) MyProfile(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
 	}
 
-	profile, err := h.userService.Profile(ctx, myID)
+	profile, err := h.userService.Profile(ctx, myID, myID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{
@@ -211,7 +242,7 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
 	}
 
-	profile, err := h.userService.Profile(ctx, myID)
+	profile, err := h.userService.Profile(ctx, myID, myID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{
@@ -365,4 +396,3 @@ func (h *UserHandler) DeleteProfilePicture(c *echo.Context) error {
 		"picture_url": defaultURL,
 	})
 }
-

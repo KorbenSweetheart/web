@@ -36,9 +36,29 @@ type ActivityRequest struct {
 
 // RESPONSE DTOs
 
+type RegistrationResponse struct {
+	ID      int64  `json:"id"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Message string `json:"message"`
+}
+
+type LoginResponse struct {
+	Message     string `json:"message"`
+	AccessToken string `json:"access_token"`
+}
+
 // /users/{id}
 type UserSummaryResponse struct {
 	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	PictureURL string `json:"picture_url"`
+}
+
+// /me
+type MySummaryResponse struct {
+	ID         int64  `json:"id"`
+	Email      string `json:"email"`
 	Name       string `json:"name"`
 	PictureURL string `json:"picture_url"`
 }
@@ -123,4 +143,3 @@ type MessageResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	IsViewed  bool      `json:"is_viewed"`
 }
-

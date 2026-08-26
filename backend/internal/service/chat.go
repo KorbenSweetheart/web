@@ -62,13 +62,13 @@ func (s *ChatService) DirectChat(ctx context.Context, requesterID, targetUserID 
 	conn, err := s.connRepo.FindConnectionRecord(ctx, requesterID, targetUserID)
 	if err != nil {
 		if errors.Is(err, domain.ErrConnectionNotFound) {
-			return nil, domain.ErrUsersNotConnected
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrUsersNotConnected)
 		}
 		return nil, fmt.Errorf("%s: failed to verify connection between %d and %d: %w", op, requesterID, targetUserID, err)
 	}
 
 	if conn.Status != domain.Accepted {
-		return nil, domain.ErrUsersNotConnected
+		return nil, fmt.Errorf("%s: %w", op, domain.ErrUsersNotConnected)
 	}
 
 	userOneID, userTwoID := domain.NormalizeUserPair(requesterID, targetUserID)

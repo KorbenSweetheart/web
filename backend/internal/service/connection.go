@@ -18,13 +18,18 @@ type ConnectionRepository interface {
 	// AllConnectionRecords(ctx context.Context, userID int64) ([]int64, error) // needed for recommendations
 }
 
-type ConnectionService struct {
-	repo ConnectionRepository
-	log  *slog.Logger
+type CandidateChecker interface {
+	IsCandidate(ctx context.Context, userID, targetUserID int64) (bool, error)
 }
 
-func NewConnectionService(r ConnectionRepository, logger *slog.Logger) *ConnectionService {
-	return &ConnectionService{repo: r, log: logger}
+type ConnectionService struct {
+	repo  ConnectionRepository
+	match CandidateChecker
+	log   *slog.Logger
+}
+
+func NewConnectionService(r ConnectionRepository, cc CandidateChecker, logger *slog.Logger) *ConnectionService {
+	return &ConnectionService{repo: r, match: cc, log: logger}
 }
 
 // ConnectToUser creates connection with pending status for the provided userID.
@@ -44,7 +49,7 @@ func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUs
 	if err == nil {
 		switch existingConn.Status {
 		case domain.Accepted:
-			return nil, domain.ErrConnectionAlreadyExists
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrConnectionAlreadyExists)
 		case domain.Pending:
 			// Case when pending connection already exist from toUserID.
 			// Then we can convert it to "accepted".
@@ -58,12 +63,21 @@ func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUs
 				return existingConn, nil
 			}
 
-			return nil, domain.ErrConnectionAlreadyExists
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrConnectionAlreadyExists)
 
 		case domain.Declined:
 			// Case when one of the users declined connection previously.
-			return nil, domain.ErrConnectionAlreadyExists
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrConnectionAlreadyExists)
 		}
+	}
+
+	isCandidate, err := cs.match.IsCandidate(ctx, fromUserID, toUserID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to check candidate: %w", op, err)
+	}
+
+	if !isCandidate {
+		return nil, fmt.Errorf("%s: not a candidate: %w", op, domain.ErrConnectionNotAllowed)
 	}
 
 	conn := &domain.Connection{

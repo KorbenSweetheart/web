@@ -17,7 +17,7 @@ type cityLocation struct {
 
 const (
 	defaultPasswordHash = "$2a$12$15dw2.nyH6xOf10DjQezcOIDY.PL.Jkr6ZjJOjpmqcL3xHtVeTWIq" // 12345678
-	dummyUsersAmount    = 100
+	dummyUsersAmount    = 1000
 )
 
 func (s *Storage) SeedDummyUsers(ctx context.Context) error {
@@ -62,8 +62,9 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "obiwan@matchme.com",
 		PasswordHash: defaultPasswordHash, // 12345678
 		Profile: domain.Profile{
-			Name: "Obi-Wan Kenobi",
-			Age:  35,
+			Email: "obiwan@matchme.com",
+			Name:  "Obi-Wan Kenobi",
+			Age:   35,
 			Bio: `A disciplined mind, a patient approach, and a good cup of tea are my essentials.
 			I value loyalty, strategy, and staying calm in chaos. Always down for a witty debate or a long walk.`,
 			MaxRadius:       30,
@@ -94,8 +95,9 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "anakin@matchme.com",
 		PasswordHash: defaultPasswordHash, // 12345678
 		Profile: domain.Profile{
-			Name: "Anakin Skywalker",
-			Age:  19,
+			Email: "anakin@matchme.com",
+			Name:  "Anakin Skywalker",
+			Age:   19,
 			Bio: `I live for speed, high stakes, and pushing limits.
 			I trust my gut, speak my mind, and never back down from a challenge.
 			If it's fast, intense, or "impossible", count me in.`,
@@ -127,6 +129,7 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "yoda@matchme.com",
 		PasswordHash: defaultPasswordHash,
 		Profile: domain.Profile{
+			Email:           "yoda@matchme.com",
 			Name:            "Master Yoda",
 			Age:             896,
 			Bio:             `Patience you must have. Long path wisdom is. Mindful of the present moment we stay. Meditate and train body and mind I like. Learn continuously, teach others we must.`,
@@ -153,6 +156,7 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "windu@matchme.com",
 		PasswordHash: defaultPasswordHash,
 		Profile: domain.Profile{
+			Email:           "windu@matchme.com",
 			Name:            "Mace Windu",
 			Age:             53,
 			Bio:             `Strict discipline, unwavering principles, and zero tolerance for nonsense. I look for determination and high endurance. Action speaks louder than words.`,
@@ -179,6 +183,7 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "dooku@matchme.com",
 		PasswordHash: defaultPasswordHash,
 		Profile: domain.Profile{
+			Email:           "dooku@matchme.com",
 			Name:            "Count Dooku",
 			Age:             81,
 			Bio:             `Elegance, precision, and refined taste. I appreciate tactical mastery, high-level sportsmanship, and discipline. Mediocrity does not interest me.`,
@@ -205,6 +210,7 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "maul@matchme.com",
 		PasswordHash: defaultPasswordHash,
 		Profile: domain.Profile{
+			Email:           "maul@matchme.com",
 			Name:            "Darth Maul",
 			Age:             34,
 			Bio:             `Focused entirely on victory and physical mastery. Intense training sessions only. If you can't keep up with the pace, don't waste my time. Rebuilding stronger every day.`,
@@ -236,6 +242,7 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "ventress@matchme.com",
 		PasswordHash: defaultPasswordHash,
 		Profile: domain.Profile{
+			Email:           "ventress@matchme.com",
 			Name:            "Asajj Ventress",
 			Age:             28,
 			Bio:             `Independent, sharp-witted, and unpredictable. I value freedom and strength. Looking for sparring partners or companions who aren't afraid of taking risks.`,
@@ -262,6 +269,7 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "ahsoka@matchme.com",
 		PasswordHash: defaultPasswordHash,
 		Profile: domain.Profile{
+			Email:           "ahsoka@matchme.com",
 			Name:            "Ahsoka Tano",
 			Age:             18,
 			Bio:             `Always learning, quick on my feet, and always ready to help. I love outdoor activities, staying active, and meeting genuine people.`,
@@ -298,6 +306,7 @@ func generateDummyUsers(n int) []domain.Account {
 		Email:        "jarjar@matchme.com",
 		PasswordHash: defaultPasswordHash,
 		Profile: domain.Profile{
+			Email:           "jarjar@matchme.com",
 			Name:            "Jar Jar Binks",
 			Age:             25,
 			Bio:             `Mesa loves making new friends! Mesa big energy, super friendly, and loves swimming and playing ball. Sometimes mesa clumsy, but mesa heart is in right place!`,
@@ -368,15 +377,18 @@ func generateDummyUsers(n int) []domain.Account {
 			}
 		}
 
+		email := fmt.Sprintf("user%d@matchme.com", i)
+
 		dummyAcc := domain.Account{
-			Email:        fmt.Sprintf("user%d@matchme.com", i),
+			Email:        email,
 			PasswordHash: defaultPasswordHash,
 			Profile: domain.Profile{
+				Email:           email,
 				Name:            fmt.Sprintf("Athlete %d (%s)", i, city.Name),
 				Age:             18 + rand.Intn(43), // 18 - 60
 				Bio:             fmt.Sprintf("Hi! I live in %s and love staying active. Looking for sports partners!", city.Name),
 				MaxRadius:       float64(10 + rand.Intn(91)), // 10 - 100 km (10 + [0..90])
-				InteractionMode: domain.InteractionMode(1 + rand.Intn(4)),
+				InteractionMode: domain.InteractionMode(1 + rand.Intn(3)),
 				Activities:      userActivities,
 				Lat:             city.Lat + latOffset,
 				Lon:             city.Lon + lonOffset,

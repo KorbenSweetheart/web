@@ -46,7 +46,7 @@ const (
 	OpenToAnything InteractionMode = iota + 1 // 1
 	Social                                    // 2
 	Silent                                    // 3
-	Dating                                    // 4
+	// Dating                                    // 4
 )
 
 type ExperienceLevel int
@@ -88,6 +88,7 @@ type RefreshToken struct {
 
 type Profile struct {
 	UserID     int64  `gorm:"primaryKey" json:"id"`
+	Email      string `gorm:"uniqueIndex;not null" json:"email"` // duplicate from account for Profile view
 	Name       string `gorm:"type:varchar(255);not null" json:"name"`
 	PictureURL string `gorm:"type:text;default:''" json:"picture_url"`
 	Age        int    `gorm:"type:smallint;column:age" json:"age"`
@@ -168,4 +169,3 @@ type Message struct {
 	Chat      Chat      `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE"`
 	Sender    Profile   `gorm:"foreignKey:SenderID;references:UserID;constraint:OnDelete:CASCADE"`
 }
-

@@ -32,13 +32,14 @@ func (s *Storage) FindCandidates(ctx context.Context, profile *domain.Profile) (
 		Where("user_id <> ?", profile.UserID).
 		// The users are within each other's radius in PostGIS.
 		Where(
-			"ST_DWithin(location, ST_GeogFromText(?), ?) AND ST_Distance(location, ST_GeogFromText(?)) <= (max_radius * 1000)",
-			pointWKT,
-			maxRadiusMeters,
-			pointWKT,
+			"ST_DWithin(location, ST_GeogFromText(?), ?) AND ST_DWithin(location, ST_GeogFromText(?), max_radius * 1000)",
+			pointWKT, maxRadiusMeters, pointWKT,
 		).
-		// The users have similar activities.
-		Where("user_id IN (SELECT profile_user_id FROM profile_activities WHERE activity_id IN (?))", activityIDs).
+		Where("EXISTS (SELECT 1 FROM profile_activities WHERE profile_user_id = profiles.user_id AND activity_id IN (?))", activityIDs).
+		// exclude users who already connected in any direction, with any status.
+		Where("NOT EXISTS (SELECT 1 FROM connections WHERE (from_user_id = ? AND to_user_id = profiles.user_id) OR (from_user_id = profiles.user_id AND to_user_id = ?))",
+			profile.UserID, profile.UserID,
+		).
 		Find(&candidates).Error
 
 	if err != nil {
@@ -46,4 +47,23 @@ func (s *Storage) FindCandidates(ctx context.Context, profile *domain.Profile) (
 	}
 
 	return candidates, nil
+}
+
+func (s *Storage) IsCandidate(ctx context.Context, userID, targetUserID int64) (bool, error) {
+	const op = "storage.postgres.IsCandidate"
+
+	var count int64
+	// Evaluates ST_DWithin between userID and targetUserID, plus common activities
+	err := s.db.WithContext(ctx).
+		Table("profiles AS p1, profiles AS p2").
+		Where("p1.user_id = ? AND p2.user_id = ?", userID, targetUserID).
+		Where("ST_DWithin(p1.location, p2.location, p1.max_radius * 1000)").
+		Where("ST_DWithin(p2.location, p1.location, p2.max_radius * 1000)").
+		Where("EXISTS (SELECT 1 FROM profile_activities pa1 JOIN profile_activities pa2 ON pa1.activity_id = pa2.activity_id WHERE pa1.profile_user_id = p1.user_id AND pa2.profile_user_id = p2.user_id)").
+		Count(&count).Error
+
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return count > 0, nil
 }

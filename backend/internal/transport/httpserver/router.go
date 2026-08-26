@@ -24,9 +24,10 @@ func SetupRouter(
 	e.Use(middleware.RequestLoggerWithConfig(mdlwrconfig.LoggerConfig(log)))
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:8080", "http://localhost:5173"}, // TODO: move to config vars
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderXCSRFToken},
-		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions},
+		AllowOrigins:     []string{"http://localhost:8080", "http://localhost:5173"}, // TODO: move to config vars
+		AllowCredentials: true,
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderXCSRFToken},
+		AllowMethods:     []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions},
 	}))
 
 	// Healthchecks routes
@@ -78,4 +79,3 @@ func SetupRouter(
 
 	return e
 }
-

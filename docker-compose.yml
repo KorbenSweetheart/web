@@ -98,7 +98,7 @@ services:
   #     dockerfile: Dockerfile
   #   container_name: matchme-frontend
   #   ports:
-  #     - "127.0.0.1:5173:5173"
+  #     - "5173:5173"
   #   security_opt:
   #     - no-new-privileges:true
   #   volumes:
@@ -110,3 +110,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  frontend_modules:
