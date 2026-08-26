@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"match-me-api/internal/domain"
+
+	"gorm.io/gorm/clause"
 )
 
 // FindCandidates returns a list of profiles that fit the required criteria.
@@ -40,6 +42,10 @@ func (s *Storage) FindCandidates(ctx context.Context, profile *domain.Profile) (
 		Where("NOT EXISTS (SELECT 1 FROM connections WHERE (from_user_id = ? AND to_user_id = profiles.user_id) OR (from_user_id = profiles.user_id AND to_user_id = ?))",
 			profile.UserID, profile.UserID,
 		).
+		// exclude users where either user has dismissed the other.
+		Where("NOT EXISTS (SELECT 1 FROM recommendations WHERE ((from_user_id = ? AND to_user_id = profiles.user_id) OR (from_user_id = profiles.user_id AND to_user_id = ?)) AND status = ?)",
+			profile.UserID, profile.UserID, domain.Dismissed,
+		).
 		Find(&candidates).Error
 
 	if err != nil {
@@ -60,6 +66,9 @@ func (s *Storage) IsCandidate(ctx context.Context, userID, targetUserID int64) (
 		Where("ST_DWithin(p1.location, p2.location, p1.max_radius * 1000)").
 		Where("ST_DWithin(p2.location, p1.location, p2.max_radius * 1000)").
 		Where("EXISTS (SELECT 1 FROM profile_activities pa1 JOIN profile_activities pa2 ON pa1.activity_id = pa2.activity_id WHERE pa1.profile_user_id = p1.user_id AND pa2.profile_user_id = p2.user_id)").
+		Where("NOT EXISTS (SELECT 1 FROM recommendations WHERE ((from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?)) AND status = ?)",
+			userID, targetUserID, targetUserID, userID, domain.Dismissed,
+		).
 		Count(&count).Error
 
 	if err != nil {
@@ -67,3 +76,23 @@ func (s *Storage) IsCandidate(ctx context.Context, userID, targetUserID int64) (
 	}
 	return count > 0, nil
 }
+
+// DismissRecommendationRecord creates or updates a recommendation record with dismissed status.
+func (s *Storage) DismissRecommendationRecord(ctx context.Context, rec *domain.Recommendation) error {
+	const op = "storage.postgres.DismissRecommendationRecord"
+
+	err := s.db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "from_user_id"}, {Name: "to_user_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"status", "updated_at"}),
+		}).
+		Create(rec).Error
+
+	if err != nil {
+		return fmt.Errorf("%s: failed to dismiss recommendation fromId: %d toID: %d: %w",
+			op, rec.FromUserID, rec.ToUserID, err)
+	}
+
+	return nil
+}
+

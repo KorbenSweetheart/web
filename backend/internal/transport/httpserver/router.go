@@ -67,6 +67,7 @@ func SetupRouter(
 
 	// Recommendations
 	private.GET("/recommendations", h.Match.Recommendations)
+	private.POST("/recommendations/:id/dismiss", h.Match.DismissRecommendation)
 
 	// Chat
 	private.GET("/ws", h.WS.Upgrade)

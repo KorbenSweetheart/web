@@ -40,7 +40,7 @@
   - [x] `DELETE: /me/picture` - Delete Profile Picture.
   - [x] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
     - [x] Finalize the isProfileComplete func
-    - [ ] add posibility to dissmiss recommendation.
+    - [x] add posibility to dissmiss recommendation.
     - [x] Exclude accepted connections from recommendations.
     - [x] Exclude declined users from recommendations.
     - [x] Add location lon lat parse during recommendation request, front should pass it to backend, to use for distance matching
