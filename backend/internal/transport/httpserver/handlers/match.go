@@ -4,16 +4,19 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"match-me-api/internal/domain"
+	"math"
 	"net/http"
 	"strconv"
+
+	"match-me-api/internal/domain"
+	"match-me-api/internal/transport/httpserver/dto"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
 )
 
 type MatchEngine interface { // alternative name RecommendationEngine
-	MatchedProfiles(ctx context.Context, userID int64) ([]*domain.Profile, error)
+	MatchedProfiles(ctx context.Context, userID int64) ([]domain.ScoredProfile, error)
 	DismissRecommendation(ctx context.Context, userID, targetUserID int64) error
 	// FriendRequest(ctx context.Context, fromID, toID int64) error
 }
@@ -55,11 +58,12 @@ func (h *MatchHandler) Recommendations(c *echo.Context) error {
 		}
 	}
 
-	recommendations := make([]int64, 0, len(profiles))
-	if len(profiles) > 0 {
-		for i := range profiles {
-			recommendations = append(recommendations, profiles[i].UserID)
-		}
+	recommendations := make([]dto.RecommendationItemResponse, 0, len(profiles))
+	for i := range profiles {
+		recommendations = append(recommendations, dto.RecommendationItemResponse{
+			UserID: profiles[i].Profile.UserID,
+			Score:  int(math.Round(profiles[i].Score * 100)),
+		})
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
@@ -94,4 +98,3 @@ func (h *MatchHandler) DismissRecommendation(c *echo.Context) error {
 		"status": "dismissed",
 	})
 }
-

@@ -54,7 +54,7 @@ func (ms *MatchService) DismissRecommendation(ctx context.Context, userID, targe
 }
 
 // MatchedProfiles returns a list of 10 ranked profiles matched to the user based on Match Score.
-func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]*domain.Profile, error) {
+func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]domain.ScoredProfile, error) {
 	const op = "service.matchService.Recommendations"
 	log := ms.log.With(slog.String("op", op))
 
@@ -74,10 +74,6 @@ func (ms *MatchService) MatchedProfiles(ctx context.Context, userID int64) ([]*d
 		log.Debug("failed to find candidates", "id", userID, "error", logger.Err(err))
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
-	// TODO: implement Match Score and algorithm
-	// add filter and sort to get top 10 best candidates based on Match Score (weights)
-	// don't forget to exclude users who was previously declined. maybe add it to db level.
 
 	ranked := rankCandidates(profile, candidates, 10)
 	return ranked, nil
@@ -108,15 +104,10 @@ func isProfileComplete(p *domain.Profile) bool {
 	return true
 }
 
-type scoredCandidate struct {
-	profile *domain.Profile
-	score   float64
-}
-
-// rankCandidates scores, sorts descending, and returns top candidates.
-func rankCandidates(req *domain.Profile, candidates []*domain.Profile, limit int) []*domain.Profile {
+// rankCandidates scores, sorts descending, and returns top candidates with their match scores.
+func rankCandidates(req *domain.Profile, candidates []*domain.Profile, limit int) []domain.ScoredProfile {
 	if len(candidates) == 0 {
-		return candidates
+		return make([]domain.ScoredProfile, 0)
 	}
 
 	// Pre-index requester activities once to prevent allocations inside candidate loop
@@ -126,7 +117,7 @@ func rankCandidates(req *domain.Profile, candidates []*domain.Profile, limit int
 	}
 
 	// Single heap allocation for candidate scores
-	scored := make([]scoredCandidate, len(candidates))
+	scored := make([]domain.ScoredProfile, len(candidates))
 	for i, cand := range candidates {
 		distKm := haversineDistanceKm(req.Lat, req.Lon, cand.Lat, cand.Lon)
 		distScore := calculateDistanceScore(distKm, req.MaxRadius)
@@ -134,26 +125,21 @@ func rankCandidates(req *domain.Profile, candidates []*domain.Profile, limit int
 		modeScore := calculateInteractionModeScore(req.InteractionMode, cand.InteractionMode)
 
 		totalScore := (weightDist * distScore) + (weightAct * actScore) + (weightMode * modeScore)
-		scored[i] = scoredCandidate{
-			profile: cand,
-			score:   totalScore,
+		scored[i] = domain.ScoredProfile{
+			Profile: cand,
+			Score:   totalScore,
 		}
 	}
 
 	sort.Slice(scored, func(i, j int) bool {
-		return scored[i].score > scored[j].score
+		return scored[i].Score > scored[j].Score
 	})
 
 	if limit > 0 && len(scored) > limit {
 		scored = scored[:limit]
 	}
 
-	result := make([]*domain.Profile, len(scored))
-	for i := range scored {
-		result[i] = scored[i].profile
-	}
-
-	return result
+	return scored
 }
 
 // calculateDistanceScore computes spatial proximity score using Gaussian decay.

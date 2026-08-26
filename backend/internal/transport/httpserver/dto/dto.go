@@ -101,6 +101,12 @@ type ActivityResponse struct {
 	Title string `json:"title"`
 }
 
+// /recommendations
+type RecommendationItemResponse struct {
+	UserID int64 `json:"user_id"`
+	Score  int   `json:"score"`
+}
+
 // /connections
 type ConnectionIDResponse struct {
 	ID int64 `json:"id"`
