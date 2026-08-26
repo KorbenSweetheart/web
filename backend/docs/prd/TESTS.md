@@ -41,7 +41,7 @@
 - [ ] The chat works in real time.
 - [ ] An unread message icon appears when new chat messages are received in real time.
 - [x] The realtime implementation does not rely on polling.
-- [x] The recommendations endpoint only returns a list of ids.
+- [ ] The recommendations endpoint only returns a list of ids. `Note: it returns score alongside IDs`
 - [x] The connections endpoint only returns a list of ids.
 - [x] The users endpoint returns a name and profile link.
 - [x] The profile endpoint returns "about me" type information.

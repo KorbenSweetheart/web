@@ -176,3 +176,10 @@ type Recommendation struct {
 	ToUser     Profile              `gorm:"foreignKey:ToUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
+// ScoredProfile pairs a candidate profile with its computed match score.
+type ScoredProfile struct {
+	Profile *Profile
+	Score   float64
+}
+
+
