@@ -22,7 +22,7 @@
 - [x] The user can see a list of no more than 10 recommendations at a time.
 - [x] The recommendations are prioritized with the best first.
 - [x] The recommendations behave in line with the student's described matching logic.
-- [ ] It is possible to dismiss a recommendation.
+- [x] It is possible to dismiss a recommendation.
     That recommendation is not shown again after it is dismissed.
 - [x] Connection requests can be sent.
 - [x] Incoming connection requests can be rejected.

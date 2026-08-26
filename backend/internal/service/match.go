@@ -22,6 +22,7 @@ const (
 type CandidateRepository interface {
 	FindCandidates(ctx context.Context, profile *domain.Profile) ([]*domain.Profile, error)
 	ProfileByID(ctx context.Context, id int64) (*domain.Profile, error)
+	DismissRecommendationRecord(ctx context.Context, rec *domain.Recommendation) error
 }
 
 type MatchService struct {
@@ -31,6 +32,25 @@ type MatchService struct {
 
 func NewMatchService(r CandidateRepository, logger *slog.Logger) *MatchService {
 	return &MatchService{repo: r, log: logger}
+}
+
+// DismissRecommendation marks a recommendation as dismissed for the user.
+func (ms *MatchService) DismissRecommendation(ctx context.Context, userID, targetUserID int64) error {
+	const op = "service.matchService.DismissRecommendation"
+	log := ms.log.With(slog.String("op", op))
+
+	rec := &domain.Recommendation{
+		FromUserID: userID,
+		ToUserID:   targetUserID,
+		Status:     domain.Dismissed,
+	}
+
+	if err := ms.repo.DismissRecommendationRecord(ctx, rec); err != nil {
+		log.Debug("failed to dismiss recommendation", "userID", userID, "targetUserID", targetUserID, "error", logger.Err(err))
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
 
 // MatchedProfiles returns a list of 10 ranked profiles matched to the user based on Match Score.

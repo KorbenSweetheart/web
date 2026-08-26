@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"match-me-api/internal/domain"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
@@ -13,6 +14,7 @@ import (
 
 type MatchEngine interface { // alternative name RecommendationEngine
 	MatchedProfiles(ctx context.Context, userID int64) ([]*domain.Profile, error)
+	DismissRecommendation(ctx context.Context, userID, targetUserID int64) error
 	// FriendRequest(ctx context.Context, fromID, toID int64) error
 }
 
@@ -64,3 +66,32 @@ func (h *MatchHandler) Recommendations(c *echo.Context) error {
 		"recommendations": recommendations,
 	})
 }
+
+// DismissRecommendation dismisses a recommendation for the authenticated user.
+func (h *MatchHandler) DismissRecommendation(c *echo.Context) error {
+	ctx := c.Request().Context()
+
+	myID, ok := c.Get("user_id").(int64)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+	}
+
+	targetUserIDStr := c.Param("id")
+	targetUserID, err := strconv.ParseInt(targetUserIDStr, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+	}
+
+	if myID == targetUserID {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid request"})
+	}
+
+	if err := h.matchService.DismissRecommendation(ctx, myID, targetUserID); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to dismiss recommendation"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"status": "dismissed",
+	})
+}
+

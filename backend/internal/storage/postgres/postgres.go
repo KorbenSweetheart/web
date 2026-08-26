@@ -107,6 +107,7 @@ func (s *Storage) AutoMigrate(ctx context.Context) error {
 		&domain.Connection{},
 		&domain.Chat{},
 		&domain.Message{},
+		&domain.Recommendation{},
 	); err != nil {
 		return fmt.Errorf("%s: failed to auto-migrate: %w", op, err)
 	}

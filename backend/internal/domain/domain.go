@@ -69,6 +69,12 @@ const (
 	ActivelyLook                           // 5
 )
 
+type RecommendationStatus int
+
+const (
+	Dismissed RecommendationStatus = iota + 1 // 1
+)
+
 type Account struct {
 	ID           int64     `gorm:"primaryKey;autoIncrement" json:"id"` // Postgres SERIAL/BIGSERIAL
 	Email        string    `gorm:"uniqueIndex;not null" json:"email"`  // unique, private
@@ -123,15 +129,6 @@ func (ProfileActivity) TableName() string {
 	return "profile_activities"
 }
 
-// Connections
-// When a user sees a recommendation that they find interesting, they can request to connect with them.
-// Users must be able to see a list of connection requests, where they can accept or dismiss requests.
-// It must be possible to disconnect with a user, if they are no longer interesting.
-//
-// Profiles are viewable by other users, only if:
-// - They are recommended
-// - There is an outstanding connection request
-// - They are connected
 type Connection struct {
 	FromUserID int64            `gorm:"primaryKey" json:"from_user_id"`
 	ToUserID   int64            `gorm:"primaryKey" json:"to_user_id"`
@@ -169,3 +166,13 @@ type Message struct {
 	Chat      Chat      `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE"`
 	Sender    Profile   `gorm:"foreignKey:SenderID;references:UserID;constraint:OnDelete:CASCADE"`
 }
+
+type Recommendation struct {
+	FromUserID int64                `gorm:"primaryKey" json:"from_user_id"`
+	ToUserID   int64                `gorm:"primaryKey" json:"to_user_id"`
+	Status     RecommendationStatus `gorm:"type:smallint;not null;default:1" json:"status"`
+	UpdatedAt  time.Time            `gorm:"autoUpdateTime" json:"updated_at"`
+	FromUser   Profile              `gorm:"foreignKey:FromUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
+	ToUser     Profile              `gorm:"foreignKey:ToUserID;references:UserID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
