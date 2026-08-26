@@ -39,7 +39,7 @@
     - [ ] Issue with default picture in cases with Profile Preload.
   - [x] `DELETE: /me/picture` - Delete Profile Picture.
   - [x] `/recommendations` - returns a maximum of 10 recommendations, containing only the `id` and nothing else.
-    - [ ] Finalize the isProfileComplete func
+    - [x] Finalize the isProfileComplete func
     - [ ] add posibility to dissmiss recommendation.
     - [x] Exclude accepted connections from recommendations.
     - [x] Exclude declined users from recommendations.
