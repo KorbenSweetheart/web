@@ -4,7 +4,7 @@
 
 - [x] It is possible to register with an email address and password.
 - [x] The user can log out.
-- [ ] The application works with a single user.
+- [x] The application works with a single user.
 - [ ] It refuses to recommend an obviously poor match.
     Create two users in an empty system with obviously poor matching characteristics. Check to make sure that they are not recommended.
 - [ ] It recommends obviously good matches.

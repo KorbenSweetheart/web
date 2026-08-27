@@ -66,9 +66,9 @@ func main() {
 
 	log.Info("system dictionaries seeded successfully")
 
-	// Seeding dummy data and users for local and dev env.
-	if cfg.Env == "local" || cfg.Env == "dev" || cfg.Env == "development" {
-		log.Info("seeding test dummy users (development mode)...")
+	// Seeding dummy data and users
+	if (cfg.Env == "dev" || cfg.Env == "development") && cfg.SeedUsers {
+		log.Info("seeding test dummy users...")
 		dummyCtx, dummyCancel := context.WithTimeout(shutdownCtx, 15*time.Second)
 		defer dummyCancel()
 
@@ -77,6 +77,8 @@ func main() {
 			os.Exit(1)
 		}
 		log.Info("dummy users seeded successfully")
+	} else {
+		log.Info("skipping test dummy users seeding (SEED_USERS is disabled)")
 	}
 
 	// Initializing S3-buckets in MinIO
