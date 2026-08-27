@@ -15,12 +15,14 @@ const (
 	defaultSrvIdleTimeout      = 60 * time.Second
 	defaultSrvShutdownTimeout  = 10 * time.Second
 	defaultMinIOUseSSL         = false
+	defaultSeedUsers           = true
 	MinIOProfilePicturesBucket = "profile-pictures"
 	MinIOChatMediaBucket       = "chat-attachments"
 )
 
 type Config struct {
 	Env        string
+	SeedUsers  bool
 	TM         TokenMgr
 	DB         Database
 	MinIO      MinIOConfig
@@ -134,6 +136,9 @@ func MustLoad() *Config {
 	}
 
 	cfg.MinIO.UseSSL = parseBoolEnv("MINIO_USE_SSL", defaultMinIOUseSSL)
+
+	// Seeding config
+	cfg.SeedUsers = parseBoolEnv("SEED_USERS", defaultSeedUsers)
 
 	return &cfg
 }

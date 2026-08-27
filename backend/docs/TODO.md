@@ -6,7 +6,7 @@
   - [x] Create PostGis extension
   - [x] Add seed data
   - [x] Add 100-1000 seeded users
-  - [ ] add seeding controls to turn it on/off
+  - [x] add seeding controls to turn it on/off
   - [ ] Add aliases for queries (optional)
   - [ ] find queries optimisations (optional)
 - [ ] Add Public Handlers
