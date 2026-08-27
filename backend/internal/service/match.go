@@ -17,6 +17,9 @@ const (
 	weightMode   = 0.10 // 10% interaction mode compatibility
 	alphaAct     = 0.30 // preserves mutual high interest when skills diverge
 	topActWeight = 0.60 // weight for primary anchor activity vs breadth
+
+	minActivityScore = 0.15 // minimum activity similarity required to qualify
+	minTotalScore    = 0.30 // minimum total match score required for recommendation
 )
 
 type CandidateRepository interface {
@@ -116,19 +119,26 @@ func rankCandidates(req *domain.Profile, candidates []*domain.Profile, limit int
 		reqMap[req.Activities[i].ActivityID] = req.Activities[i]
 	}
 
-	// Single heap allocation for candidate scores
-	scored := make([]domain.ScoredProfile, len(candidates))
-	for i, cand := range candidates {
+	scored := make([]domain.ScoredProfile, 0, len(candidates))
+	for _, cand := range candidates {
+		actScore := calculateMultiActivityScore(reqMap, cand.Activities)
+		if actScore < minActivityScore {
+			continue
+		}
+
 		distKm := haversineDistanceKm(req.Lat, req.Lon, cand.Lat, cand.Lon)
 		distScore := calculateDistanceScore(distKm, req.MaxRadius)
-		actScore := calculateMultiActivityScore(reqMap, cand.Activities)
 		modeScore := calculateInteractionModeScore(req.InteractionMode, cand.InteractionMode)
 
 		totalScore := (weightDist * distScore) + (weightAct * actScore) + (weightMode * modeScore)
-		scored[i] = domain.ScoredProfile{
+		if totalScore < minTotalScore {
+			continue
+		}
+
+		scored = append(scored, domain.ScoredProfile{
 			Profile: cand,
 			Score:   totalScore,
-		}
+		})
 	}
 
 	sort.Slice(scored, func(i, j int) bool {
@@ -136,7 +146,9 @@ func rankCandidates(req *domain.Profile, candidates []*domain.Profile, limit int
 	})
 
 	if limit > 0 && len(scored) > limit {
-		scored = scored[:limit]
+		result := make([]domain.ScoredProfile, limit)
+		copy(result, scored[:limit])
+		return result
 	}
 
 	return scored

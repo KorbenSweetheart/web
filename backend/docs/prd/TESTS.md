@@ -5,9 +5,9 @@
 - [x] It is possible to register with an email address and password.
 - [x] The user can log out.
 - [x] The application works with a single user.
-- [ ] It refuses to recommend an obviously poor match.
+- [x] It refuses to recommend an obviously poor match.
     Create two users in an empty system with obviously poor matching characteristics. Check to make sure that they are not recommended.
-- [ ] It recommends obviously good matches.
+- [x] It recommends obviously good matches.
     Create two users in an empty system, who appear like they should obviously match.
 - [x] The user is not shown any recommendations until they have completed their profile.
 - [x] The user has a minimum of 5 biographical points to configure.
