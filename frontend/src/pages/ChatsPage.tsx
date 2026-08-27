@@ -183,6 +183,7 @@ export default function ChatsPage() {
                   onClick={() => {
                     setSelectedChatId(chat.id);
                     setHasUnread((prev) => ({ ...prev, [chat.id]: false }));
+                    socketRef.current?.sendRead(chat.id); // tell backend it's read
                   }}
                 >
                   <div className="chat-row__avatar-wrap">

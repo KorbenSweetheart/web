@@ -113,6 +113,19 @@ export class ChatSocket {
     return true;
   }
 
+  // Tell the server I've read this chat, so it marks the messages as viewed.
+  // Payload matches the wire protocol: { chat_id }.
+  sendRead(chatId: number) {
+    if (this.ws?.readyState !== WebSocket.OPEN) return false;
+    this.ws.send(
+      JSON.stringify({
+        type: WsEvent.ChatRead,
+        payload: { chat_id: chatId },
+      }),
+    );
+    return true;
+  }
+
   // Subscribe to incoming messages. Returns an unsubscribe function.
   onMessage(handler: MessageHandler): () => void {
     this.messageHandlers.add(handler);
