@@ -70,7 +70,6 @@ export default function UserCard({
         <div className="user-card__info">
           <div className="user-card__name-row">
             <h3 className="user-card__name">{user.name}</h3>
-            <span className={`user-card__status ${user.is_online ? 'is-online' : ''}`} />
           </div>
 
           <p className="user-card__meta">

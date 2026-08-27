@@ -60,15 +60,6 @@
   min-width: 0;
 }
 
-.user-card__status {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--r-full);
-  background: var(--text-4);
-}
-.user-card__status.is-online {
-  background: var(--accent-3);
-}
 .user-card__meta {
   color: var(--text-2);
   font-size: 0.875rem;
