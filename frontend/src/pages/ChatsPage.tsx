@@ -79,6 +79,10 @@ export default function ChatsPage() {
   // Load messages when a chat is selected (first page, no pagination yet).
   useEffect(() => {
     if (selectedChatId == null) return;
+    // Any time a chat opens (row click OR arriving from "Message"), clear its
+    // icon and tell the backend it's read. Covers both entry points.
+    setHasUnread((prev) => ({ ...prev, [selectedChatId]: false }));
+    socketRef.current?.sendRead(selectedChatId);
     setMsgLoading(true);
     setMsgError('');
     getChatMessages(selectedChatId)
