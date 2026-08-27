@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, ArrowLeft, Send } from 'lucide-react';
+import { MessageCircle, ArrowLeft, Send, MailPlus } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getMyProfile } from '../services/users';
 import { getChats, getChatMessages } from '../services/chats';
@@ -41,20 +41,32 @@ export default function ChatsPage() {
   const threadRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<ChatSocket | null>(null);
   const navigate = useNavigate();
-  // chatId -> number of unread messages
-  const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({});
+  // chatId -> does this chat have unread messages? (icon, not a count)
+  const [hasUnread, setHasUnread] = useState<Record<number, boolean>>({});
 
-  // Mount: who am I → my chats. Preselect if we arrived from "Message".
+  // Mount: who am I → my chats → initial unread icons from message history.
   useEffect(() => {
     getMyProfile()
       .then((me) => {
         setMyId(me.id);
-        return getChats(me.id);
+        return getChats(me.id).then((data) => ({ me, data }));
       })
-      .then((data) => {
+      .then(async ({ me, data }) => {
         setChats(data);
         const openId = (location.state as { openChatId?: number } | null)?.openChatId;
         if (openId != null) setSelectedChatId(openId);
+
+        // For each chat, peek at its latest messages: if any message I didn't
+        // send is still unviewed, that chat gets the icon. This is the reliable
+        // source — the WebSocket only flips it on/off live on top of this.
+        const entries = await Promise.all(
+          data.map(async (chat) => {
+            const msgs = await getChatMessages(chat.id, 0, 15);
+            const unread = msgs.some((m) => m.sender_id !== me.id && !m.is_viewed);
+            return [chat.id, unread] as const;
+          }),
+        );
+        setHasUnread(Object.fromEntries(entries));
       })
       .catch((err) => {
         console.error(err);
@@ -92,16 +104,6 @@ export default function ChatsPage() {
       const isOpenChat = msg.chat_id === selectedChatIdRef.current;
       const isMine = msg.sender_id === myIdRef.current;
 
-      console.log('BADGE DEBUG:', {
-        msgChatId: msg.chat_id,
-        senderId: msg.sender_id,
-        myId: myIdRef.current,
-        openChat: selectedChatIdRef.current,
-        isMine,
-        isOpenChat,
-        willCount: !isMine && !isOpenChat,
-      });
-
       // 1. If it's the chat we're viewing, append it to the thread.
       if (isOpenChat) {
         setMessages((prev) => {
@@ -110,13 +112,10 @@ export default function ChatsPage() {
         });
       }
 
-      // 2. Count as unread if the message is from the other person AND we're
-      //    not currently looking at that chat.
+      // 2. Flag the chat as unread if the message is from the other person
+      //    AND we're not currently looking at that chat.
       if (!isMine && !isOpenChat) {
-        setUnreadCounts((prev) => ({
-          ...prev,
-          [msg.chat_id]: (prev[msg.chat_id] ?? 0) + 1,
-        }));
+        setHasUnread((prev) => ({ ...prev, [msg.chat_id]: true }));
       }
 
       // 3. Move the chat to the top of the list (most recent first).
@@ -183,12 +182,7 @@ export default function ChatsPage() {
                   className={`chat-row ${chat.id === selectedChatId ? 'is-active' : ''}`}
                   onClick={() => {
                     setSelectedChatId(chat.id);
-                    setUnreadCounts((prev) => {
-                      if (!prev[chat.id]) return prev;
-                      const next = { ...prev };
-                      delete next[chat.id];
-                      return next;
-                    });
+                    setHasUnread((prev) => ({ ...prev, [chat.id]: false }));
                   }}
                 >
                   <div className="chat-row__avatar-wrap">
@@ -203,8 +197,10 @@ export default function ChatsPage() {
                         <span>{chat.other_user.name.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
-                    {unreadCounts[chat.id] > 0 && (
-                      <span className="chat-row__badge">{unreadCounts[chat.id]}</span>
+                    {hasUnread[chat.id] && (
+                      <span className="chat-row__badge" aria-label="Unread messages">
+                        <MailPlus size={14} strokeWidth={2.5} />
+                      </span>
                     )}
                   </div>
                   <span className="chat-row__name">{chat.other_user.name}</span>
