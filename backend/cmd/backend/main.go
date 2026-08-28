@@ -69,10 +69,10 @@ func main() {
 	// create services
 	authService := service.NewAuthService(storage, storage, tm, cfg.TM.AccessTokenTTL, cfg.TM.RefreshTokenTTL, log)
 	dictionaryService := service.NewDictionaryService(storage, log)
-	userService := service.NewUserService(storage, minioStorage, storage, storage, log)
+	userService := service.NewUserService(storage, minioStorage, log)
 	matchService := service.NewMatchService(storage, log)
-	connectionService := service.NewConnectionService(storage, storage, log)
-	chatService := service.NewChatService(storage, storage, log)
+	connectionService := service.NewConnectionService(storage, log)
+	chatService := service.NewChatService(storage, log)
 	presenceService := service.NewPresenceService(memoryStorage, log)
 
 	// init validator

@@ -87,6 +87,23 @@ func (s *Storage) ProfileByID(ctx context.Context, id int64) (*domain.Profile, e
 	return &profile, nil
 }
 
+// ProfilesByIDs returns profile records matching given IDs with preloaded activities.
+func (s *Storage) ProfilesByIDs(ctx context.Context, ids []int64) ([]*domain.Profile, error) {
+	const op = "storage.postgres.ProfilesByIDs"
+
+	var profiles []*domain.Profile
+	err := s.db.WithContext(ctx).
+		Preload("Activities.Activity").
+		Where("user_id IN (?)", ids).
+		Find(&profiles).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to get profiles by ids: %w", op, err)
+	}
+
+	return profiles, nil
+}
+
 // UpdateProfileRecord updates profile db record based on the provided parameters.
 func (s *Storage) UpdateProfileRecord(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error {
 	const op = "storage.postgres.UpdateProfileRecord"

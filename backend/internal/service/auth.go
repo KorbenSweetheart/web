@@ -27,7 +27,6 @@ var (
 type AccountRepository interface {
 	CreateAccount(ctx context.Context, user *domain.Account) error
 	AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
-	// IsEmailTaken(ctx context.Context, email string) (bool, error)
 }
 
 type TokenRepository interface {

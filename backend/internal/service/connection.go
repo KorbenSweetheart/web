@@ -15,21 +15,17 @@ type ConnectionRepository interface {
 	DeleteConnectionRecord(ctx context.Context, conn *domain.Connection) error
 	AcceptedConnectionRecords(ctx context.Context, userID int64) ([]int64, error)
 	PendingConnectionRecords(ctx context.Context, userID int64) ([]int64, error)
-	// AllConnectionRecords(ctx context.Context, userID int64) ([]int64, error) // needed for recommendations
-}
-
-type CandidateChecker interface {
-	IsCandidate(ctx context.Context, userID, targetUserID int64) (bool, error)
+	ProfilesByIDs(ctx context.Context, ids []int64) ([]*domain.Profile, error)
+	IsDismissed(ctx context.Context, userID, targetUserID int64) (bool, error)
 }
 
 type ConnectionService struct {
-	repo  ConnectionRepository
-	match CandidateChecker
-	log   *slog.Logger
+	repo ConnectionRepository
+	log  *slog.Logger
 }
 
-func NewConnectionService(r ConnectionRepository, cc CandidateChecker, logger *slog.Logger) *ConnectionService {
-	return &ConnectionService{repo: r, match: cc, log: logger}
+func NewConnectionService(r ConnectionRepository, logger *slog.Logger) *ConnectionService {
+	return &ConnectionService{repo: r, log: logger}
 }
 
 // ConnectToUser creates connection with pending status for the provided userID.
@@ -71,13 +67,33 @@ func (cs *ConnectionService) ConnectToUser(ctx context.Context, fromUserID, toUs
 		}
 	}
 
-	isCandidate, err := cs.match.IsCandidate(ctx, fromUserID, toUserID)
+	// Fetch both profiles in a single batch query
+	profiles, err := cs.repo.ProfilesByIDs(ctx, []int64{fromUserID, toUserID})
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to check candidate: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if !isCandidate {
+	if len(profiles) < 2 {
+		return nil, fmt.Errorf("%s: %w", op, domain.ErrUserNotFound)
+	}
+
+	var fromProfile, toProfile *domain.Profile
+	if profiles[0].UserID == fromUserID {
+		fromProfile, toProfile = profiles[0], profiles[1]
+	} else {
+		fromProfile, toProfile = profiles[1], profiles[0]
+	}
+
+	if !domain.IsCandidate(fromProfile, toProfile) {
 		return nil, fmt.Errorf("%s: not a candidate: %w", op, domain.ErrConnectionNotAllowed)
+	}
+
+	isDismissed, err := cs.repo.IsDismissed(ctx, fromUserID, toUserID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if isDismissed {
+		return nil, fmt.Errorf("%s: recommendation dismissed: %w", op, domain.ErrConnectionNotAllowed)
 	}
 
 	conn := &domain.Connection{
