@@ -121,6 +121,15 @@
   border: 2px solid var(--surface-elevated); /* separates badge from the photo */
 }
 
+/* Online presence dot in the chat list */
+.chat-row__online {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-full);
+  background: var(--accent-3);
+  flex-shrink: 0;
+}
+
 /* Mobile: one view at a time */
 @media (max-width: 900px) {
   .chats-layout {

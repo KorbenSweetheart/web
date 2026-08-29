@@ -45,6 +45,8 @@ export default function ChatsPage() {
   const [hasUnread, setHasUnread] = useState<Record<number, boolean>>({});
   // Is the other person currently typing in the open chat?
   const [otherTyping, setOtherTyping] = useState(false);
+  // userId -> is that person online right now?
+  const [online, setOnline] = useState<Record<number, boolean>>({});
   // Timer that sends "stopped typing" after a pause.
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -104,6 +106,22 @@ export default function ChatsPage() {
     threadRef.current?.scrollTo(0, threadRef.current.scrollHeight);
   }, [messages]);
 
+  // Ask who's online among my chat partners — on load and every 20s after.
+  // (Ivan's backend answers presence:check but doesn't push live changes,
+  //  so we poll gently to keep the dots reasonably fresh.)
+  useEffect(() => {
+    if (chats.length === 0) return;
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const ids = chats.map((c) => c.other_user.id);
+    const ask = () => socket.checkPresence(ids);
+
+    ask(); // immediate first check
+    const interval = setInterval(ask, 20000);
+    return () => clearInterval(interval);
+  }, [chats]);
+
   // Subscribe to incoming messages on the shared socket.
   useEffect(() => {
     const socket = getChatSocket();
@@ -146,8 +164,14 @@ export default function ChatsPage() {
       }
     });
 
+
+    // Subscribe to presence replies — merge the batch into our online map.
+    const offPresence = socket.onPresence((payload) => {
+      setOnline((prev) => ({ ...prev, ...payload.statuses }));
+    });
+
     // Only unsubscribe on unmount — keep the shared socket alive.
-    return () => { off(); offTyping(); };
+    return () => { off(); offTyping(); offPresence(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -203,6 +227,9 @@ export default function ChatsPage() {
                     socketRef.current?.sendRead(chat.id); // tell backend it's read
                   }}
                 >
+                  {online[chat.other_user.id] && (
+                    <span className="chat-row__online" aria-label="Online" />
+                  )}
                   <div className="chat-row__avatar-wrap">
                     <div className="chat-row__avatar avatar avatar-md">
                       {chat.other_user.picture_url ? (
@@ -221,6 +248,7 @@ export default function ChatsPage() {
                       </span>
                     )}
                   </div>
+
                   <span className="chat-row__name">{chat.other_user.name}</span>
                 </button>
               ))}
