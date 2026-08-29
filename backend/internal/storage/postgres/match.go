@@ -55,18 +55,14 @@ func (s *Storage) FindCandidates(ctx context.Context, profile *domain.Profile) (
 	return candidates, nil
 }
 
-func (s *Storage) IsCandidate(ctx context.Context, userID, targetUserID int64) (bool, error) {
-	const op = "storage.postgres.IsCandidate"
+// IsDismissed checks if either user has dismissed a recommendation from or to the other.
+func (s *Storage) IsDismissed(ctx context.Context, userID, targetUserID int64) (bool, error) {
+	const op = "storage.postgres.IsDismissed"
 
 	var count int64
-	// Evaluates ST_DWithin between userID and targetUserID, plus common activities
 	err := s.db.WithContext(ctx).
-		Table("profiles AS p1, profiles AS p2").
-		Where("p1.user_id = ? AND p2.user_id = ?", userID, targetUserID).
-		Where("ST_DWithin(p1.location, p2.location, p1.max_radius * 1000)").
-		Where("ST_DWithin(p2.location, p1.location, p2.max_radius * 1000)").
-		Where("EXISTS (SELECT 1 FROM profile_activities pa1 JOIN profile_activities pa2 ON pa1.activity_id = pa2.activity_id WHERE pa1.profile_user_id = p1.user_id AND pa2.profile_user_id = p2.user_id)").
-		Where("NOT EXISTS (SELECT 1 FROM recommendations WHERE ((from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?)) AND status = ?)",
+		Model(&domain.Recommendation{}).
+		Where("((from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?)) AND status = ?",
 			userID, targetUserID, targetUserID, userID, domain.Dismissed,
 		).
 		Count(&count).Error
@@ -74,6 +70,7 @@ func (s *Storage) IsCandidate(ctx context.Context, userID, targetUserID int64) (
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
+
 	return count > 0, nil
 }
 

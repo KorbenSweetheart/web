@@ -20,15 +20,10 @@ type UserRepository interface {
 	AccountByEmail(ctx context.Context, email string) (*domain.Account, error)
 	AccountByID(ctx context.Context, id int64) (*domain.Account, error)
 	ProfileByID(ctx context.Context, id int64) (*domain.Profile, error)
+	ProfilesByIDs(ctx context.Context, ids []int64) ([]*domain.Profile, error)
 	UpdateProfileRecord(ctx context.Context, id int64, params *domain.ProfileUpdateParams) error
-}
-
-type ConnectionChecker interface {
 	FindConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error)
-}
-
-type MatchChecker interface {
-	IsCandidate(ctx context.Context, userID, targetUserID int64) (bool, error)
+	IsDismissed(ctx context.Context, userID, targetUserID int64) (bool, error)
 }
 
 type MediaRepository interface {
@@ -41,13 +36,11 @@ type MediaRepository interface {
 type UserService struct {
 	repo  UserRepository
 	media MediaRepository
-	match MatchChecker
-	conn  ConnectionChecker
 	log   *slog.Logger
 }
 
-func NewUserService(repo UserRepository, media MediaRepository, match MatchChecker, conn ConnectionChecker, logger *slog.Logger) *UserService {
-	return &UserService{repo: repo, media: media, match: match, conn: conn, log: logger}
+func NewUserService(repo UserRepository, media MediaRepository, logger *slog.Logger) *UserService {
+	return &UserService{repo: repo, media: media, log: logger}
 }
 
 // Account returns a user account data struct from db.
@@ -64,33 +57,83 @@ func (us *UserService) Account(ctx context.Context, id int64) (*domain.Account, 
 	return user, nil
 }
 
-// Profile returns a user profile data struct from db.
+// Profile returns a user profile data struct from db if the user has permission to view it.
 func (us *UserService) Profile(ctx context.Context, userID, targetUserID int64) (*domain.Profile, error) {
 	const op = "service.userService.Profile"
 	log := us.log.With(slog.String("op", op))
 
-	profile, err := us.repo.ProfileByID(ctx, targetUserID)
-	if err != nil {
-		log.Debug("failed to get profile by id", "targetUserID", targetUserID, "error", logger.Err(err))
+	// Self-profile view
+	if userID == targetUserID {
+		profile, err := us.repo.ProfileByID(ctx, targetUserID)
+		if err != nil {
+			log.Debug("failed to get profile by id", "targetUserID", targetUserID, "error", logger.Err(err))
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		if profile.PictureURL == "" {
+			profile.PictureURL = us.defaultPictureURL()
+		}
+		return profile, nil
+	}
+
+	// 1. Connection-first check: if connected (or pending), view is permitted immediately
+	conn, err := us.repo.FindConnectionRecord(ctx, userID, targetUserID)
+	if err == nil && conn.Status != domain.Declined {
+		profile, err := us.repo.ProfileByID(ctx, targetUserID)
+		if err != nil {
+			log.Debug("failed to get profile by id", "targetUserID", targetUserID, "error", logger.Err(err))
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		if profile.PictureURL == "" {
+			profile.PictureURL = us.defaultPictureURL()
+		}
+		return profile, nil
+	}
+
+	if err != nil && !errors.Is(err, domain.ErrConnectionNotFound) {
+		log.Debug("failed to find connection", "error", logger.Err(err))
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if profile.PictureURL == "" {
-		profile.PictureURL = us.defaultPictureURL()
-	}
-
-	canView, err := us.canViewProfile(ctx, userID, targetUserID)
+	// 2. Non-connected flow: fetch both profiles in single batch query
+	profiles, err := us.repo.ProfilesByIDs(ctx, []int64{userID, targetUserID})
 	if err != nil {
-		log.Debug("canViewProfile", "error", logger.Err(err))
+		log.Debug("failed to get profiles by ids", "error", logger.Err(err))
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if !canView {
-		log.Debug("canViewProfile:false", "targetUserID", targetUserID)
+	if len(profiles) < 2 {
+		return nil, fmt.Errorf("%s: %w", op, domain.ErrUserNotFound)
+	}
+
+	var myProfile, targetProfile *domain.Profile
+	if profiles[0].UserID == userID {
+		myProfile, targetProfile = profiles[0], profiles[1]
+	} else {
+		myProfile, targetProfile = profiles[1], profiles[0]
+	}
+
+	// 3. In-memory candidate check (radii, activity, and score threshold)
+	if !domain.IsCandidate(myProfile, targetProfile) {
+		log.Debug("not a match candidate", "targetUserID", targetUserID)
 		return nil, fmt.Errorf("%s: %w", op, domain.ErrNoPermissionViewProfile)
 	}
 
-	return profile, nil
+	// 4. Check if recommendation was dismissed by either user
+	isDismissed, err := us.repo.IsDismissed(ctx, userID, targetUserID)
+	if err != nil {
+		log.Debug("failed to check dismissed status", "error", logger.Err(err))
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if isDismissed {
+		log.Debug("recommendation dismissed", "targetUserID", targetUserID)
+		return nil, fmt.Errorf("%s: %w", op, domain.ErrNoPermissionViewProfile)
+	}
+
+	if targetProfile.PictureURL == "" {
+		targetProfile.PictureURL = us.defaultPictureURL()
+	}
+
+	return targetProfile, nil
 }
 
 // UpdateProfile updates profile with provided data.
@@ -227,36 +270,4 @@ func (us *UserService) isCustomPicture(pictureURL string) bool {
 		return false
 	}
 	return true
-}
-
-func (us *UserService) canViewProfile(ctx context.Context, userID, targetUserID int64) (bool, error) {
-	const op = "service.userService.canViewProfile"
-	log := us.log.With(slog.String("op", op))
-
-	// need to check that userID has the permission to view targetUserID profile.
-	// Criteria:
-	// - its the same profile, userID == targetUserID
-	// - they are connected (friends) or has pending request from targetUserID to userID
-	// - targetUserID is recommended to userID
-
-	if userID == targetUserID {
-		return true, nil
-	}
-
-	conn, err := us.conn.FindConnectionRecord(ctx, userID, targetUserID)
-	if err == nil {
-		return conn.Status != domain.Declined, nil
-	}
-
-	if !errors.Is(err, domain.ErrConnectionNotFound) {
-		return false, fmt.Errorf("%s: failed to find connection: %w", op, err)
-	}
-	// if in recommendations
-	isCandidate, err := us.match.IsCandidate(ctx, userID, targetUserID)
-	if err != nil {
-		log.Debug("IsCandidate", "error", logger.Err(err))
-		return false, fmt.Errorf("%s: failed to check candidate: %w", op, err)
-	}
-
-	return isCandidate, nil
 }
