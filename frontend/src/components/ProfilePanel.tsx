@@ -76,7 +76,7 @@ export default function ProfilePanel({
         <X size={22} strokeWidth={2.5} />
       </button>
 
-      {/* Header: photo left, info middle, ring right */}
+            {/* Header: avatar + name + ring */}
       <div className="profile-panel__header">
         <div className="profile-panel__avatar">
           {user.picture_url ? (
@@ -90,19 +90,9 @@ export default function ProfilePanel({
         <div className="profile-panel__header-info">
           <div className="profile-panel__name-row">
             <h2 className="text-title">{user.name}</h2>
-            <span className={`profile-panel__status ${user.is_online ? 'is-online' : ''}`} />
           </div>
-          <p className="text-body">
-            {user.age} · <ModeIcon size={15} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} />
-            {' '}{MODES[user.interaction_mode].label}
-          </p>
-          <p className="text-caption mt-xs">
-            <MapPin size={13} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} />
-            {' '}Within {user.max_radius} km
-          </p>
         </div>
 
-        {/* Ring */}
         <div className="profile-panel__ring">
           <svg width="72" height="72" viewBox="0 0 72 72">
             <circle cx="36" cy="36" r="30" className="profile-panel__ring-bg" />
@@ -115,15 +105,39 @@ export default function ProfilePanel({
         </div>
       </div>
 
+      {/* Key details as an airy labeled list */}
+      <div className="profile-panel__details">
+        <div className="profile-panel__detail">
+          <span className="profile-panel__detail-label">Age:</span>
+          <span className="profile-panel__detail-value">{user.age}</span>
+        </div>
+        <div className="profile-panel__detail">
+          <span className="profile-panel__detail-label">Training mode:</span>
+          <span className="profile-panel__detail-value">
+            <ModeIcon size={15} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} />
+            {' '}{MODES[user.interaction_mode].label}
+          </span>
+        </div>
+        <div className="profile-panel__detail">
+          <span className="profile-panel__detail-label">Location:</span>
+          <span className="profile-panel__detail-value">
+            <MapPin size={14} strokeWidth={2.5} style={{ verticalAlign: '-2px' }} />
+            {' '}Within {user.max_radius} km
+          </span>
+        </div>
+      </div>
+      
+
+
       {/* Bio (full, not truncated) */}
       <div className="profile-panel__section">
-        <p className="text-label mb-xs">About</p>
+        <p className="text-section mb-xs">About</p>
         <p className="text-body">{user.bio}</p>
       </div>
 
       {/* All sports */}
       <div className="profile-panel__section">
-        <p className="text-label mb-sm">Sports</p>
+        <p className="text-section mb-sm">Sports</p>
         <div className="profile-panel__tags">
           {user.activities.map((a) => (
             <span key={a.id} className="sport-tag">

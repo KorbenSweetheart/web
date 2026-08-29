@@ -225,7 +225,21 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: var(--text-1);
+  color: var(--accent);
+  padding-bottom: 0.25rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.text-section::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 20px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
 }
 
 .text-accent  { color: var(--accent); }

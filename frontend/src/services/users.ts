@@ -80,12 +80,19 @@ export async function fetchFullProfile(id: number): Promise<UserProfile> {
   };
 }
 
-// Fetch recommendations: backend returns { recommendations: [ids] }.
-// For each id we build the full profile.
+// Fetch recommendations: backend returns
+//   { recommendations: [ { user_id, score }, ... ] }
+// The score comes from THIS endpoint; the rest of the profile comes from
+// fetchFullProfile. So we fetch each full profile and attach its score.
 export async function getRecommendations(): Promise<UserProfile[]> {
   const data = await apiGet('/recommendations');
-  const ids: number[] = data.recommendations ?? [];
-  return Promise.all(ids.map((id) => fetchFullProfile(id)));
+  const recs: { user_id: number; score: number }[] = data.recommendations ?? [];
+  return Promise.all(
+    recs.map(async (rec) => {
+      const profile = await fetchFullProfile(rec.user_id);
+      return { ...profile, match_score: rec.score };
+    }),
+  );
 }
 
 // Sends the user's current browser location to the backend (PATCH /me/profile).
