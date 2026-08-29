@@ -39,6 +39,12 @@ export interface TypingBroadcast {
 }
 type TypingHandler = (payload: TypingBroadcast) => void;
 
+// What the server sends back after a presence:check — a map of userId → online.
+export interface PresenceBatch {
+  statuses: Record<number, boolean>;
+}
+type PresenceHandler = (payload: PresenceBatch) => void;
+
 // A new-message payload (server → client) has the same shape as a REST Message.
 export type IncomingMessage = Message;
 
@@ -55,6 +61,7 @@ export class ChatSocket {
   private ws: WebSocket | null = null;
   private messageHandlers = new Set<MessageHandler>();
   private typingHandlers = new Set<TypingHandler>();
+  private presenceHandlers = new Set<PresenceHandler>();
   private shouldReconnect = true;
   private reconnectDelay = 1000; // grows on repeated failures, capped below
 
@@ -114,6 +121,11 @@ export class ChatSocket {
       const payload = env.payload as TypingBroadcast;
       this.typingHandlers.forEach((h) => h(payload));
     }
+
+    if (env.type === WsEvent.PresenceBatch) {
+      const payload = env.payload as PresenceBatch;
+      this.presenceHandlers.forEach((h) => h(payload));
+    }
   }
 
   // Send a chat message. Server expects { chat_id, content } in the payload.
@@ -154,6 +166,20 @@ export class ChatSocket {
     return true;
   }
 
+  // Ask the server which of these users are currently online.
+  // Server replies with a presence:batch event. Payload: { user_ids }.
+  checkPresence(userIds: number[]) {
+    if (this.ws?.readyState !== WebSocket.OPEN) return false;
+    if (userIds.length === 0) return false;
+    this.ws.send(
+      JSON.stringify({
+        type: WsEvent.PresenceCheck,
+        payload: { user_ids: userIds },
+      }),
+    );
+    return true;
+  }
+
   // Subscribe to incoming messages. Returns an unsubscribe function.
   onMessage(handler: MessageHandler): () => void {
     this.messageHandlers.add(handler);
@@ -166,12 +192,20 @@ export class ChatSocket {
     return () => this.typingHandlers.delete(handler);
   }
 
+
+  // Subscribe to presence:batch replies. Returns unsubscribe.
+  onPresence(handler: PresenceHandler): () => void {
+    this.presenceHandlers.add(handler);
+    return () => this.presenceHandlers.delete(handler);
+  }
+
   disconnect() {
     this.shouldReconnect = false;
     this.ws?.close();
     this.ws = null;
     this.messageHandlers.clear();
     this.typingHandlers.clear();
+    this.presenceHandlers.clear();
   }
 }
 

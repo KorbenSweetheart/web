@@ -39,6 +39,79 @@
   color: var(--accent-hover);
 }
 
+/* ===== Collapsible sidebar ===== */
+
+/* Smooth width change between collapsed and expanded */
+.sidebar {
+  transition: width var(--speed) ease;
+  overflow: hidden;
+}
+
+/* Expanded state: wider, so labels fit */
+.sidebar.is-expanded {
+  width: clamp(13rem, 18vw, 15rem);
+  align-items: stretch; /* let items fill the width instead of centering */
+}
+
+/* Toggle button at the top */
+.sidebar__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(3rem, 4.5vw, 3.5rem);
+  height: clamp(3rem, 4.5vw, 3.5rem);
+  border-radius: var(--r-xl);
+  color: var(--text-2);
+  transition: color var(--speed-fast), background-color var(--speed-fast);
+  flex-shrink: 0;
+}
+.sidebar__toggle:hover {
+  color: var(--accent);
+  background: var(--surface-hover);
+}
+
+/* The text label next to each icon — hidden when collapsed */
+.nav-item__label {
+  white-space: nowrap;
+  font-size: clamp(0.9375rem, 1vw + 0.15rem, 1.0625rem);
+  font-weight: 600;
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: opacity var(--speed-fast);
+}
+
+/* Show labels only when expanded */
+.sidebar.is-expanded .nav-item__label {
+  opacity: 1;
+  width: auto;
+  margin-left: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+/* When expanded, nav items become full-width rows (icon + label) */
+.sidebar.is-expanded .nav-item {
+  flex-direction: row;
+  justify-content: flex-start;
+  width: 100%;
+  padding-left: clamp(0.875rem, 1.5vw, 1.125rem);
+}
+
+/* Nav item hover — subtle background like the rest of the app */
+.sidebar .nav-item {
+  transition: background-color var(--speed-fast), color var(--speed-fast);
+}
+.sidebar .nav-item:hover {
+  background: var(--surface-hover);
+  color: var(--text-1);
+}
+
+/* Logo + toggle aligned with the nav items (not stuck to the edge) */
+.sidebar.is-expanded .logo-mark,
+.sidebar.is-expanded .sidebar__toggle {
+  align-self: flex-start;
+  margin-left: clamp(0.5rem, 1vw, 0.75rem);
+}
+
 /* Mobile header (logo + logout) */
 .app-header {
   display: flex;
