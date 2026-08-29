@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Compass, Users, MessageCircle, User, LogOut } from 'lucide-react';
+import { Compass, Users, MessageCircle, User, LogOut, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { logout } from '../services/auth';
+import { useState } from 'react';
 import './AppLayout.css';
 
 const NAV = [
@@ -12,6 +13,7 @@ const NAV = [
 
 export default function AppLayout() {
   const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(false);
 
   async function handleLogout() {
     await logout();
@@ -31,9 +33,18 @@ export default function AppLayout() {
       </header>
 
       {/* Desktop: sidebar */}
-      <aside className="sidebar hide-mobile">
-        {/* Logo */}
+      <aside className={`sidebar hide-mobile ${expanded ? 'is-expanded' : ''}`}>
+         {/* Logo */}
         <div className="logo-mark">P</div>
+        {/* Toggle button */}
+        <button
+          className="sidebar__toggle"
+          onClick={() => setExpanded((v) => !v)}
+          title={expanded ? 'Collapse menu' : 'Expand menu'}
+          aria-label={expanded ? 'Collapse menu' : 'Expand menu'}
+        >
+          {expanded ? <PanelLeftClose size={24} strokeWidth={2.5} /> : <PanelLeft size={24} strokeWidth={2.5} />}
+        </button>
 
         {/* Navigation */}
         <div className="sidebar__nav">
@@ -41,12 +52,11 @@ export default function AppLayout() {
             <NavLink
               key={to}
               to={to}
-              className={({ isActive }) =>
-                `nav-item ${isActive ? 'nav-item-active' : ''}`
-              }
+              className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
               title={label}
             >
               <Icon size={28} strokeWidth={2.5} />
+              <span className="nav-item__label">{label}</span>
             </NavLink>
           ))}
         </div>
@@ -54,6 +64,7 @@ export default function AppLayout() {
         {/* Logout (pushed to bottom) */}
         <button className="nav-item sidebar__logout" onClick={handleLogout} title="Log out">
           <LogOut size={28} strokeWidth={2.5} />
+          <span className="nav-item__label">Log out</span>
         </button>
       </aside>
 

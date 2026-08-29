@@ -193,7 +193,7 @@ export default function ProfileSetupPage() {
       <form onSubmit={handleSubmit} className="profile-setup__card">
 
         {/* ===== SECTION: General info ===== */}
-        <div className="flex items-center gap-sm mb-md">
+        <div className="flex items-baseline gap-sm mb-md">
             <User size={18} strokeWidth={2.5} className="text-accent" />
             <span className="text-section">General information</span>
         </div>
@@ -206,7 +206,7 @@ export default function ProfileSetupPage() {
 
         <div className="form-group">
           <label className="form-label">Profile photo</label>
-          <div className="flex items-center gap-md">
+          <div className="flex items-baseline gap-md">
             {/* Avatar preview: photo or placeholder */}
             <div className="avatar avatar-lg" style={{ overflow: 'hidden', width: '96px', height: '96px' }}>
               {pictureUrl ? (
@@ -258,7 +258,7 @@ export default function ProfileSetupPage() {
         </div>
 
         {/* ===== SECTION: Sports ===== */}
-        <div className="flex items-center gap-sm mt-2xl mb-xs">
+        <div className="flex items-baseline gap-sm mt-2xl mb-xs">
             <Dumbbell size={18} strokeWidth={2.5} className="text-accent" />
             <span className="text-section">Your sports</span>
         </div>
@@ -288,7 +288,7 @@ export default function ProfileSetupPage() {
         </div>
 
         {/* ===== SECTION: Training mode ===== */}
-        <div className="flex items-center gap-sm mt-2xl mb-xs">
+        <div className="flex items-baseline gap-sm mt-2xl mb-xs">
             <SlidersHorizontal size={18} strokeWidth={2.5} className="text-accent" />
             <span className="text-section">Training mode</span>
         </div>
@@ -308,7 +308,7 @@ export default function ProfileSetupPage() {
                   borderColor: modeId === mode.id ? 'var(--accent-hover)' : undefined,
                   borderWidth: modeId === mode.id ? '2px' : undefined,
                 }}>
-                <div className="flex items-center gap-md">
+                <div className="flex items-baseline gap-md">
                   <Icon size={24} strokeWidth={2} className={modeId === mode.id ? 'text-accent' : 'text-muted'} />
                   <div>
                     <div className="text-body-strong">{mode.title}</div>
@@ -321,7 +321,7 @@ export default function ProfileSetupPage() {
         </div>
 
         {/* ===== SECTION: Distance ===== */}
-        <div className="flex items-center gap-sm mt-2xl mb-md">
+        <div className="flex items-baseline gap-sm mt-2xl mb-md">
             <MapPin size={18} strokeWidth={2.5} className="text-accent" />
             <span className="text-section">Distance</span>
         </div>
