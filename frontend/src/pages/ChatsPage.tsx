@@ -43,6 +43,10 @@ export default function ChatsPage() {
   const navigate = useNavigate();
   // chatId -> does this chat have unread messages? (icon, not a count)
   const [hasUnread, setHasUnread] = useState<Record<number, boolean>>({});
+  // Is the other person currently typing in the open chat?
+  const [otherTyping, setOtherTyping] = useState(false);
+  // Timer that sends "stopped typing" after a pause.
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Mount: who am I → my chats → initial unread icons from message history.
   useEffect(() => {
@@ -79,6 +83,7 @@ export default function ChatsPage() {
   // Load messages when a chat is selected (first page, no pagination yet).
   useEffect(() => {
     if (selectedChatId == null) return;
+    setOtherTyping(false); // reset when switching chats
     // Any time a chat opens (row click OR arriving from "Message"), clear its
     // icon and tell the backend it's read. Covers both entry points.
     setHasUnread((prev) => ({ ...prev, [selectedChatId]: false }));
@@ -133,8 +138,16 @@ export default function ChatsPage() {
       });
     });
 
+      // Subscribe to the other person's typing state.
+    const offTyping = socket.onTyping((payload) => {
+      // Only react if it's the chat we're viewing AND it's not my own echo.
+      if (payload.chat_id === selectedChatIdRef.current && payload.user_id !== myIdRef.current) {
+        setOtherTyping(payload.is_typing);
+      }
+    });
+
     // Only unsubscribe on unmount — keep the shared socket alive.
-    return () => { off(); };
+    return () => { off(); offTyping(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -272,12 +285,30 @@ export default function ChatsPage() {
               )}
             </div>
 
+            {otherTyping && (
+              <div className="typing-indicator" style={{ margin: '0 1rem 0.5rem' }}>
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+              </div>
+            )}
+
             <div className="chat-input-wrapper">
               <input
                 className="chat-input"
                 placeholder="Type a message…"
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  if (selectedChatId == null) return;
+                  // Tell the other person I'm typing.
+                  socketRef.current?.sendTyping(selectedChatId, true);
+                  // Reset the 3s "stopped typing" timer on every keystroke.
+                  if (typingTimer.current) clearTimeout(typingTimer.current);
+                  typingTimer.current = setTimeout(() => {
+                    socketRef.current?.sendTyping(selectedChatId, false);
+                  }, 3000);
+                }}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
               />
               <button className="btn-icon" onClick={handleSend} aria-label="Send">

@@ -30,6 +30,15 @@ interface WsEnvelope {
   payload: unknown;
 }
 
+// What the server sends when the other person types.
+// Note the extra user_id (who is typing) — matches Ivan's TypingBroadcastPayload.
+export interface TypingBroadcast {
+  chat_id: number;
+  user_id: number;
+  is_typing: boolean;
+}
+type TypingHandler = (payload: TypingBroadcast) => void;
+
 // A new-message payload (server → client) has the same shape as a REST Message.
 export type IncomingMessage = Message;
 
@@ -45,6 +54,7 @@ function wsUrl(): string {
 export class ChatSocket {
   private ws: WebSocket | null = null;
   private messageHandlers = new Set<MessageHandler>();
+  private typingHandlers = new Set<TypingHandler>();
   private shouldReconnect = true;
   private reconnectDelay = 1000; // grows on repeated failures, capped below
 
@@ -99,6 +109,11 @@ export class ChatSocket {
       this.messageHandlers.forEach((h) => h(msg));
     }
     // Other event types (typing, read, presence) come in steps 4.
+    
+    if (env.type === WsEvent.ChatTyping) {
+      const payload = env.payload as TypingBroadcast;
+      this.typingHandlers.forEach((h) => h(payload));
+    }
   }
 
   // Send a chat message. Server expects { chat_id, content } in the payload.
@@ -126,10 +141,29 @@ export class ChatSocket {
     return true;
   }
 
+  // Tell the server I'm typing (or stopped) in this chat.
+  // Server relays it only to the other participant. Payload: { chat_id, is_typing }.
+  sendTyping(chatId: number, isTyping: boolean) {
+    if (this.ws?.readyState !== WebSocket.OPEN) return false;
+    this.ws.send(
+      JSON.stringify({
+        type: WsEvent.ChatTyping,
+        payload: { chat_id: chatId, is_typing: isTyping },
+      }),
+    );
+    return true;
+  }
+
   // Subscribe to incoming messages. Returns an unsubscribe function.
   onMessage(handler: MessageHandler): () => void {
     this.messageHandlers.add(handler);
     return () => this.messageHandlers.delete(handler);
+  }
+
+    // Subscribe to typing events from the other participant. Returns unsubscribe.
+  onTyping(handler: TypingHandler): () => void {
+    this.typingHandlers.add(handler);
+    return () => this.typingHandlers.delete(handler);
   }
 
   disconnect() {
@@ -137,6 +171,7 @@ export class ChatSocket {
     this.ws?.close();
     this.ws = null;
     this.messageHandlers.clear();
+    this.typingHandlers.clear();
   }
 }
 
