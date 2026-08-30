@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"match-me-api/internal/domain"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -92,32 +93,81 @@ func (s *Storage) FindUserChats(ctx context.Context, userID int64) ([]*domain.Ch
 	return chats, nil
 }
 
-// SaveMessage persists a new chat message to the database.
-func (s *Storage) SaveMessage(ctx context.Context, message *domain.Message) error {
-	const op = "storage.postgres.SaveMessage"
-
-	if err := s.db.WithContext(ctx).Create(message).Error; err != nil {
-		return fmt.Errorf("%s: failed to save message: %w", op, err)
-	}
-
-	return nil
+// saveMessageDTO is an internal storage projection DTO for scanning raw CTE message insert results.
+type saveMessageDTO struct {
+	ID          int64     `gorm:"column:id"`
+	ChatID      int64     `gorm:"column:chat_id"`
+	SenderID    int64     `gorm:"column:sender_id"`
+	Content     string    `gorm:"column:content"`
+	CreatedAt   time.Time `gorm:"column:created_at"`
+	IsViewed    bool      `gorm:"column:is_viewed"`
+	RecipientID int64     `gorm:"column:recipient_id"`
 }
 
-// LoadChatHistory loads a paginated batch of messages for a chat, descending from lastMessageID cursor.
-func (s *Storage) LoadChatHistory(ctx context.Context, chatID, lastMessageID int64, limit int) ([]*domain.Message, error) {
+// SaveMessage persists a new chat message to the database and returns the recipient's user ID.
+func (s *Storage) SaveMessage(ctx context.Context, message *domain.Message) (int64, error) {
+	const op = "storage.postgres.SaveMessage"
+
+	const sqlQuery = `
+WITH target_chat AS (
+    SELECT id,
+           CASE WHEN user_one_id = ? THEN user_two_id ELSE user_one_id END AS recipient_id
+    FROM chats
+    WHERE id = ? AND (user_one_id = ? OR user_two_id = ?)
+),
+inserted AS (
+    INSERT INTO messages (chat_id, sender_id, content, created_at, is_viewed)
+    SELECT id, ?, ?, NOW(), false
+    FROM target_chat
+    RETURNING id, chat_id, sender_id, content, created_at, is_viewed
+)
+SELECT inserted.id, inserted.chat_id, inserted.sender_id, inserted.content, inserted.created_at, inserted.is_viewed, target_chat.recipient_id
+FROM inserted
+CROSS JOIN target_chat;`
+
+	var res saveMessageDTO
+	err := s.db.WithContext(ctx).Raw(
+		sqlQuery,
+		message.SenderID,
+		message.ChatID,
+		message.SenderID,
+		message.SenderID,
+		message.SenderID,
+		message.Content,
+	).Scan(&res).Error
+
+	if err != nil {
+		return 0, fmt.Errorf("%s: failed to save message: %w", op, err)
+	}
+
+	if res.ID == 0 {
+		return 0, domain.ErrNotChatParticipant
+	}
+
+	message.ID = res.ID
+	message.CreatedAt = res.CreatedAt
+	message.IsViewed = res.IsViewed
+
+	return res.RecipientID, nil
+}
+
+// LoadChatHistory loads a paginated batch of messages for a chat scoped to user membership, descending from lastMessageID cursor.
+func (s *Storage) LoadChatHistory(ctx context.Context, chatID, userID, lastMessageID int64, limit int) ([]*domain.Message, error) {
 	const op = "storage.postgres.LoadChatHistory"
 
 	query := s.db.WithContext(ctx).
-		Where("chat_id = ?", chatID).
+		Model(&domain.Message{}).
+		Joins("JOIN chats ON chats.id = messages.chat_id").
+		Where("messages.chat_id = ? AND (chats.user_one_id = ? OR chats.user_two_id = ?)", chatID, userID, userID).
 		Preload("Sender")
 
 	if lastMessageID > 0 {
-		query = query.Where("id < ?", lastMessageID)
+		query = query.Where("messages.id < ?", lastMessageID)
 	}
 
 	messages := make([]*domain.Message, 0)
 	err := query.
-		Order("id DESC").
+		Order("messages.id DESC").
 		Limit(limit).
 		Find(&messages).Error
 
@@ -128,13 +178,14 @@ func (s *Storage) LoadChatHistory(ctx context.Context, chatID, lastMessageID int
 	return messages, nil
 }
 
-// MarkMessagesAsRead marks unread incoming messages in a chat as viewed.
+// MarkMessagesAsRead marks unread incoming messages in a chat as viewed by readerID.
 func (s *Storage) MarkMessagesAsRead(ctx context.Context, chatID, readerID int64) error {
 	const op = "storage.postgres.MarkMessagesAsRead"
 
 	err := s.db.WithContext(ctx).
 		Model(&domain.Message{}).
 		Where("chat_id = ? AND sender_id != ? AND is_viewed = ?", chatID, readerID, false).
+		Where("EXISTS (SELECT 1 FROM chats WHERE chats.id = messages.chat_id AND (chats.user_one_id = ? OR chats.user_two_id = ?))", readerID, readerID).
 		Update("is_viewed", true).Error
 
 	if err != nil {
