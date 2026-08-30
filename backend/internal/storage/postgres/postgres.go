@@ -193,6 +193,18 @@ func (s *Storage) Ping(ctx context.Context) error {
 	return nil
 }
 
+// Close closes the underlying sql.DB database connection pool.
+func (s *Storage) Close() error {
+	const op = "storage.postgres.Close"
+
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return fmt.Errorf("%s: failed to get sql.DB: %w", op, err)
+	}
+
+	return sqlDB.Close()
+}
+
 // connectAndSetup is a helper "facade" function that wraps the db setup, including context and timeouts, to improve readability.
 func connectAndSetup(ctx context.Context, dsn string, gormLogger logger.Interface) (*gorm.DB, *sql.DB, error) {
 	const op = "storage.postgres.connectAndSetup"

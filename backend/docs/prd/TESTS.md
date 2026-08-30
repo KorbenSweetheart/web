@@ -12,7 +12,7 @@
 - [x] The user is not shown any recommendations until they have completed their profile.
 - [x] The user has a minimum of 5 biographical points to configure.
 - [x] The user can change their biographical data.
-- [ ] The user can specify preference which target biographical data points.
+- [x] The user can specify preference which target biographical data points.
 - [x] A profile picture can be set.
 - [x] The profile picture can be removed or changed.
 - [x] The email address is not shown, except to the owner of the profile.
@@ -33,13 +33,13 @@
     They are connected.
 - [x] It is possible to disconnect with a user.
 - [x] Chat is only possible between connected profiles.
-- [ ] Chats are ordered with the most recently active chat first.
-- [ ] Chat messages feature a date and time.
-- [ ] A chat history can be reached from the connected user's profile.
-- [ ] Both users see the same chat history.
-- [ ] The chat history API data is paginated.
-- [ ] The chat works in real time.
-- [ ] An unread message icon appears when new chat messages are received in real time.
+- [x] Chats are ordered with the most recently active chat first.
+- [x] Chat messages feature a date and time.
+- [x] A chat history can be reached from the connected user's profile.
+- [x] Both users see the same chat history.
+- [x] The chat history API data is paginated.
+- [x] The chat works in real time.
+- [x] An unread message icon appears when new chat messages are received in real time.
 - [x] The realtime implementation does not rely on polling.
 - [ ] The recommendations endpoint only returns a list of ids. `Note: it returns score alongside IDs`
 - [x] The connections endpoint only returns a list of ids.
@@ -54,12 +54,12 @@
 - [x] The frontend is implemented in React using Typescript.
 - [x] A PostgreSQL database is used as the primary application database.
 - [x] The application is secure. Information is appropriately shown to the correct authenticated users only.
-- [ ] The application is responsive for mobile and desktop browsers.
+- [x] The application is responsive for mobile and desktop browsers.
 - [x] A method was provided to load fictitious users into the system (minimum 100).
 
 ## Extra
 - [x] The user experience is excellent, usable and well designed.
-- [ ] An offline/online indicator is shown on profile and chat views.
+- [x] An offline/online indicator is shown on profile and chat views.
 - [x] A typing in progress indicator is shown.
 - [x] The recommendation algorithm is exceptional.
 - [x] It implements proximity-based location filtering.

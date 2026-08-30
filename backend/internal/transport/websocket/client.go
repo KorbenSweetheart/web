@@ -49,7 +49,10 @@ type ClientInboundMessage struct {
 // There is at most one reader per connection running in a dedicated goroutine.
 func (c *Client) ReadPump() {
 	defer func() {
-		c.hub.Unregister <- c
+		select {
+		case c.hub.Unregister <- c:
+		case <-c.hub.done:
+		}
 		_ = c.Conn.Close()
 	}()
 
@@ -75,9 +78,13 @@ func (c *Client) ReadPump() {
 			continue
 		}
 
-		c.hub.Inbound <- &ClientInboundMessage{
+		select {
+		case c.hub.Inbound <- &ClientInboundMessage{
 			Client: c,
 			Event:  event,
+		}:
+		case <-c.hub.done:
+			return
 		}
 	}
 }
