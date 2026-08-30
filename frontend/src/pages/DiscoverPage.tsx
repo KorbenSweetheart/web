@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Compass } from 'lucide-react';
 import UserCard from '../components/UserCard';
 import ProfilePanel from '../components/ProfilePanel';
-import { getRecommendations, updateMyLocation, dismissRecommendation } from '../services/users';
+import { getRecommendations, dismissRecommendation } from '../services/users';
 import { sendConnectionRequest } from '../services/connections';
 import type { UserProfile } from '../services/mockUsers';
 import './DiscoverPage.css';
@@ -13,10 +13,11 @@ export default function DiscoverPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // On mount: send fresh location first, then fetch recommendations.
+  // On mount: just fetch recommendations. Location is now sent once when
+  // the app loads (see AppLayout), not before every Discover visit —
+  // that removes the 1-5s geolocation delay this page used to have.
   useEffect(() => {
-    updateMyLocation()
-      .then(() => getRecommendations())
+    getRecommendations()
       .then((data) => setUsers(data))
       .catch((err) => {
         console.error(err);
