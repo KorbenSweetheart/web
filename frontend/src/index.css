@@ -531,6 +531,24 @@ body {
   display: inline-block;
 }
 
+.user-status-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--accent-3);
+  flex-shrink: 0;
+}
+
+.user-status-online__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background-color: var(--accent-3);
+  flex-shrink: 0;
+}
+
 .offline-dot {
   width: 7px;
   height: 7px;

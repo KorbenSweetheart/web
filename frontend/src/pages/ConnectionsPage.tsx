@@ -12,6 +12,7 @@ import './ConnectionsPage.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getMyProfile } from '../services/users';
 import { openDirectChat } from '../services/chats';
+import { getChatSocket } from '../services/websocket';
 import ProfilePanel from '../components/ProfilePanel';
 
 type Tab = 'received' | 'connected';
@@ -24,11 +25,11 @@ export default function ConnectionsPage() {
   const [error, setError] = useState('');
   const [myId, setMyId] = useState<number | null>(null);
   const [openingChat, setOpeningChat] = useState(false);
+  const [online, setOnline] = useState<Record<number, boolean>>({});
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const location = useLocation();
 
-  // Load both lists on mount.
   // Load both lists on mount.
   useEffect(() => {
     Promise.all([getConnectionRequests(), getConnections(), getMyProfile()])
@@ -52,6 +53,28 @@ export default function ConnectionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Ask who's online among connected users — on load and every 20s after.
+  useEffect(() => {
+    if (connected.length === 0) return;
+    const socket = getChatSocket();
+
+    const ids = connected.map((c) => c.id);
+    const ask = () => socket.checkPresence(ids);
+
+    ask(); // immediate first check
+    const interval = setInterval(ask, 20000);
+    return () => clearInterval(interval);
+  }, [connected]);
+
+  // Subscribe to presence replies — merge the batch into our online map.
+  useEffect(() => {
+    const socket = getChatSocket();
+    const offPresence = socket.onPresence((payload) => {
+      setOnline((prev) => ({ ...prev, ...payload.statuses }));
+    });
+    return () => { offPresence(); };
+  }, []);
+
   async function handleAccept(id: number) {
     try {
       await respondToConnection(id, 'accepted');
@@ -59,6 +82,7 @@ export default function ConnectionsPage() {
       const person = received.find((u) => u.id === id);
       setReceived((prev) => prev.filter((u) => u.id !== id));
       if (person) setConnected((prev) => [...prev, person]);
+      window.dispatchEvent(new CustomEvent('connections:updated'));
     } catch (err) {
       console.error(err);
     }
@@ -68,6 +92,7 @@ export default function ConnectionsPage() {
     try {
       await respondToConnection(id, 'declined');
       setReceived((prev) => prev.filter((u) => u.id !== id));
+      window.dispatchEvent(new CustomEvent('connections:updated'));
     } catch (err) {
       console.error(err);
     }
@@ -83,19 +108,19 @@ export default function ConnectionsPage() {
   }
 
   async function handleMessage(id: number) {
-  if (myId == null || openingChat) return;   // guard: no dispares sin myId ni doble-click
-  setOpeningChat(true);
-  try {
-    const chat = await openDirectChat(id, myId);
-    navigate('/app/chats', { state: { openChatId: chat.id } });
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setOpeningChat(false);
+    if (myId == null || openingChat) return;   // guard: no dispares sin myId ni doble-click
+    setOpeningChat(true);
+    try {
+      const chat = await openDirectChat(id, myId);
+      navigate('/app/chats', { state: { openChatId: chat.id } });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setOpeningChat(false);
+    }
   }
-}
 
-    const lists: Record<Tab, UserProfile[]> = { received, connected };
+  const lists: Record<Tab, UserProfile[]> = { received, connected };
   const current = lists[tab];
   const selectedUser = current.find((u) => u.id === selectedId) ?? null;
 
@@ -110,13 +135,13 @@ export default function ConnectionsPage() {
       </div>
 
       <div className="connections__tabs">
-        <button className={`connections__tab ${tab === 'received' ? 'is-active' : ''}`}
-          onClick={() => { setTab('received'); setSelectedId(null); }}>
-          Received {received.length > 0 && <span className="badge">{received.length}</span>}
-        </button>
         <button className={`connections__tab ${tab === 'connected' ? 'is-active' : ''}`}
           onClick={() => { setTab('connected'); setSelectedId(null); }}>
           Connected
+        </button>
+        <button className={`connections__tab ${tab === 'received' ? 'is-active' : ''}`}
+          onClick={() => { setTab('received'); setSelectedId(null); }}>
+          Received {received.length > 0 && <span className="badge">{received.length}</span>}
         </button>
       </div>
 
@@ -134,6 +159,8 @@ export default function ConnectionsPage() {
                 key={user.id}
                 user={user}
                 variant={tab === 'received' ? 'received' : 'connected'}
+                showScore={false}
+                isOnline={tab === 'connected' ? !!online[user.id] : false}
                 onAccept={handleAccept}
                 onDecline={handleDecline}
                 onMessage={handleMessage}
@@ -148,6 +175,8 @@ export default function ConnectionsPage() {
               <ProfilePanel
                 user={selectedUser}
                 variant={tab}
+                showScore={false}
+                isOnline={tab === 'connected' ? !!online[selectedUser.id] : false}
                 onClose={() => setSelectedId(null)}
                 onAccept={handleAccept}
                 onDecline={handleDecline}

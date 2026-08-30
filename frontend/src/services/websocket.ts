@@ -62,6 +62,7 @@ export class ChatSocket {
   private messageHandlers = new Set<MessageHandler>();
   private typingHandlers = new Set<TypingHandler>();
   private presenceHandlers = new Set<PresenceHandler>();
+  private outboundQueue: string[] = [];
   private shouldReconnect = true;
   private reconnectDelay = 1000; // grows on repeated failures, capped below
 
@@ -80,6 +81,13 @@ export class ChatSocket {
 
     ws.onopen = () => {
       this.reconnectDelay = 1000; // reset backoff on a clean connection
+      // Flush any events queued while connecting
+      while (this.outboundQueue.length > 0) {
+        const item = this.outboundQueue.shift();
+        if (item && this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.send(item);
+        }
+      }
     };
 
     ws.onmessage = (e) => {
@@ -115,7 +123,6 @@ export class ChatSocket {
       const msg = env.payload as Message;
       this.messageHandlers.forEach((h) => h(msg));
     }
-    // Other event types (typing, read, presence) come in steps 4.
     
     if (env.type === WsEvent.ChatTyping) {
       const payload = env.payload as TypingBroadcast;
@@ -128,56 +135,48 @@ export class ChatSocket {
     }
   }
 
+  private send(type: string, payload: unknown): boolean {
+    const raw = JSON.stringify({ type, payload });
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(raw);
+      return true;
+    }
+
+    // If connecting, or if socket is closed but should reconnect, queue the payload
+    if (!this.ws || this.ws.readyState === WebSocket.CONNECTING) {
+      this.outboundQueue.push(raw);
+      if (!this.ws) this.connect();
+      return true;
+    }
+
+    // Socket is in CLOSING / CLOSED state: queue and reconnect
+    this.outboundQueue.push(raw);
+    this.connect();
+    return true;
+  }
+
   // Send a chat message. Server expects { chat_id, content } in the payload.
   sendMessage(chatId: number, content: string) {
-    if (this.ws?.readyState !== WebSocket.OPEN) return false;
-    this.ws.send(
-      JSON.stringify({
-        type: WsEvent.ChatMessage,
-        payload: { chat_id: chatId, content },
-      }),
-    );
-    return true;
+    return this.send(WsEvent.ChatMessage, { chat_id: chatId, content });
   }
 
   // Tell the server I've read this chat, so it marks the messages as viewed.
   // Payload matches the wire protocol: { chat_id }.
   sendRead(chatId: number) {
-    if (this.ws?.readyState !== WebSocket.OPEN) return false;
-    this.ws.send(
-      JSON.stringify({
-        type: WsEvent.ChatRead,
-        payload: { chat_id: chatId },
-      }),
-    );
-    return true;
+    return this.send(WsEvent.ChatRead, { chat_id: chatId });
   }
 
   // Tell the server I'm typing (or stopped) in this chat.
   // Server relays it only to the other participant. Payload: { chat_id, is_typing }.
   sendTyping(chatId: number, isTyping: boolean) {
-    if (this.ws?.readyState !== WebSocket.OPEN) return false;
-    this.ws.send(
-      JSON.stringify({
-        type: WsEvent.ChatTyping,
-        payload: { chat_id: chatId, is_typing: isTyping },
-      }),
-    );
-    return true;
+    return this.send(WsEvent.ChatTyping, { chat_id: chatId, is_typing: isTyping });
   }
 
   // Ask the server which of these users are currently online.
   // Server replies with a presence:batch event. Payload: { user_ids }.
   checkPresence(userIds: number[]) {
-    if (this.ws?.readyState !== WebSocket.OPEN) return false;
     if (userIds.length === 0) return false;
-    this.ws.send(
-      JSON.stringify({
-        type: WsEvent.PresenceCheck,
-        payload: { user_ids: userIds },
-      }),
-    );
-    return true;
+    return this.send(WsEvent.PresenceCheck, { user_ids: userIds });
   }
 
   // Subscribe to incoming messages. Returns an unsubscribe function.

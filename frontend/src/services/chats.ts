@@ -99,3 +99,62 @@ export async function getChatMessages(
   }
   return apiGet(path);
 }
+
+// Helper to count unread messages in a single chat, paginating until viewed messages are reached.
+async function countUnreadInChat(chatId: number, myId: number): Promise<number> {
+  let unreadCount = 0;
+  let lastMessageId = 0;
+  const pageSize = 50;
+
+  while (true) {
+    const msgs = await getChatMessages(chatId, lastMessageId, pageSize);
+    if (!msgs || msgs.length === 0) break;
+
+    let hitViewed = false;
+    for (const msg of msgs) {
+      if (msg.sender_id !== myId) {
+        if (!msg.is_viewed) {
+          unreadCount++;
+        } else {
+          // Since messages are ordered newest-to-oldest (DESC),
+          // once we hit a message that has already been viewed,
+          // all older messages are also viewed.
+          hitViewed = true;
+          break;
+        }
+      }
+    }
+
+    if (hitViewed || msgs.length < pageSize) {
+      break;
+    }
+
+    lastMessageId = msgs[msgs.length - 1].id;
+    if (lastMessageId <= 0) break;
+  }
+
+  return unreadCount;
+}
+
+// Returns the total number of unread messages across all of the current user's chats.
+export async function getUnreadMessagesCount(myId?: number): Promise<number> {
+  try {
+    let resolvedId = myId;
+    if (resolvedId == null) {
+      const me = await apiGet('/me');
+      resolvedId = me.id;
+    }
+    if (resolvedId == null) return 0;
+
+    const chats = await getChats(resolvedId);
+    if (!chats || chats.length === 0) return 0;
+
+    const counts = await Promise.all(
+      chats.map((chat) => countUnreadInChat(chat.id, resolvedId!)),
+    );
+
+    return counts.reduce((acc, count) => acc + count, 0);
+  } catch {
+    return 0;
+  }
+}

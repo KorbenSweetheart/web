@@ -48,6 +48,13 @@ func main() {
 		log.Error("database connection failed", logger.Err(err))
 		os.Exit(1)
 	}
+	defer func() {
+		if err := storage.Close(); err != nil {
+			log.Error("failed to close database connection", logger.Err(err))
+		} else {
+			log.Info("database connection closed successfully")
+		}
+	}()
 
 	log.Info("database connection established successfully")
 
@@ -120,15 +127,9 @@ func main() {
 
 	if err := sc.Start(shutdownCtx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("api server stopped with error", logger.Err(err))
-		// TODO: storage.Close()
-		os.Exit(1)
+		return
 	}
 
 	log.Info("http server stopped, cleaning up resources...")
-
-	// if err := db.Close(); err != nil {
-	//     log.Error("Error during database shutdown", logger.Err(err))
-	// }
-
 	log.Info("api server shutdown completed successfully")
 }

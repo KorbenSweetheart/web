@@ -20,6 +20,8 @@ export type UserCardVariant = 'discover' | 'received' | 'sent' | 'connected';
 interface UserCardProps {
   user: UserProfile;
   variant?: UserCardVariant;
+  showScore?: boolean;
+  isOnline?: boolean;
   onConnect?: (id: number) => void;
   onDismiss?: (id: number) => void;
   onAccept?: (id: number) => void;
@@ -30,7 +32,7 @@ interface UserCardProps {
 }
 
 export default function UserCard({
-  user, variant = 'discover',
+  user, variant = 'discover', showScore = true, isOnline = false,
   onConnect, onDismiss, onAccept, onDecline, onCancel, onMessage, onClick,
 }: UserCardProps) {
   const initials = user.name
@@ -61,6 +63,12 @@ export default function UserCard({
         <div className="user-card__info">
           <div className="user-card__name-row">
             <h3 className="user-card__name">{user.name}</h3>
+            {isOnline && (
+              <span className="user-status-online" aria-label="Online">
+                <span className="user-status-online__dot" />
+                <span>Online</span>
+              </span>
+            )}
           </div>
 
           <p className="user-card__meta">
@@ -81,15 +89,17 @@ export default function UserCard({
         </div>
 
         {/* Match score ring */}
-        <div className="user-card__ring">
-          <svg width="64" height="64" viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r={radius} className="user-card__ring-bg" />
-            <circle cx="32" cy="32" r={radius} className="user-card__ring-fill"
-              strokeDasharray={circumference} strokeDashoffset={offset}
-              transform="rotate(-90 32 32)" />
-          </svg>
-          <span className="user-card__ring-text">{user.match_score}</span>
-        </div>
+        {showScore && (
+          <div className="user-card__ring">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r={radius} className="user-card__ring-bg" />
+              <circle cx="32" cy="32" r={radius} className="user-card__ring-fill"
+                strokeDasharray={circumference} strokeDashoffset={offset}
+                transform="rotate(-90 32 32)" />
+            </svg>
+            <span className="user-card__ring-text">{user.match_score}</span>
+          </div>
+        )}
       </div>
 
       {/* Bio */}

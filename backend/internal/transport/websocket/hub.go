@@ -33,6 +33,7 @@ type Hub struct {
 	Register    chan *Client
 	Unregister  chan *Client
 	Inbound     chan *ClientInboundMessage
+	done        chan struct{}
 	chatService ChatManager
 	presence    PresenceManager
 	validator   *validator.Validate
@@ -46,6 +47,7 @@ func NewHub(chatService ChatManager, presence PresenceManager, validator *valida
 		Register:    make(chan *Client),
 		Unregister:  make(chan *Client),
 		Inbound:     make(chan *ClientInboundMessage, 128),
+		done:        make(chan struct{}),
 		chatService: chatService,
 		presence:    presence,
 		validator:   validator,
@@ -55,6 +57,8 @@ func NewHub(chatService ChatManager, presence PresenceManager, validator *valida
 
 // Run executes the central Hub event loop in a dedicated goroutine.
 func (h *Hub) Run(ctx context.Context) {
+	defer close(h.done)
+
 	for {
 		select {
 		case <-ctx.Done():

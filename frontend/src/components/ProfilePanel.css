@@ -58,6 +58,10 @@
   gap: 0.5rem;
 }
 
+.profile-panel__status {
+  margin-top: 4px;
+}
+
 /* Ring (now in header, right side) */
 .profile-panel__ring {
   position: relative;

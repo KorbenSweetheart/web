@@ -48,7 +48,12 @@ func (h *Handler) Upgrade(c *echo.Context) error {
 	connID := fmt.Sprintf("%d-%d", userID, time.Now().UnixNano())
 	client := NewClient(connID, userID, conn, h.hub, h.log)
 
-	h.hub.Register <- client
+	select {
+	case h.hub.Register <- client:
+	case <-h.hub.done:
+		_ = conn.Close()
+		return c.JSON(http.StatusServiceUnavailable, map[string]any{"error": "Server is shutting down"})
+	}
 
 	go client.WritePump()
 	go client.ReadPump()

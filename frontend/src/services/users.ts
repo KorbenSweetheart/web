@@ -8,7 +8,7 @@
    endpoints, as Iván's API requires.
    ============================================ */
 
-import { apiGet, apiPatch, apiDelete, apiPost } from './api';
+import { request, apiGet, apiPatch, apiDelete, apiPost } from './api';
 import type { UserProfile } from './mockUsers';
 
 // Fetch the logged-in user's full profile.
@@ -117,21 +117,17 @@ export async function updateMyLocation(): Promise<void> {
 }
 
 // Uploads a profile picture file (POST /me/picture).
-// Sends the file as FormData (not JSON — that's how files are uploaded).
-// This stays a raw fetch because apiPost forces a JSON Content-Type, which
-// would break the file upload. We only add credentials so the cookie travels.
+// Sends the file as FormData. Routed through request() so it benefits from
+// automatic token refresh and session recovery just like all other API calls.
 export async function uploadProfilePicture(file: File): Promise<string> {
   const form = new FormData();
   form.append('picture', file); // 'picture' is the field name the backend expects
 
-  const res = await fetch('/me/picture', {
+  const data = (await request('/me/picture', {
     method: 'POST',
-    credentials: 'include', // ← send the auth cookie (no Content-Type: the browser sets it for FormData)
     body: form,
-  });
+  })) as { picture_url: string };
 
-  if (!res.ok) throw new Error('Failed to upload picture');
-  const data = await res.json();
   return data.picture_url;
 }
 
