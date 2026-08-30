@@ -17,7 +17,7 @@ import ProfilePanel from '../components/ProfilePanel';
 type Tab = 'received' | 'connected';
 
 export default function ConnectionsPage() {
-  const [tab, setTab] = useState<Tab>('received');
+  const [tab, setTab] = useState<Tab>('connected');
   const [received, setReceived] = useState<UserProfile[]>([]);
   const [connected, setConnected] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);

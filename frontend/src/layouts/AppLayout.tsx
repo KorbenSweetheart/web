@@ -1,7 +1,8 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Compass, Users, MessageCircle, User, LogOut, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { logout } from '../services/auth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { updateMyLocation } from '../services/users';
 import './AppLayout.css';
 
 const NAV = [
@@ -14,6 +15,13 @@ const NAV = [
 export default function AppLayout() {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  // Send the user's location once, when they enter the app — not before
+  // every Discover fetch (that added a 1-5s browser-geolocation delay to
+  // each visit). AppLayout mounts once for the whole logged-in area, so
+  // this runs a single time per session.
+  useEffect(() => {
+    updateMyLocation();
+  }, []);
 
   async function handleLogout() {
     await logout();

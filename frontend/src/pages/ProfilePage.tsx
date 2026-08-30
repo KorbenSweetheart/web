@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getMyProfile } from '../services/users';
 import type { UserProfile } from '../services/mockUsers';
 import { User, Headphones, Users, Sparkles, MapPin, Pencil } from 'lucide-react';
+import { EXP_LABELS, INTEREST_LABELS } from '../services/labels';
 import './ProfilePage.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,10 +10,6 @@ const MODES: Record<number, { icon: typeof Headphones; label: string }> = {
   1: { icon: Sparkles,   label: 'Open to anything' },
   2: { icon: Users,      label: 'Social' },
   3: { icon: Headphones, label: 'Silent' },
-};
-
-const EXP_LABELS: Record<number, string> = {
-  1: 'Beginner', 2: 'Active Novice', 3: 'Intermediate', 4: 'Advanced', 5: 'Professional',
 };
 
 export default function ProfilePage() {
@@ -117,7 +114,11 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap gap-sm">
                   {profile.activities.map((a) => (
                     <span key={a.id} className="sport-tag">
-                      {a.title} · {EXP_LABELS[a.experience]}
+                      <span className="sport-tag__name">{a.title}</span>
+                      <span className="sport-tag__meta"> · {EXP_LABELS[a.experience]}</span>
+                      {a.interest_level != null && (
+                        <span className="sport-tag__meta"> · {INTEREST_LABELS[a.interest_level]}</span>
+                      )}
                     </span>
                   ))}
                 </div>

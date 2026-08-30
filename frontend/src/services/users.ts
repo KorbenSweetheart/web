@@ -37,14 +37,12 @@ export async function getMyProfile(): Promise<UserProfile> {
 }
 
 // Checks whether a profile has all the required fields filled in.
-// The task says the user can't see recommendations/connections until
-// their profile is complete. "Complete" = these 5 required fields.
-// Picture is intentionally NOT checked — it's optional (placeholder shown instead).
 export function isProfileComplete(profile: UserProfile): boolean {
+  // "Complete enough to match" = the fields matching actually needs.
+  // Age and bio are optional (see profile setup), so they're not required
+  // here — otherwise a valid saved profile would loop back to setup.
   return (
     profile.name.trim() !== '' &&        // has a name
-    profile.age > 0 &&                   // has an age
-    profile.bio.trim() !== '' &&         // has an "about me"
     profile.interaction_mode > 0 &&      // picked a training mode
     profile.activities.length > 0        // picked at least one sport
   );

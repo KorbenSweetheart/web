@@ -1,15 +1,12 @@
 import type { UserProfile } from '../services/mockUsers';
 import { X, Headphones, Users, Sparkles, MapPin } from 'lucide-react';
+import { EXP_LABELS, INTEREST_LABELS } from '../services/labels';
 import './ProfilePanel.css';
 
 const MODES: Record<number, { icon: typeof Headphones; label: string }> = {
   1: { icon: Sparkles,   label: 'Open to anything' },
   2: { icon: Users,      label: 'Social' },
   3: { icon: Headphones, label: 'Silent' },
-};
-
-const EXP_LABELS: Record<number, string> = {
-  1: 'Beginner', 2: 'Active Novice', 3: 'Intermediate', 4: 'Advanced', 5: 'Professional',
 };
 
 // Which context the panel is shown in — decides the footer buttons.
@@ -107,10 +104,12 @@ export default function ProfilePanel({
 
       {/* Key details as an airy labeled list */}
       <div className="profile-panel__details">
-        <div className="profile-panel__detail">
-          <span className="profile-panel__detail-label">Age:</span>
-          <span className="profile-panel__detail-value">{user.age}</span>
-        </div>
+        {user.age > 0 && (
+          <div className="profile-panel__detail">
+            <span className="profile-panel__detail-label">Age:</span>
+            <span className="profile-panel__detail-value">{user.age}</span>
+          </div>
+        )}
         <div className="profile-panel__detail">
           <span className="profile-panel__detail-label">Training mode:</span>
           <span className="profile-panel__detail-value">
@@ -141,9 +140,14 @@ export default function ProfilePanel({
         <div className="profile-panel__tags">
           {user.activities.map((a) => (
             <span key={a.id} className="sport-tag">
-              {a.title} · {EXP_LABELS[a.experience]}
+              <span className="sport-tag__name">{a.title}</span>
+              <span className="sport-tag__meta"> · {EXP_LABELS[a.experience]}</span>
+              {a.interest_level != null && (
+                <span className="sport-tag__meta"> · {INTEREST_LABELS[a.interest_level]}</span>
+              )}
             </span>
           ))}
+
         </div>
       </div>
 
