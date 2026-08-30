@@ -22,6 +22,13 @@ export default function ProfileSetupPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
+  const INTEREST_LEVELS = [
+    { value: 1, label: 'Curious' },
+    { value: 2, label: 'Casual' },
+    { value: 3, label: 'Into it' },
+    { value: 4, label: 'Keen' },
+    { value: 5, label: 'Obsessed' },
+  ];
 
   // On mount, load the existing profile (if any) to pre-fill the form.
   // First-time users get an empty form; returning users get their data.
@@ -124,6 +131,19 @@ export default function ProfileSetupPage() {
         a.activity_id === sportId ? { ...a, experience: level } : a
       )
     );
+  }
+
+  // Change the interest level of a sport already selected
+  function setSportInterest(sportId: number, interest: number) {
+    setActivities((prev) =>
+      prev.map((a) =>
+        a.activity_id === sportId ? { ...a, interest_level: interest } : a
+      )
+    );
+  }
+
+  function getInterest(sportId: number) {
+    return activities.find((a) => a.activity_id === sportId)?.interest_level ?? 3;
   }
 
   function isSelected(sportId: number) {
@@ -273,15 +293,29 @@ export default function ProfileSetupPage() {
               </label>
 
               {isSelected(sport.id) && (
-                <div className="flex flex-wrap gap-xs mt-sm">
-                  {LEVELS.map((lvl) => (
-                    <button key={lvl.value} type="button"
-                      className={`pill ${getLevel(sport.id) === lvl.value ? 'pill-active' : ''}`}
-                      onClick={() => setSportLevel(sport.id, lvl.value)} disabled={loading}>
-                      {lvl.label}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <p className="form-helper mt-sm mb-xs">Level</p>
+                  <div className="flex flex-wrap gap-xs">
+                    {LEVELS.map((lvl) => (
+                      <button key={lvl.value} type="button"
+                        className={`pill ${getLevel(sport.id) === lvl.value ? 'pill-active' : ''}`}
+                        onClick={() => setSportLevel(sport.id, lvl.value)} disabled={loading}>
+                        {lvl.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="form-helper mt-sm mb-xs">How into it are you?</p>
+                  <div className="flex flex-wrap gap-xs">
+                    {INTEREST_LEVELS.map((lvl) => (
+                      <button key={lvl.value} type="button"
+                        className={`pill ${getInterest(sport.id) === lvl.value ? 'pill-active' : ''}`}
+                        onClick={() => setSportInterest(sport.id, lvl.value)} disabled={loading}>
+                        {lvl.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           ))}

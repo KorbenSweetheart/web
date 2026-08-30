@@ -15,6 +15,11 @@ const EXP_LABELS: Record<number, string> = {
   1: 'Beginner', 2: 'Active Novice', 3: 'Intermediate', 4: 'Advanced', 5: 'Professional',
 };
 
+// Interest labels — how keen the user is on each sport (1-5).
+const INTEREST_LABELS: Record<number, string> = {
+  1: 'Curious', 2: 'Casual', 3: 'Into it', 4: 'Keen', 5: 'Obsessed',
+};
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,7 +122,11 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap gap-sm">
                   {profile.activities.map((a) => (
                     <span key={a.id} className="sport-tag">
-                      {a.title} · {EXP_LABELS[a.experience]}
+                      <span className="sport-tag__name">{a.title}</span>
+                      <span className="sport-tag__meta"> · {EXP_LABELS[a.experience]}</span>
+                      {a.interest_level != null && (
+                        <span className="sport-tag__meta"> · {INTEREST_LABELS[a.interest_level]}</span>
+                      )}
                     </span>
                   ))}
                 </div>

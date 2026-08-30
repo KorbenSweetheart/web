@@ -19,6 +19,15 @@ const EXP_LABELS: Record<number, string> = {
   5: 'Professional',
 };
 
+// Map interest number → readable label (how keen they are on the sport)
+const INTEREST_LABELS: Record<number, string> = {
+  1: 'Curious',
+  2: 'Casual',
+  3: 'Into it',
+  4: 'Keen',
+  5: 'Obsessed',
+};
+
 // Which set of buttons the card shows in the footer.
 // 'discover'  → Dismiss / Connect        (Discover page)
 // 'received'  → Decline / Accept         (they sent us a request)
@@ -108,7 +117,11 @@ export default function UserCard({
       <div className="user-card__tags">
         {user.activities.slice(0, 3).map((a) => (
           <span key={a.id} className="sport-tag">
-            {a.title} · {EXP_LABELS[a.experience]}
+            <span className="sport-tag__name">{a.title}</span>
+            <span className="sport-tag__meta"> · {EXP_LABELS[a.experience]}</span>
+            {a.interest_level != null && (
+              <span className="sport-tag__meta"> · {INTEREST_LABELS[a.interest_level]}</span>
+            )}
           </span>
         ))}
         {user.activities.length > 3 && (
