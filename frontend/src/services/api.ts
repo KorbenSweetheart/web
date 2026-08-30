@@ -69,9 +69,14 @@ async function request(
   options: RequestInit = {},
   retry = true,
 ): Promise<unknown> {
+  const isFormData = options.body instanceof FormData;
+  const headers = isFormData
+    ? (options.headers || {})
+    : { ...jsonHeaders, ...options.headers };
+
   const res = await fetch(path, {
     ...options,
-    headers: jsonHeaders,
+    headers,
     credentials: 'include', // ← send the auth cookie with every request
   });
 
@@ -130,4 +135,4 @@ async function apiDelete(path: string) {
   return request(path, { method: 'DELETE' });
 }
 
-export { apiGet, apiPost, apiPatch, apiDelete };
+export { request, apiGet, apiPost, apiPatch, apiDelete };

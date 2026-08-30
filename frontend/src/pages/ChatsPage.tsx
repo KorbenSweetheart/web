@@ -52,30 +52,53 @@ export default function ChatsPage() {
   const [online, setOnline] = useState<Record<number, boolean>>({});
   // Timer that sends "stopped typing" after a pause.
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to prevent auto-scrolling to bottom when prepending older messages
+  const isPrependingRef = useRef(false);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('chats:unread-changed'));
+  }, [hasUnread]);
+
+
+  const selectedChatIdRef = useRef<number | null>(selectedChatId);
+  selectedChatIdRef.current = selectedChatId;
+
+  const myIdRef = useRef<number | null>(myId);
+  myIdRef.current = myId;
 
   // Mount: who am I → my chats → initial unread icons from message history.
   useEffect(() => {
     getMyProfile()
       .then((me) => {
         setMyId(me.id);
+        myIdRef.current = me.id;
         return getChats(me.id).then((data) => ({ me, data }));
       })
       .then(async ({ me, data }) => {
         setChats(data);
         const openId = (location.state as { openChatId?: number } | null)?.openChatId;
-        if (openId != null) setSelectedChatId(openId);
+        if (openId != null) {
+          selectedChatIdRef.current = openId;
+          setSelectedChatId(openId);
+        }
 
         // For each chat, peek at its latest messages: if any message I didn't
-        // send is still unviewed, that chat gets the icon. This is the reliable
-        // source — the WebSocket only flips it on/off live on top of this.
+        // send is still unviewed, that chat gets the icon.
         const entries = await Promise.all(
           data.map(async (chat) => {
-            const msgs = await getChatMessages(chat.id, 0, 15);
+            const msgs = await getChatMessages(chat.id, 0, 50);
             const unread = msgs.some((m) => m.sender_id !== me.id && !m.is_viewed);
             return [chat.id, unread] as const;
           }),
         );
-        setHasUnread(Object.fromEntries(entries));
+        setHasUnread((prev) => {
+          const map = Object.fromEntries(entries);
+          const activeId = selectedChatIdRef.current ?? openId;
+          if (activeId != null) {
+            map[activeId] = false;
+          }
+          return { ...prev, ...map };
+        });
       })
       .catch((err) => {
         console.error(err);
@@ -112,9 +135,9 @@ export default function ChatsPage() {
   // Stick to bottom on new messages / chat switch — but NOT when we're
   // prepending older history (that path manages its own scroll).
   useEffect(() => {
-    if (loadingOlder) return;
+    if (isPrependingRef.current) return;
     threadRef.current?.scrollTo(0, threadRef.current.scrollHeight);
-  }, [messages, loadingOlder]);
+  }, [messages]);
 
   // Ask who's online among my chat partners — on load and every 20s after.
   // (Ivan's backend answers presence:check but doesn't push live changes,
@@ -141,17 +164,17 @@ export default function ChatsPage() {
       const isOpenChat = msg.chat_id === selectedChatIdRef.current;
       const isMine = msg.sender_id === myIdRef.current;
 
-      // 1. If it's the chat we're viewing, append it to the thread.
+      // 1. If it's the chat we're viewing, append it to the thread and acknowledge read.
       if (isOpenChat) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === msg.id)) return prev; // guard against dupes
           return [...prev, msg];
         });
         // We're looking at this chat, so the message is seen immediately.
-        // Tell the backend to mark it read — otherwise it stays is_viewed=false
-        // and the unread icon wrongly reappears in the chat list.
+        // Tell the backend to mark it read — otherwise it stays is_viewed=false.
         if (!isMine) {
-          socketRef.current?.sendRead(msg.chat_id);
+          socket.sendRead(msg.chat_id);
+          setHasUnread((prev) => ({ ...prev, [msg.chat_id]: false }));
         }
       }
       // 2. Flag the chat as unread if the message is from the other person
@@ -163,22 +186,30 @@ export default function ChatsPage() {
       // 3. Move the chat to the top of the list (most recent first).
       setChats((prev) => {
         const idx = prev.findIndex((c) => c.id === msg.chat_id);
-        if (idx <= 0) return prev; // already on top, or not in our list
-        const next = [...prev];
-        const [moved] = next.splice(idx, 1);
-        next.unshift(moved);
-        return next;
+        if (idx === 0) return prev; // already on top
+        if (idx > 0) {
+          const next = [...prev];
+          const [moved] = next.splice(idx, 1);
+          next.unshift(moved);
+          return next;
+        }
+        // If not in our list yet (e.g. new chat initiated), refresh list from server
+        if (myIdRef.current != null) {
+          getChats(myIdRef.current).then((updated) => {
+            setChats(updated);
+          }).catch(console.error);
+        }
+        return prev;
       });
     });
 
-      // Subscribe to the other person's typing state.
+    // Subscribe to the other person's typing state.
     const offTyping = socket.onTyping((payload) => {
       // Only react if it's the chat we're viewing AND it's not my own echo.
       if (payload.chat_id === selectedChatIdRef.current && payload.user_id !== myIdRef.current) {
         setOtherTyping(payload.is_typing);
       }
     });
-
 
     // Subscribe to presence replies — merge the batch into our online map.
     const offPresence = socket.onPresence((payload) => {
@@ -190,19 +221,9 @@ export default function ChatsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const selectedChatIdRef = useRef<number | null>(null);
-  useEffect(() => {
-    selectedChatIdRef.current = selectedChatId;
-  }, [selectedChatId]);
-
-  const myIdRef = useRef<number | null>(null);
-  useEffect(() => {
-    myIdRef.current = myId;
-  }, [myId]);
-
   const selectedChat = chats.find((c) => c.id === selectedChatId) ?? null;
 
-    // Load the previous page of messages when scrolling to the top.
+  // Load the previous page of messages when scrolling to the top or clicking 'Load earlier messages'.
   // Preserves scroll position so the view doesn't jump when older
   // messages are prepended.
   async function loadOlder() {
@@ -210,16 +231,19 @@ export default function ChatsPage() {
     if (messages.length === 0) return;
 
     const thread = threadRef.current;
-    const prevHeight = thread?.scrollHeight ?? 0;
+    if (!thread) return;
+    const prevHeight = thread.scrollHeight;
 
     // The oldest message we currently have is the cursor.
     const oldestId = messages[0].id;
 
     setLoadingOlder(true);
+    isPrependingRef.current = true;
     try {
       const older = await getChatMessages(selectedChatId, oldestId);
       if (older.length === 0) {
         setHasMore(false);
+        isPrependingRef.current = false;
         return;
       }
       // Backend is DESC → reverse to chronological, then prepend.
@@ -228,11 +252,16 @@ export default function ChatsPage() {
 
       // Restore scroll: keep the user looking at the same message.
       requestAnimationFrame(() => {
-        if (!thread) return;
-        thread.scrollTop = thread.scrollHeight - prevHeight;
+        if (thread) {
+          thread.scrollTop = thread.scrollHeight - prevHeight;
+        }
+        requestAnimationFrame(() => {
+          isPrependingRef.current = false;
+        });
       });
     } catch (err) {
       console.error('Could not load older messages:', err);
+      isPrependingRef.current = false;
     } finally {
       setLoadingOlder(false);
     }
@@ -343,11 +372,25 @@ export default function ChatsPage() {
                 if (e.currentTarget.scrollTop < 80) loadOlder();
               }}
             >
-               {loadingOlder && (
-                <p className="text-dim text-center" style={{ padding: '0.5rem' }}>
-                  Loading earlier messages…
-                </p>
-              )}{msgLoading ? (
+              {hasMore && !loadingOlder && (
+                <div className="convo-load-older">
+                  <button
+                    type="button"
+                    className="convo-load-more-btn"
+                    onClick={loadOlder}
+                  >
+                    Load more
+                  </button>
+                </div>
+              )}
+              {loadingOlder && (
+                <div className="convo-load-older">
+                  <p className="text-dim text-center" style={{ margin: 0, fontSize: '0.8125rem' }}>
+                    Loading…
+                  </p>
+                </div>
+              )}
+              {msgLoading ? (
                 <p className="text-body">Loading…</p>
               ) : msgError ? (
                 <p className="form-error-msg">{msgError}</p>

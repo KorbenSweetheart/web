@@ -16,6 +16,8 @@ interface ProfilePanelProps {
   user: UserProfile;
   onClose: () => void;
   variant?: PanelVariant;
+  showScore?: boolean;
+  isOnline?: boolean;
   // All optional: each variant only wires the handlers it needs.
   onConnect?: (id: number) => void;
   onDismiss?: (id: number) => void;
@@ -29,6 +31,8 @@ export default function ProfilePanel({
   user,
   onClose,
   variant = 'discover',
+  showScore = true,
+  isOnline = false,
   onConnect,
   onDismiss,
   onAccept,
@@ -88,18 +92,28 @@ export default function ProfilePanel({
           <div className="profile-panel__name-row">
             <h2 className="text-title">{user.name}</h2>
           </div>
+          {isOnline && (
+            <div className="profile-panel__status">
+              <span className="user-status-online" aria-label="Online">
+                <span className="user-status-online__dot" />
+                <span>Online</span>
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="profile-panel__ring">
-          <svg width="72" height="72" viewBox="0 0 72 72">
-            <circle cx="36" cy="36" r="30" className="profile-panel__ring-bg" />
-            <circle cx="36" cy="36" r="30" className="profile-panel__ring-fill"
-              strokeDasharray={2 * Math.PI * 30}
-              strokeDashoffset={(2 * Math.PI * 30) * (1 - user.match_score / 100)}
-              transform="rotate(-90 36 36)" />
-          </svg>
-          <span className="profile-panel__ring-text">{user.match_score}</span>
-        </div>
+        {showScore && (
+          <div className="profile-panel__ring">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" className="profile-panel__ring-bg" />
+              <circle cx="36" cy="36" r="30" className="profile-panel__ring-fill"
+                strokeDasharray={2 * Math.PI * 30}
+                strokeDashoffset={(2 * Math.PI * 30) * (1 - user.match_score / 100)}
+                transform="rotate(-90 36 36)" />
+            </svg>
+            <span className="profile-panel__ring-text">{user.match_score}</span>
+          </div>
+        )}
       </div>
 
       {/* Key details as an airy labeled list */}

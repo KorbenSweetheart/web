@@ -6,6 +6,7 @@ import { User, Dumbbell, SlidersHorizontal, MapPin, Headphones, Users, Sparkles 
 import { getMyProfile, uploadProfilePicture, deleteProfilePicture } from '../services/users';
 import './ProfileSetupPage.css';
 import { useState, useEffect } from 'react';
+import { INTEREST_LEVELS } from '../services/labels';
 
 export default function ProfileSetupPage() {
   const [name, setName] = useState('');
@@ -22,13 +23,6 @@ export default function ProfileSetupPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
-  const INTEREST_LEVELS = [
-    { value: 1, label: 'Curious' },
-    { value: 2, label: 'Casual' },
-    { value: 3, label: 'Into it' },
-    { value: 4, label: 'Keen' },
-    { value: 5, label: 'Obsessed' },
-  ];
 
   // On mount, load the existing profile (if any) to pre-fill the form.
   // First-time users get an empty form; returning users get their data.
@@ -162,7 +156,7 @@ export default function ProfileSetupPage() {
       setError('Please enter your name.');
       return;
     }
-    
+
     if (activities.length === 0) {
       setError('Pick at least one sport.');
       return;
@@ -215,8 +209,8 @@ export default function ProfileSetupPage() {
 
         {/* ===== SECTION: General info ===== */}
         <div className="flex items-baseline gap-sm mb-md">
-            <User size={18} strokeWidth={2.5} className="text-accent" />
-            <span className="text-section">General information</span>
+          <User size={18} strokeWidth={2.5} className="text-accent" />
+          <span className="text-section">General information</span>
         </div>
 
         <div className="form-group">
@@ -280,8 +274,8 @@ export default function ProfileSetupPage() {
 
         {/* ===== SECTION: Sports ===== */}
         <div className="flex items-baseline gap-sm mt-2xl mb-xs">
-            <Dumbbell size={18} strokeWidth={2.5} className="text-accent" />
-            <span className="text-section">Your sports</span>
+          <Dumbbell size={18} strokeWidth={2.5} className="text-accent" />
+          <span className="text-section">Your sports</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(0.5rem, 1vw, 0.75rem)' }}>
@@ -295,7 +289,7 @@ export default function ProfileSetupPage() {
 
               {isSelected(sport.id) && (
                 <>
-                  <p className="form-helper mt-sm mb-xs">Level</p>
+                  <p className="form-helper mt-sm mb-xs">Experience Level</p>
                   <div className="flex flex-wrap gap-xs">
                     {LEVELS.map((lvl) => (
                       <button key={lvl.value} type="button"
@@ -324,8 +318,8 @@ export default function ProfileSetupPage() {
 
         {/* ===== SECTION: Training mode ===== */}
         <div className="flex items-baseline gap-sm mt-2xl mb-xs">
-            <SlidersHorizontal size={18} strokeWidth={2.5} className="text-accent" />
-            <span className="text-section">Training mode</span>
+          <SlidersHorizontal size={18} strokeWidth={2.5} className="text-accent" />
+          <span className="text-section">Training mode</span>
         </div>
         <p className="text-body mb-md">How do you like to train?</p>
 
@@ -357,8 +351,8 @@ export default function ProfileSetupPage() {
 
         {/* ===== SECTION: Distance ===== */}
         <div className="flex items-baseline gap-sm mt-2xl mb-md">
-            <MapPin size={18} strokeWidth={2.5} className="text-accent" />
-            <span className="text-section">Distance</span>
+          <MapPin size={18} strokeWidth={2.5} className="text-accent" />
+          <span className="text-section">Distance</span>
         </div>
         <div className="form-group mt-xs">
           <label className="form-label" htmlFor="radius">How far are you willing to travel?</label>

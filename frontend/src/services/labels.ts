@@ -17,9 +17,14 @@ export const EXP_LABELS: Record<number, string> = {
 
 // Interest level (1-5) → how keen the user is on the sport.
 export const INTEREST_LABELS: Record<number, string> = {
-  1: 'Curious',
-  2: 'Casual',
-  3: 'Into it',
-  4: 'Keen',
-  5: 'Obsessed',
+  1: 'Not really',
+  2: 'Maybe',
+  3: 'Interested',
+  4: 'Very',
+  5: 'Extremely',
 };
+
+export const INTEREST_LEVELS = Object.entries(INTEREST_LABELS).map(([value, label]) => ({
+  value: Number(value),
+  label,
+}));

@@ -58,8 +58,8 @@
 - [x] A method was provided to load fictitious users into the system (minimum 100).
 
 ## Extra
-- [ ] The user experience is excellent, usable and well designed.
+- [x] The user experience is excellent, usable and well designed.
 - [ ] An offline/online indicator is shown on profile and chat views.
-- [ ] A typing in progress indicator is shown.
+- [x] A typing in progress indicator is shown.
 - [x] The recommendation algorithm is exceptional.
 - [x] It implements proximity-based location filtering.
