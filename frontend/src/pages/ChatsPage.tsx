@@ -147,8 +147,13 @@ export default function ChatsPage() {
           if (prev.some((m) => m.id === msg.id)) return prev; // guard against dupes
           return [...prev, msg];
         });
+        // We're looking at this chat, so the message is seen immediately.
+        // Tell the backend to mark it read — otherwise it stays is_viewed=false
+        // and the unread icon wrongly reappears in the chat list.
+        if (!isMine) {
+          socketRef.current?.sendRead(msg.chat_id);
+        }
       }
-
       // 2. Flag the chat as unread if the message is from the other person
       //    AND we're not currently looking at that chat.
       if (!isMine && !isOpenChat) {
