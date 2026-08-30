@@ -158,10 +158,11 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     setError('');
 
-    if (!name || !age || !bio) {
-      setError('Please fill in name, date of birth and bio.');
+    if (!name) {
+      setError('Please enter your name.');
       return;
     }
+    
     if (activities.length === 0) {
       setError('Pick at least one sport.');
       return;
