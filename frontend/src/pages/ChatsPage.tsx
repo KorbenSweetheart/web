@@ -36,6 +36,9 @@ export default function ChatsPage() {
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgError, setMsgError] = useState('');
   const [draft, setDraft] = useState('');
+  // Pagination: are there older messages to fetch, and are we mid-fetch?
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   const location = useLocation();
   const threadRef = useRef<HTMLDivElement>(null);
@@ -93,7 +96,12 @@ export default function ChatsPage() {
     setMsgLoading(true);
     setMsgError('');
     getChatMessages(selectedChatId)
-      .then((data) => setMessages([...data].reverse())) // backend DESC → chronological
+      .then((data) => {
+        setMessages([...data].reverse()); // backend DESC → chronological
+        // A full first page (15) means there are probably older messages.
+        // A short page means we already have the whole history.
+        setHasMore(data.length >= 15);
+      })
       .catch((err) => {
         console.error(err);
         setMsgError('Could not load messages.');
@@ -101,10 +109,12 @@ export default function ChatsPage() {
       .finally(() => setMsgLoading(false));
   }, [selectedChatId]);
 
-  // Stick to bottom on new messages / chat switch.
+  // Stick to bottom on new messages / chat switch — but NOT when we're
+  // prepending older history (that path manages its own scroll).
   useEffect(() => {
+    if (loadingOlder) return;
     threadRef.current?.scrollTo(0, threadRef.current.scrollHeight);
-  }, [messages]);
+  }, [messages, loadingOlder]);
 
   // Ask who's online among my chat partners — on load and every 20s after.
   // (Ivan's backend answers presence:check but doesn't push live changes,
@@ -186,6 +196,42 @@ export default function ChatsPage() {
   }, [myId]);
 
   const selectedChat = chats.find((c) => c.id === selectedChatId) ?? null;
+
+    // Load the previous page of messages when scrolling to the top.
+  // Preserves scroll position so the view doesn't jump when older
+  // messages are prepended.
+  async function loadOlder() {
+    if (selectedChatId == null || loadingOlder || !hasMore) return;
+    if (messages.length === 0) return;
+
+    const thread = threadRef.current;
+    const prevHeight = thread?.scrollHeight ?? 0;
+
+    // The oldest message we currently have is the cursor.
+    const oldestId = messages[0].id;
+
+    setLoadingOlder(true);
+    try {
+      const older = await getChatMessages(selectedChatId, oldestId);
+      if (older.length === 0) {
+        setHasMore(false);
+        return;
+      }
+      // Backend is DESC → reverse to chronological, then prepend.
+      setMessages((prev) => [...[...older].reverse(), ...prev]);
+      setHasMore(older.length >= 15);
+
+      // Restore scroll: keep the user looking at the same message.
+      requestAnimationFrame(() => {
+        if (!thread) return;
+        thread.scrollTop = thread.scrollHeight - prevHeight;
+      });
+    } catch (err) {
+      console.error('Could not load older messages:', err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
 
   function handleSend() {
     const text = draft.trim();
@@ -284,8 +330,19 @@ export default function ChatsPage() {
               </button>
             </div>
 
-            <div className="convo-thread" ref={threadRef}>
-              {msgLoading ? (
+            <div
+              className="convo-thread"
+              ref={threadRef}
+              onScroll={(e) => {
+                // Near the top → pull the previous page.
+                if (e.currentTarget.scrollTop < 80) loadOlder();
+              }}
+            >
+               {loadingOlder && (
+                <p className="text-dim text-center" style={{ padding: '0.5rem' }}>
+                  Loading earlier messages…
+                </p>
+              )}{msgLoading ? (
                 <p className="text-body">Loading…</p>
               ) : msgError ? (
                 <p className="form-error-msg">{msgError}</p>
