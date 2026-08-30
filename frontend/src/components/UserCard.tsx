@@ -1,31 +1,13 @@
 import type { UserProfile } from '../services/mockUsers';
 import './UserCard.css';
 import { Headphones, Users, Sparkles, ChevronRight } from 'lucide-react';
-
+import { EXP_LABELS, INTEREST_LABELS } from '../services/labels';
 
 // Map interaction_mode → icon + label
 const MODES: Record<number, { icon: typeof Headphones; label: string }> = {
   1: { icon: Sparkles,   label: 'Open to anything' },
   2: { icon: Users,      label: 'Social' },
   3: { icon: Headphones, label: 'Silent' },
-};
-
-// Map experience number → readable label
-const EXP_LABELS: Record<number, string> = {
-  1: 'Beginner',
-  2: 'Active Novice',
-  3: 'Intermediate',
-  4: 'Advanced',
-  5: 'Professional',
-};
-
-// Map interest number → readable label (how keen they are on the sport)
-const INTEREST_LABELS: Record<number, string> = {
-  1: 'Curious',
-  2: 'Casual',
-  3: 'Into it',
-  4: 'Keen',
-  5: 'Obsessed',
 };
 
 // Which set of buttons the card shows in the footer.

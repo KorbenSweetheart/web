@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getMyProfile } from '../services/users';
 import type { UserProfile } from '../services/mockUsers';
 import { User, Headphones, Users, Sparkles, MapPin, Pencil } from 'lucide-react';
+import { EXP_LABELS, INTEREST_LABELS } from '../services/labels';
 import './ProfilePage.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,15 +10,6 @@ const MODES: Record<number, { icon: typeof Headphones; label: string }> = {
   1: { icon: Sparkles,   label: 'Open to anything' },
   2: { icon: Users,      label: 'Social' },
   3: { icon: Headphones, label: 'Silent' },
-};
-
-const EXP_LABELS: Record<number, string> = {
-  1: 'Beginner', 2: 'Active Novice', 3: 'Intermediate', 4: 'Advanced', 5: 'Professional',
-};
-
-// Interest labels — how keen the user is on each sport (1-5).
-const INTEREST_LABELS: Record<number, string> = {
-  1: 'Curious', 2: 'Casual', 3: 'Into it', 4: 'Keen', 5: 'Obsessed',
 };
 
 export default function ProfilePage() {
