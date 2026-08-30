@@ -24,8 +24,8 @@ type ChatRepository interface {
 	CreateDirectChat(ctx context.Context, chat *domain.Chat) error
 	FindChatByID(ctx context.Context, chatID int64) (*domain.Chat, error)
 	FindUserChats(ctx context.Context, userID int64) ([]*domain.Chat, error)
-	SaveMessage(ctx context.Context, message *domain.Message) error
-	LoadChatHistory(ctx context.Context, chatID, lastMessageID int64, limit int) ([]*domain.Message, error)
+	SaveMessage(ctx context.Context, message *domain.Message) (recipientID int64, err error)
+	LoadChatHistory(ctx context.Context, chatID, userID, lastMessageID int64, limit int) ([]*domain.Message, error)
 	MarkMessagesAsRead(ctx context.Context, chatID, readerID int64) error
 	FindConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error)
 }
@@ -88,19 +88,15 @@ func (s *ChatService) DirectChat(ctx context.Context, requesterID, targetUserID 
 	return newChat, nil
 }
 
-// ChatHistory loads a paginated batch of messages for a chat after verifying user membership.
+// ChatHistory loads a paginated batch of messages for a chat scoped to user membership.
 func (s *ChatService) ChatHistory(ctx context.Context, requesterID, chatID, lastMessageID int64, limit int) ([]*domain.Message, error) {
 	const op = "service.chatService.ChatHistory"
-
-	if err := s.verifyChatMembership(ctx, requesterID, chatID); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
 
 	if limit <= 0 || limit > MaxMessageHistoryLimit {
 		limit = DefaultMessageHistoryLimit
 	}
 
-	messages, err := s.repo.LoadChatHistory(ctx, chatID, lastMessageID, limit)
+	messages, err := s.repo.LoadChatHistory(ctx, chatID, requesterID, lastMessageID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -120,21 +116,17 @@ func (s *ChatService) UserChats(ctx context.Context, requesterID int64) ([]*doma
 	return chats, nil
 }
 
-// SaveMessage validates message constraints, checks sender membership, and persists the message.
-func (s *ChatService) SaveMessage(ctx context.Context, senderID, chatID int64, content string) (*domain.Message, error) {
+// SaveMessage validates message constraints, checks sender membership atomically, persists the message, and returns the recipient's user ID.
+func (s *ChatService) SaveMessage(ctx context.Context, senderID, chatID int64, content string) (*domain.Message, int64, error) {
 	const op = "service.chatService.SaveMessage"
-
-	if err := s.verifyChatMembership(ctx, senderID, chatID); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
 
 	content = strings.TrimSpace(content)
 	if content == "" {
-		return nil, fmt.Errorf("%s: message content cannot be empty", op)
+		return nil, 0, fmt.Errorf("%s: message content cannot be empty", op)
 	}
 
 	if len(content) > MaxMessageLength {
-		return nil, fmt.Errorf("%s: message content exceeds maximum length of %d characters", op, MaxMessageLength)
+		return nil, 0, fmt.Errorf("%s: message content exceeds maximum length of %d characters", op, MaxMessageLength)
 	}
 
 	msg := &domain.Message{
@@ -143,20 +135,17 @@ func (s *ChatService) SaveMessage(ctx context.Context, senderID, chatID int64, c
 		Content:  content,
 	}
 
-	if err := s.repo.SaveMessage(ctx, msg); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+	recipientID, err := s.repo.SaveMessage(ctx, msg)
+	if err != nil {
+		return nil, 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return msg, nil
+	return msg, recipientID, nil
 }
 
 // MarkAsRead marks unread incoming messages in a chat as viewed by readerID.
 func (s *ChatService) MarkAsRead(ctx context.Context, readerID, chatID int64) error {
 	const op = "service.chatService.MarkAsRead"
-
-	if err := s.verifyChatMembership(ctx, readerID, chatID); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
 
 	if err := s.repo.MarkMessagesAsRead(ctx, chatID, readerID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -175,18 +164,4 @@ func (s *ChatService) ChatParticipants(ctx context.Context, chatID int64) (userO
 	}
 
 	return chat.UserOneID, chat.UserTwoID, nil
-}
-
-// verifyChatMembership checks whether a user belongs to the specified chat.
-func (s *ChatService) verifyChatMembership(ctx context.Context, userID, chatID int64) error {
-	chat, err := s.repo.FindChatByID(ctx, chatID)
-	if err != nil {
-		return err
-	}
-
-	if chat.UserOneID != userID && chat.UserTwoID != userID {
-		return domain.ErrNotChatParticipant
-	}
-
-	return nil
 }

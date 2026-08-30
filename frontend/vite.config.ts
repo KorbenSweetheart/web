@@ -5,15 +5,15 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-     proxy: {
-      '/auth': 'http://localhost:8080',
-      '/users': 'http://localhost:8080',
-      '/me': 'http://localhost:8080',
-      '/recommendations': 'http://localhost:8080',
-      '/connections': 'http://localhost:8080',
-      '/chats': 'http://localhost:8080',
+    proxy: {
+      '/auth': 'http://backend:8080',
+      '/users': 'http://backend:8080',
+      '/me': 'http://backend:8080',
+      '/recommendations': 'http://backend:8080',
+      '/connections': 'http://backend:8080',
+      '/chats': 'http://backend:8080',
       '/ws': {
-        target: 'http://localhost:8080',
+        target: 'http://backend:8080',
         ws: true,
       },
     },

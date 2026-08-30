@@ -14,7 +14,7 @@ import (
 
 // ChatManager defines chat operations required by the WebSocket Hub.
 type ChatManager interface {
-	SaveMessage(ctx context.Context, senderID, chatID int64, content string) (*domain.Message, error)
+	SaveMessage(ctx context.Context, senderID, chatID int64, content string) (*domain.Message, int64, error)
 	MarkAsRead(ctx context.Context, readerID, chatID int64) error
 	ChatParticipants(ctx context.Context, chatID int64) (userOneID, userTwoID int64, err error)
 }
@@ -156,7 +156,7 @@ func (h *Hub) handleChatMessage(ctx context.Context, msg *ClientInboundMessage) 
 		return
 	}
 
-	savedMsg, err := h.chatService.SaveMessage(ctx, msg.Client.UserID, payload.ChatID, payload.Content)
+	savedMsg, recipientID, err := h.chatService.SaveMessage(ctx, msg.Client.UserID, payload.ChatID, payload.Content)
 	if err != nil {
 		msg.Client.SendError(err.Error())
 		return
@@ -178,7 +178,6 @@ func (h *Hub) handleChatMessage(ctx context.Context, msg *ClientInboundMessage) 
 	h.deliverToUser(msg.Client.UserID, outEvent)
 
 	// 2. Deliver event to recipient if currently online
-	recipientID := h.resolveOtherParticipant(ctx, payload.ChatID, msg.Client.UserID)
 	if recipientID > 0 {
 		h.deliverToUser(recipientID, outEvent)
 	}
