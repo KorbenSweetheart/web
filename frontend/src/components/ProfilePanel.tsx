@@ -112,10 +112,12 @@ export default function ProfilePanel({
 
       {/* Key details as an airy labeled list */}
       <div className="profile-panel__details">
-        <div className="profile-panel__detail">
-          <span className="profile-panel__detail-label">Age:</span>
-          <span className="profile-panel__detail-value">{user.age}</span>
-        </div>
+        {user.age > 0 && (
+          <div className="profile-panel__detail">
+            <span className="profile-panel__detail-label">Age:</span>
+            <span className="profile-panel__detail-value">{user.age}</span>
+          </div>
+        )}
         <div className="profile-panel__detail">
           <span className="profile-panel__detail-label">Training mode:</span>
           <span className="profile-panel__detail-value">
