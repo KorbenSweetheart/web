@@ -10,44 +10,51 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateDirectChat inserts a new 1-on-1 direct chat record into the database.
-func (s *Storage) CreateDirectChat(ctx context.Context, chat *domain.Chat) error {
-	const op = "storage.postgres.CreateDirectChat"
+// getOrCreateDirectChatDTO is an internal storage projection DTO for scanning raw get or create direct chat query results.
+type getOrCreateDirectChatDTO struct {
+	ID        int64     `gorm:"column:id"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+}
 
-	chat.UserOneID, chat.UserTwoID = domain.NormalizeUserPair(chat.UserOneID, chat.UserTwoID)
+// GetOrCreateDirectChat atomically verifies connection status and inserts or retrieves a 1-on-1 direct chat record, preloading participant profiles.
+func (s *Storage) GetOrCreateDirectChat(ctx context.Context, userOneID, userTwoID int64) (*domain.Chat, error) {
+	const op = "storage.postgres.GetOrCreateDirectChat"
 
-	if err := s.db.WithContext(ctx).Create(chat).Error; err != nil {
-		return fmt.Errorf("%s: failed to create direct chat: %w", op, err)
+	const sqlQuery = `
+INSERT INTO chats (user_one_id, user_two_id, created_at)
+SELECT ?, ?, NOW()
+WHERE EXISTS (
+    SELECT 1 FROM connections
+    WHERE ((from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?))
+      AND status = ?
+)
+ON CONFLICT (user_one_id, user_two_id)
+DO UPDATE SET user_one_id = EXCLUDED.user_one_id
+RETURNING id, created_at;`
+
+	var res getOrCreateDirectChatDTO
+
+	err := s.db.WithContext(ctx).Raw(
+		sqlQuery,
+		userOneID, userTwoID,
+		userOneID, userTwoID, userTwoID, userOneID,
+		domain.Accepted,
+	).Scan(&res).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to execute get or create direct chat: %w", op, err)
 	}
 
+	if res.ID == 0 {
+		return nil, domain.ErrUsersNotConnected
+	}
+
+	var chat domain.Chat
 	if err := s.db.WithContext(ctx).
 		Preload("UserOne").
 		Preload("UserTwo").
-		First(chat, chat.ID).Error; err != nil {
-		return fmt.Errorf("%s: failed to preload chat profiles: %w", op, err)
-	}
-
-	return nil
-}
-
-// FindDirectChat finds an existing 1-on-1 direct chat record between two users.
-func (s *Storage) FindDirectChat(ctx context.Context, userA, userB int64) (*domain.Chat, error) {
-	const op = "storage.postgres.FindDirectChat"
-
-	userOneID, userTwoID := domain.NormalizeUserPair(userA, userB)
-
-	var chat domain.Chat
-	err := s.db.WithContext(ctx).
-		Preload("UserOne").
-		Preload("UserTwo").
-		Where("user_one_id = ? AND user_two_id = ?", userOneID, userTwoID).
-		First(&chat).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrChatNotFound
-		}
-		return nil, fmt.Errorf("%s: failed to find direct chat between %d and %d: %w", op, userA, userB, err)
+		First(&chat, res.ID).Error; err != nil {
+		return nil, fmt.Errorf("%s: failed to preload chat profiles: %w", op, err)
 	}
 
 	return &chat, nil

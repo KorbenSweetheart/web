@@ -20,14 +20,12 @@ const (
 
 // ChatRepository defines the required database storage operations for chats.
 type ChatRepository interface {
-	FindDirectChat(ctx context.Context, userA, userB int64) (*domain.Chat, error)
-	CreateDirectChat(ctx context.Context, chat *domain.Chat) error
+	GetOrCreateDirectChat(ctx context.Context, userOneID, userTwoID int64) (*domain.Chat, error)
 	FindChatByID(ctx context.Context, chatID int64) (*domain.Chat, error)
 	FindUserChats(ctx context.Context, userID int64) ([]*domain.Chat, error)
 	SaveMessage(ctx context.Context, message *domain.Message) (recipientID int64, err error)
 	LoadChatHistory(ctx context.Context, chatID, userID, lastMessageID int64, limit int) ([]*domain.Message, error)
 	MarkMessagesAsRead(ctx context.Context, chatID, readerID int64) error
-	FindConnectionRecord(ctx context.Context, fromUserID, toUserID int64) (*domain.Connection, error)
 }
 
 // ChatService coordinates chat business rules and interactions between users.
@@ -53,39 +51,17 @@ func (s *ChatService) DirectChat(ctx context.Context, requesterID, targetUserID 
 		return nil, fmt.Errorf("%s: cannot create chat with self: %d", op, requesterID)
 	}
 
-	conn, err := s.repo.FindConnectionRecord(ctx, requesterID, targetUserID)
-	if err != nil {
-		if errors.Is(err, domain.ErrConnectionNotFound) {
-			return nil, fmt.Errorf("%s: %w", op, domain.ErrUsersNotConnected)
-		}
-		return nil, fmt.Errorf("%s: failed to verify connection between %d and %d: %w", op, requesterID, targetUserID, err)
-	}
-
-	if conn.Status != domain.Accepted {
-		return nil, fmt.Errorf("%s: %w", op, domain.ErrUsersNotConnected)
-	}
-
 	userOneID, userTwoID := domain.NormalizeUserPair(requesterID, targetUserID)
 
-	chat, err := s.repo.FindDirectChat(ctx, userOneID, userTwoID)
-	if err == nil {
-		return chat, nil
+	chat, err := s.repo.GetOrCreateDirectChat(ctx, userOneID, userTwoID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUsersNotConnected) {
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrUsersNotConnected)
+		}
+		return nil, fmt.Errorf("%s: failed to get or create direct chat: %w", op, err)
 	}
 
-	if !errors.Is(err, domain.ErrChatNotFound) {
-		return nil, fmt.Errorf("%s: failed to find direct chat: %w", op, err)
-	}
-
-	newChat := &domain.Chat{
-		UserOneID: userOneID,
-		UserTwoID: userTwoID,
-	}
-
-	if err := s.repo.CreateDirectChat(ctx, newChat); err != nil {
-		return nil, fmt.Errorf("%s: failed to create direct chat: %w", op, err)
-	}
-
-	return newChat, nil
+	return chat, nil
 }
 
 // ChatHistory loads a paginated batch of messages for a chat scoped to user membership.
