@@ -83,6 +83,7 @@ func (s *Storage) FindUserChats(ctx context.Context, userID int64) ([]*domain.Ch
 		Preload("UserOne").
 		Preload("UserTwo").
 		Where("user_one_id = ? OR user_two_id = ?", userID, userID).
+		Where("EXISTS (SELECT 1 FROM connections WHERE ((from_user_id = chats.user_one_id AND to_user_id = chats.user_two_id) OR (from_user_id = chats.user_two_id AND to_user_id = chats.user_one_id)) AND status = ?)", domain.Accepted).
 		Order("COALESCE((SELECT MAX(created_at) FROM messages WHERE messages.chat_id = chats.id), chats.created_at) DESC").
 		Find(&chats).Error
 
