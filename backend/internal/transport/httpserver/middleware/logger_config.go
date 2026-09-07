@@ -11,8 +11,10 @@ import (
 func LoggerConfig(log *slog.Logger) middleware.RequestLoggerConfig {
 
 	var skipper = func(c *echo.Context) bool {
-		// Skip the health check endpoint.
-		return c.Request().URL.Path == "/health"
+		// Skip the health and readiness check endpoint and swagger docs.
+		return c.Request().URL.Path == "/healthz" ||
+			c.Request().URL.Path == "/readyz" ||
+			c.Request().URL.Path == "/swagger/*"
 	}
 
 	loggerConfig := middleware.RequestLoggerConfig{

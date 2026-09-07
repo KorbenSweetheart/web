@@ -25,6 +25,16 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
+// @title           Pulse App API
+// @version         1.0
+// @description     API documentation for Pulse App.
+
+// @BasePath  /
+
+// @securityDefinitions.apiKey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Type "Bearer {your_jwt_token}"
 func main() {
 	_ = godotenv.Load()
 

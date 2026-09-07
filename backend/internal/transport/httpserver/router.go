@@ -7,8 +7,11 @@ import (
 	mdlwrconfig "match-me-api/internal/transport/httpserver/middleware"
 	"net/http"
 
+	_ "match-me-api/docs/swagger"
+
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger/v2"
 )
 
 func SetupRouter(
@@ -29,6 +32,9 @@ func SetupRouter(
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderXCSRFToken},
 		AllowMethods:     []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions},
 	}))
+
+	// Swagger documentation
+	e.GET("/docs/*", echoSwagger.WrapHandler)
 
 	// Healthchecks routes
 	e.GET("/healthz", h.Health.Healthz)
