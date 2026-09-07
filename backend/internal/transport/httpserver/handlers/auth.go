@@ -37,34 +37,43 @@ func NewAuthHandler(auth Authenticator, v *validator.Validate, atTTL, rtTTL time
 	return &AuthHandler{auth: auth, validator: v, accessCookieTTL: atTTL, refreshCookieTTL: rtTTL, log: logger}
 }
 
-// Register handler
+// @Register godoc
+// @Summary      Register a new user
+// @Description  Create a new user account with name, email, and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.RegisterRequest true "User Registration Info"
+// @Success      201 {object} dto.RegistrationResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /auth/register [post]
 func (h *AuthHandler) Register(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	var req dto.RegisterRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{
-			"error": "invalid json",
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "invalid json",
 		})
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{
-			"error": "validation failed: " + err.Error(),
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "validation failed: " + err.Error(),
 		})
 	}
 
 	account, err := h.auth.Register(ctx, req.Name, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailIsTaken) {
-			return c.JSON(http.StatusBadRequest, map[string]any{
-				"email":   req.Email,
-				"name":    req.Name,
-				"error":   domain.ErrEmailIsTaken.Error(),
-				"message": "An account with this email already exists.",
+			return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Message: domain.ErrEmailIsTaken.Error(),
 			})
 		} else {
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Message: err.Error(),
+			})
 		}
 	}
 
@@ -76,34 +85,48 @@ func (h *AuthHandler) Register(c *echo.Context) error {
 	})
 }
 
-// Login handler
+// @Login godoc
+// @Summary      Login a user
+// @Description  Login with email and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.LoginRequest true "User Login Info"
+// @Success      200 {object} dto.LoginResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /auth/login [post]
 func (h *AuthHandler) Login(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	var req dto.LoginRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{
-			"error": "faild to read body",
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   err.Error(),
+			Message: "faild to read body",
 		})
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{
-			"error": "validation failed: " + err.Error(),
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   err.Error(),
+			Message: "validation failed",
 		})
 	}
 
 	accessToken, refreshToken, err := h.auth.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidCreds) {
-			return c.JSON(http.StatusUnauthorized, map[string]any{
-				"email":    req.Email,
-				"password": req.Password,
-				"error":    domain.ErrInvalidCreds.Error(),
-				"message":  "invalid input body",
+			return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid input body",
 			})
 		} else {
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Error:   err.Error(),
+				Message: "internal server error",
+			})
 		}
 	}
 
@@ -115,14 +138,23 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 	})
 }
 
-// Refresh handler
+// @Refresh godoc
+// @Summary      Refresh access token
+// @Description  Refresh access token using refresh token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} dto.LoginResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /auth/refresh [post]
 func (h *AuthHandler) Refresh(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	cookie, err := c.Cookie(RefreshTokenCookieName)
 	if err != nil || cookie.Value == "" {
-		return c.JSON(http.StatusUnauthorized, map[string]any{
-			"error": "missing refresh token",
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "missing refresh token",
 		})
 	}
 
@@ -130,11 +162,15 @@ func (h *AuthHandler) Refresh(c *echo.Context) error {
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidOrExpiredToken) {
 			h.clearAuthCookies(c)
-			return c.JSON(http.StatusUnauthorized, map[string]any{
-				"error": domain.ErrInvalidOrExpiredToken.Error(),
+			return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+				Error:   err.Error(),
+				Message: "invalid or expired token",
 			})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   err.Error(),
+			Message: "internal server error",
+		})
 	}
 
 	h.setAuthCookies(c, accessToken, refreshToken)
@@ -145,16 +181,31 @@ func (h *AuthHandler) Refresh(c *echo.Context) error {
 	})
 }
 
+// @Logout godoc
+// @Summary      Logout a user
+// @Description  Logout a user
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]any
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	userID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	if err := h.auth.Logout(ctx, userID); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   err.Error(),
+			Message: "internal server error",
+		})
 	}
 
 	h.clearAuthCookies(c)

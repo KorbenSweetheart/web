@@ -12,6 +12,11 @@
 Pulse is a full-stack recommendation and real-time social platform that helps sports enthusiasts find compatible training partners based on their athletic profiles, shared activities, experience levels, and geographical proximity.
 
 > [!NOTE]
+> **Overfetching is a mandatory requirement in this project.**
+> 
+> An additional task is to implement GraphQL to display its value in contrast.
+
+> [!NOTE]
 > Project Context: Developed in 2026 as part of the JavaScript Module within a project-based coding program.
 
 ---

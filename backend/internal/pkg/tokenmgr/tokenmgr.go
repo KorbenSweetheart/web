@@ -4,11 +4,14 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
+
+var ErrInvalidUserID = errors.New("invalid user id")
 
 type CustomClaims struct {
 	UserID int64 `json:"user_id"`
@@ -21,6 +24,7 @@ type TokenManager struct {
 	issuer    string
 }
 
+// NewTokenManager creates a new instance of TokenManager
 func NewTokenManager(secretKey string, issuer string) *TokenManager {
 	return &TokenManager{
 		secretKey: []byte(secretKey),
@@ -28,9 +32,13 @@ func NewTokenManager(secretKey string, issuer string) *TokenManager {
 	}
 }
 
-// GenerateToken creates JWT token
+// GenerateToken creates JWT token using HS256 algorithm
 func (tm *TokenManager) GenerateToken(userID int64, ttl time.Duration) (string, error) {
 	const op = "pkg.tokenmgr.GenerateToken"
+
+	if userID <= 0 {
+		return "", fmt.Errorf("%s: %w", op, ErrInvalidUserID)
+	}
 
 	claims := CustomClaims{
 		UserID: userID,
@@ -57,6 +65,7 @@ func (tm *TokenManager) GenerateToken(userID int64, ttl time.Duration) (string, 
 // Used during login/registration/rotation to send to the client
 func (tm *TokenManager) GenerateRefreshToken() (string, error) {
 	const op = "pkg.tokenmgr.GenerateRefreshToken"
+
 	token := make([]byte, 32)
 	_, err := rand.Read(token)
 	if err != nil {
@@ -71,8 +80,3 @@ func (tm *TokenManager) HashToken(token string) string {
 	hash := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(hash[:])
 }
-
-// ParseToken validates JWT token
-// func (tm *TokenManager) ParseToken(accessToken string) (int64, error) {
-// 	// parsing and validation logic
-// }

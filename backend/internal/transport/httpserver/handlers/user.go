@@ -35,36 +35,58 @@ func NewUserHandler(um UserManager, v *validator.Validate, logger *slog.Logger) 
 	return &UserHandler{userService: um, validator: v, log: logger}
 }
 
-// UserSummary returns the user's id, name, and link to the profile picture.
-// /users/{id}
+// @UserSummary godoc
+// @Summary      Get user summary
+// @Description  Get user summary
+// @Tags         user
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} dto.UserSummaryResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /users/{id} [get]
 func (h *UserHandler) UserSummary(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Error:   domain.ErrUnauthorized.Error(),
+			Message: "Unauthorized",
+		})
 	}
 
 	userIDStr := c.Param("id")
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   err.Error(),
+			Message: "Invalid user id: NAN",
+		})
 	}
 
 	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrUserNotFound):
-			return c.JSON(http.StatusNotFound, map[string]any{
-				"id":    userID,
-				"error": "User not found",
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Error:   err.Error(),
+				Message: "User not found",
 			})
 		case errors.Is(err, domain.ErrNoPermissionViewProfile):
-			return c.JSON(http.StatusForbidden, map[string]any{
-				"error": "No permission to view profile",
+			return c.JSON(http.StatusForbidden, dto.ErrorResponse{
+				Error:   err.Error(),
+				Message: "No permission to view profile",
 			})
 		default:
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Error:   err.Error(),
+				Message: "Failed to get user",
+			})
 		}
 	}
 
