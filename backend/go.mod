@@ -10,6 +10,7 @@ require (
 	github.com/labstack/echo-jwt/v5 v5.0.1
 	github.com/labstack/echo/v5 v5.2.1
 	github.com/minio/minio-go/v7 v7.2.1
+	github.com/swaggo/echo-swagger/v2 v2.0.1
 	github.com/swaggo/swag v1.16.2
 	golang.org/x/crypto v0.54.0
 	gorm.io/driver/postgres v1.6.0
@@ -46,7 +47,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/sv-tools/openapi v0.2.1 // indirect
-	github.com/swaggo/echo-swagger/v2 v2.0.1 // indirect
 	github.com/swaggo/files/v2 v2.0.0 // indirect
 	github.com/swaggo/swag/v2 v2.0.0-rc4 // indirect
 	github.com/tinylib/msgp v1.6.1 // indirect
