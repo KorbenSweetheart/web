@@ -31,31 +31,54 @@ func NewConnectionHandler(cm ConnectionManager, v *validator.Validate, logger *s
 	return &ConnectionHandler{ConnectionService: cm, validator: v, log: logger}
 }
 
-// CreateConnection returns a created connection JSON object between users.
-// POST: /connections, body: {"to_user_id": 123}
+// @CreateConnection godoc
+// @Summary      Create connection request
+// @Description  Create a pending connection request to another user
+// @Tags         connections
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.ConnectionRequest true "Target user ID"
+// @Success      201 {object} dto.ConnectionResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /connections [post]
 func (h *ConnectionHandler) CreateConnection(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	var req dto.ConnectionRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid request body"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid request body",
+		})
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid request body",
+		})
 	}
 
 	connection, err := h.ConnectionService.ConnectToUser(ctx, myID, req.ToUserID)
 	if err != nil {
-		if errors.Is(err, domain.ErrConnectionAlreadyExists) {
-			return c.JSON(http.StatusBadRequest, map[string]any{"error": domain.ErrConnectionAlreadyExists.Error()})
+		switch {
+		case errors.Is(err, domain.ErrConnectionAlreadyExists):
+			return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Message: "Connection already exists",
+			})
+		default:
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Message: "Internal server error",
+			})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to create connection"})
 	}
 
 	return c.JSON(http.StatusCreated, dto.ConnectionResponse{
@@ -66,42 +89,70 @@ func (h *ConnectionHandler) CreateConnection(c *echo.Context) error {
 	})
 }
 
-// UpdateConnectionStatus updates the connection record based on the user's chosen action: accept or decline the request.
-// PATCH: /connections/:id Body: {"status": "accepted" or "declined"}
+// @UpdateConnectionStatus godoc
+// @Summary      Respond to connection request
+// @Description  Accept or decline an incoming connection request
+// @Tags         connections
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Target user ID"
+// @Param        request body dto.UpdateConnectionRequest true "Connection action status ('accepted' or 'declined')"
+// @Success      200 {object} dto.ConnectionResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /connections/{id} [patch]
 func (h *ConnectionHandler) UpdateConnectionStatus(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	targetUserIDStr := c.Param("id")
 	targetUserID, err := strconv.ParseInt(targetUserIDStr, 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid user id: NAN",
+		})
 	}
 
 	var req dto.UpdateConnectionRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid request body"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid request body",
+		})
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid request body",
+		})
 	}
 
 	status, err := domain.ParseConnectionStatus(req.Status)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid connection status",
+		})
 	}
 
 	connection, err := h.ConnectionService.RespondUserConnectionRequest(ctx, myID, targetUserID, status)
 	if err != nil {
-		if errors.Is(err, domain.ErrConnectionNotFound) {
-			return c.JSON(http.StatusBadRequest, map[string]any{"error": domain.ErrConnectionNotFound.Error()})
+		switch {
+		case errors.Is(err, domain.ErrConnectionNotFound):
+			return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Message: "Connection not found",
+			})
+		default:
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Message: "Internal server error",
+			})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to update connection status"})
 	}
 
 	return c.JSON(http.StatusOK, dto.ConnectionResponse{
@@ -112,43 +163,77 @@ func (h *ConnectionHandler) UpdateConnectionStatus(c *echo.Context) error {
 	})
 }
 
-// DeleteConnection deletes the connection between two users.
+// @DeleteConnection godoc
+// @Summary      Delete connection
+// @Description  Remove an existing connection with another user
+// @Tags         connections
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id path int true "Target user ID"
+// @Success      200 {object} dto.OKResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /connections/{id} [delete]
 func (h *ConnectionHandler) DeleteConnection(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	targetUserIDStr := c.Param("id")
 	targetUserID, err := strconv.ParseInt(targetUserIDStr, 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid user id: NAN",
+		})
 	}
 
 	if err := h.ConnectionService.RemoveConnectionToUser(ctx, myID, targetUserID); err != nil {
 		if errors.Is(err, domain.ErrConnectionNotFound) {
-			c.JSON(http.StatusBadRequest, map[string]any{"error": domain.ErrConnectionNotFound.Error()})
+			return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Message: "Connection not found",
+			})
 		}
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to delete connection"})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Internal server error",
+		})
 	}
 
-	return c.JSON(http.StatusNoContent, map[string]any{"status": "Connection deleted successfully"}) // TODO: maybe need to return empty response.
+	return c.JSON(http.StatusOK, dto.OKResponse{
+		Message: "Connection deleted successfully",
+	})
 }
 
-// Connections return a list of profile IDs of accepted connections for the user.
+// @Connections godoc
+// @Summary      Get accepted connections
+// @Description  Get a list of user IDs for accepted connections
+// @Tags         connections
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200 {array} dto.ConnectionIDResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /connections [get]
 func (h *ConnectionHandler) Connections(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	connectedUserIDs, err := h.ConnectionService.AcceptedConnections(ctx, myID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get connections"})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Internal server error",
+		})
 	}
 
 	response := make([]dto.ConnectionIDResponse, 0, len(connectedUserIDs))
@@ -159,18 +244,31 @@ func (h *ConnectionHandler) Connections(c *echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// ConnectionRequests return a list of profile IDs of incoming pending connections for the user.
+// @ConnectionRequests godoc
+// @Summary      Get pending connection requests
+// @Description  Get a list of user IDs with incoming pending connection requests
+// @Tags         connections
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200 {array} dto.ConnectionIDResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /connections/requests [get]
 func (h *ConnectionHandler) ConnectionRequests(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	PendingUserIDs, err := h.ConnectionService.PendingConnections(ctx, myID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get pending connections"})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Internal server error",
+		})
 	}
 
 	response := make([]dto.ConnectionIDResponse, 0, len(PendingUserIDs))

@@ -1,9 +1,86 @@
 basePath: /
 definitions:
+  dto.ActivityRequest:
+    properties:
+      experience_level:
+        description: '1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced",
+          "Professional"'
+        maximum: 5
+        minimum: 1
+        type: integer
+      id:
+        minimum: 1
+        type: integer
+      interest_level:
+        description: '1-5 levels: "Not interested", "Open to it" , "Interested" ,
+          "Highly interested", "Actively looking"'
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - experience_level
+    - id
+    - interest_level
+    type: object
+  dto.ActivityResponse:
+    properties:
+      id:
+        type: integer
+      title:
+        type: string
+    type: object
+  dto.ChatResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      user_one:
+        $ref: '#/definitions/dto.UserSummaryResponse'
+      user_one_id:
+        type: integer
+      user_two:
+        $ref: '#/definitions/dto.UserSummaryResponse'
+      user_two_id:
+        type: integer
+    type: object
+  dto.ConnectionIDResponse:
+    properties:
+      id:
+        type: integer
+    type: object
+  dto.ConnectionRequest:
+    properties:
+      to_user_id:
+        type: integer
+    required:
+    - to_user_id
+    type: object
+  dto.ConnectionResponse:
+    properties:
+      from_user_id:
+        type: integer
+      status:
+        type: string
+      timestamp:
+        type: string
+      to_user_id:
+        type: integer
+    type: object
+  dto.DirectChatRequest:
+    properties:
+      target_user_id:
+        type: integer
+    required:
+    - target_user_id
+    type: object
+  dto.DismissRecommendationResponse:
+    properties:
+      message:
+        type: string
+    type: object
   dto.ErrorResponse:
     properties:
-      error:
-        type: string
       message:
         type: string
     type: object
@@ -24,6 +101,101 @@ definitions:
         type: string
       message:
         type: string
+    type: object
+  dto.MessageResponse:
+    properties:
+      chat_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_viewed:
+        type: boolean
+      sender_id:
+        type: integer
+    type: object
+  dto.MySummaryResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      picture_url:
+        type: string
+    type: object
+  dto.OKResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  dto.ProfilePictureUpdatedResponse:
+    properties:
+      message:
+        type: string
+      picture_url:
+        type: string
+    type: object
+  dto.ProfileResponse:
+    properties:
+      age:
+        description: |-
+          Name       string `json:"name"`
+          PictureURL string `json:"picture_url"`
+        type: integer
+      bio:
+        type: string
+      id:
+        type: integer
+    type: object
+  dto.ProfileUpdateRequest:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/dto.ActivityRequest'
+        type: array
+      age:
+        maximum: 125
+        minimum: 0
+        type: integer
+      bio:
+        maxLength: 1000
+        type: string
+      interaction_mode:
+        maximum: 4
+        minimum: 1
+        type: integer
+      lat:
+        type: number
+      lon:
+        type: number
+      max_radius:
+        minimum: 1
+        type: number
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      picture_url:
+        type: string
+    type: object
+  dto.RecommendationItemResponse:
+    properties:
+      score:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  dto.RecommendationsResponse:
+    properties:
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.RecommendationItemResponse'
+        type: array
     type: object
   dto.RegisterRequest:
     properties:
@@ -51,6 +223,51 @@ definitions:
       name:
         type: string
     type: object
+  dto.UpdateConnectionRequest:
+    properties:
+      status:
+        enum:
+        - accepted
+        - declined
+        type: string
+    required:
+    - status
+    type: object
+  dto.UserActivityResponse:
+    properties:
+      experience:
+        description: '1-5 levels: "Beginner", "Active Novice", "Intermediate", "Advanced",
+          "Professional"'
+        type: integer
+      id:
+        type: integer
+      interest_level:
+        description: '1-5 levels: "Not interested", "Open to it" , "Interested" ,
+          "Highly interested", "Actively looking"'
+        type: integer
+      title:
+        description: 'e.g.: "Running", "Paddle", "Gym", "Cycling", "CrossFit", "Football"...'
+        type: string
+    type: object
+  dto.UserBioResponse:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/dto.UserActivityResponse'
+        type: array
+      id:
+        type: integer
+      interaction_mode:
+        type: integer
+      lat:
+        description: Latitude from the browser API
+        type: number
+      lon:
+        description: Longitude from the browser API
+        type: number
+      max_radius:
+        type: number
+    type: object
   dto.UserSummaryResponse:
     properties:
       id:
@@ -66,6 +283,31 @@ info:
   title: Pulse App API
   version: "1.0"
 paths:
+  /activities:
+    get:
+      description: Get a list of all supported sports and activities
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ActivityResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get activities dictionary
+      tags:
+      - dictionary
   /auth/login:
     post:
       consumes:
@@ -102,8 +344,6 @@ paths:
       - auth
   /auth/logout:
     post:
-      consumes:
-      - application/json
       description: Logout a user
       produces:
       - application/json
@@ -111,8 +351,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/dto.OKResponse'
         "401":
           description: Unauthorized
           schema:
@@ -121,6 +360,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Logout a user
       tags:
       - auth
@@ -177,6 +418,551 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /chats:
+    get:
+      description: Get all direct chats belonging to the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ChatResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user chats
+      tags:
+      - chat
+  /chats/{id}/messages:
+    get:
+      description: Get paginated historical messages for a direct chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Maximum number of messages to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for pagination (last message ID)
+        in: query
+        name: last_message_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.MessageResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get chat history
+      tags:
+      - chat
+  /chats/direct:
+    post:
+      consumes:
+      - application/json
+      description: Retrieve or create a 1-on-1 direct chat with a connected user
+      parameters:
+      - description: Target user ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DirectChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ChatResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get or create direct chat
+      tags:
+      - chat
+  /connections:
+    get:
+      description: Get a list of user IDs for accepted connections
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ConnectionIDResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get accepted connections
+      tags:
+      - connections
+    post:
+      consumes:
+      - application/json
+      description: Create a pending connection request to another user
+      parameters:
+      - description: Target user ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ConnectionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create connection request
+      tags:
+      - connections
+  /connections/{id}:
+    delete:
+      description: Remove an existing connection with another user
+      parameters:
+      - description: Target user ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OKResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete connection
+      tags:
+      - connections
+    patch:
+      consumes:
+      - application/json
+      description: Accept or decline an incoming connection request
+      parameters:
+      - description: Target user ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Connection action status ('accepted' or 'declined')
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateConnectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Respond to connection request
+      tags:
+      - connections
+  /connections/requests:
+    get:
+      description: Get a list of user IDs with incoming pending connection requests
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ConnectionIDResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get pending connection requests
+      tags:
+      - connections
+  /healthz:
+    get:
+      description: Check if the API server is alive
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OKResponse'
+      summary: Health check
+      tags:
+      - health
+  /me:
+    get:
+      description: Get authorized user summary with id, email, name, and picture URL
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MySummaryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user summary
+      tags:
+      - user
+  /me/bio:
+    get:
+      description: Get authorized user bio and activities data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserBioResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user bio
+      tags:
+      - user
+  /me/picture:
+    delete:
+      description: Reset the profile picture for the authorized user to the default
+        placeholder
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProfilePictureUpdatedResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete profile picture
+      tags:
+      - user
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload, process, and update the profile picture for the authorized
+        user
+      parameters:
+      - description: Profile picture file (max 1MB)
+        in: formData
+        name: picture
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProfilePictureUpdatedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload profile picture
+      tags:
+      - user
+  /me/profile:
+    get:
+      description: Get authorized user profile with age and bio
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProfileResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - user
+    patch:
+      consumes:
+      - application/json
+      description: Update existing user profile fields
+      parameters:
+      - description: Profile update fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ProfileUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OKResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - user
+  /readyz:
+    get:
+      description: Check if the API server and database connection are ready
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.OKResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Readiness check
+      tags:
+      - health
+  /recommendations:
+    get:
+      description: Get a list of recommended matching user profiles with compatibility
+        scores
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RecommendationsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get recommendations
+      tags:
+      - recommendations
+  /recommendations/{id}/dismiss:
+    post:
+      description: Dismiss a user recommendation so they will not appear in recommendations
+        again
+      parameters:
+      - description: Target user ID to dismiss
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DismissRecommendationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Dismiss recommendation
+      tags:
+      - recommendations
   /users/{id}:
     get:
       consumes:
@@ -214,6 +1000,112 @@ paths:
       summary: Get user summary
       tags:
       - user
+  /users/{id}/bio:
+    get:
+      description: Get user biographical and activity data by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserBioResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user bio
+      tags:
+      - user
+  /users/{id}/profile:
+    get:
+      description: Get user profile with bio and age by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - user
+  /ws:
+    get:
+      description: Upgrade HTTP connection to WebSocket protocol for real-time chat
+        and presence
+      responses:
+        "101":
+          description: Switching Protocols to WebSocket
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: WebSocket upgrade
+      tags:
+      - realtime
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer {your_jwt_token}"

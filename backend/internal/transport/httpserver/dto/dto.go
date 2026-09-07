@@ -113,9 +113,9 @@ type ConnectionIDResponse struct {
 }
 
 type ConnectionResponse struct {
-	FromUserID int64     `json:"from_user_id"`
-	ToUserID   int64     `json:"to_user_id"`
-	Status     string    `json:"status"`
+	FromUserID int64     `json:"from_user_id,omitempty"`
+	ToUserID   int64     `json:"to_user_id,omitempty"`
+	Status     string    `json:"status,omitempty"`
 	Timestamp  time.Time `json:"timestamp"`
 }
 
@@ -151,6 +151,22 @@ type MessageResponse struct {
 }
 
 type ErrorResponse struct {
-	Error   string `json:"error,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+type ProfilePictureUpdatedResponse struct {
+	Message    string `json:"message"`
+	PictureURL string `json:"picture_url"`
+}
+
+type RecommendationsResponse struct {
+	Recommendations []RecommendationItemResponse `json:"recommendations"`
+}
+
+type DismissRecommendationResponse struct {
+	Message string `json:"message"`
+}
+
+type OKResponse struct {
+	Message string `json:"message"`
 }

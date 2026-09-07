@@ -3,6 +3,7 @@ package websocket
 import (
 	"fmt"
 	"log/slog"
+	"match-me-api/internal/transport/httpserver/dto"
 	"net/http"
 	"time"
 
@@ -33,16 +34,29 @@ func NewHandler(hub *Hub, logger *slog.Logger) *Handler {
 	}
 }
 
-// Upgrade upgrades the incoming HTTP request to a WebSocket session.
+// @Upgrade godoc
+// @Summary      WebSocket upgrade
+// @Description  Upgrade HTTP connection to WebSocket protocol for real-time chat and presence
+// @Tags         realtime
+// @Security     BearerAuth
+// @Success      101 "Switching Protocols to WebSocket"
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      503 {object} dto.ErrorResponse
+// @Router       /ws [get]
 func (h *Handler) Upgrade(c *echo.Context) error {
 	userID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Failed to upgrade to WebSocket"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Failed to upgrade to WebSocket",
+		})
 	}
 
 	connID := fmt.Sprintf("%d-%d", userID, time.Now().UnixNano())
@@ -52,7 +66,9 @@ func (h *Handler) Upgrade(c *echo.Context) error {
 	case h.hub.Register <- client:
 	case <-h.hub.done:
 		_ = conn.Close()
-		return c.JSON(http.StatusServiceUnavailable, map[string]any{"error": "Server is shutting down"})
+		return c.JSON(http.StatusServiceUnavailable, dto.ErrorResponse{
+			Message: "Server is shutting down",
+		})
 	}
 
 	go client.WritePump()
