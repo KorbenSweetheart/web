@@ -29,12 +29,24 @@ func NewDictionaryHandler(service DictionaryProvider, v *validator.Validate, log
 	}
 }
 
+// @Activities godoc
+// @Summary      Get activities dictionary
+// @Description  Get a list of all supported sports and activities
+// @Tags         dictionary
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200 {array} dto.ActivityResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /activities [get]
 func (h *DictionaryHandler) Activities(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	activities, err := h.DictionaryService.Activities(ctx)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get activities dictionary"})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Failed to get activities",
+		})
 	}
 
 	activitiesResponse := make([]dto.ActivityResponse, 0, len(activities))

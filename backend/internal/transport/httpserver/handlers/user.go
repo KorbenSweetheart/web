@@ -55,7 +55,6 @@ func (h *UserHandler) UserSummary(c *echo.Context) error {
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
 		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
-			Error:   domain.ErrUnauthorized.Error(),
 			Message: "Unauthorized",
 		})
 	}
@@ -64,7 +63,6 @@ func (h *UserHandler) UserSummary(c *echo.Context) error {
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Error:   err.Error(),
 			Message: "Invalid user id: NAN",
 		})
 	}
@@ -74,17 +72,14 @@ func (h *UserHandler) UserSummary(c *echo.Context) error {
 		switch {
 		case errors.Is(err, domain.ErrUserNotFound):
 			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
-				Error:   err.Error(),
 				Message: "User not found",
 			})
 		case errors.Is(err, domain.ErrNoPermissionViewProfile):
 			return c.JSON(http.StatusForbidden, dto.ErrorResponse{
-				Error:   err.Error(),
 				Message: "No permission to view profile",
 			})
 		default:
 			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-				Error:   err.Error(),
 				Message: "Failed to get user",
 			})
 		}
@@ -97,36 +92,53 @@ func (h *UserHandler) UserSummary(c *echo.Context) error {
 	})
 }
 
-// // UserProfile returns the user's id and "about me" type information.
-// // /users/{id}/profile
+// @UserProfile godoc
+// @Summary      Get user profile
+// @Description  Get user profile with bio and age by user ID
+// @Tags         user
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id path int true "User ID"
+// @Success      200 {object} dto.ProfileResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /users/{id}/profile [get]
 func (h *UserHandler) UserProfile(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	userIDStr := c.Param("id")
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid user id: NAN",
+		})
 	}
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrUserNotFound):
-			return c.JSON(http.StatusNotFound, map[string]any{
-				"id":    userID,
-				"error": "User not found",
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Message: "User not found",
 			})
 		case errors.Is(err, domain.ErrNoPermissionViewProfile):
-			return c.JSON(http.StatusForbidden, map[string]any{
-				"error": "No permission to view profile",
+			return c.JSON(http.StatusForbidden, dto.ErrorResponse{
+				Message: "No permission to view profile",
 			})
 		default:
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Message: "Internal server error",
+			})
 		}
 	}
 
@@ -138,36 +150,53 @@ func (h *UserHandler) UserProfile(c *echo.Context) error {
 	})
 }
 
-// UserBio returns the user's id and biographical data (the data used to power recommendations).
-// /users/{id}/bio
+// @UserBio godoc
+// @Summary      Get user bio
+// @Description  Get user biographical and activity data by user ID
+// @Tags         user
+// @Security     BearerAuth
+// @Produce      json
+// @Param        id path int true "User ID"
+// @Success      200 {object} dto.UserBioResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      403 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /users/{id}/bio [get]
 func (h *UserHandler) UserBio(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	userIDStr := c.Param("id")
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid user id: NAN"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid user id: NAN",
+		})
 	}
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	profile, err := h.userService.Profile(ctx, myID, userID)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrUserNotFound):
-			return c.JSON(http.StatusNotFound, map[string]any{
-				"id":    userID,
-				"error": "User not found",
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Message: "User not found",
 			})
 		case errors.Is(err, domain.ErrNoPermissionViewProfile):
-			return c.JSON(http.StatusForbidden, map[string]any{
-				"error": "No permission to view profile",
+			return c.JSON(http.StatusForbidden, dto.ErrorResponse{
+				Message: "No permission to view profile",
 			})
 		default:
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Message: "Internal server error",
+			})
 		}
 	}
 
@@ -195,25 +224,37 @@ func (h *UserHandler) UserBio(c *echo.Context) error {
 	})
 }
 
-// MySummary returns the user's id, name, and link to the profile picture for the authorized user.
-// /me
+// @MySummary godoc
+// @Summary      Get current user summary
+// @Description  Get authorized user summary with id, email, name, and picture URL
+// @Tags         user
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200 {object} dto.MySummaryResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /me [get]
 func (h *UserHandler) MySummary(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	profile, err := h.userService.Profile(ctx, myID, myID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			return c.JSON(http.StatusNotFound, map[string]any{
-				"id":    myID,
-				"error": "User not found",
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Message: "User not found",
 			})
 		} else {
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Message: "Internal server error",
+			})
 		}
 	}
 
@@ -225,25 +266,37 @@ func (h *UserHandler) MySummary(c *echo.Context) error {
 	})
 }
 
-// MyProfile returns the user's id and "about me" type information for the authorized user.
-// /me/profile
+// @MyProfile godoc
+// @Summary      Get current user profile
+// @Description  Get authorized user profile with age and bio
+// @Tags         user
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200 {object} dto.ProfileResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /me/profile [get]
 func (h *UserHandler) MyProfile(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	profile, err := h.userService.Profile(ctx, myID, myID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			return c.JSON(http.StatusNotFound, map[string]any{
-				"id":    myID,
-				"error": "User not found",
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Message: "User not found",
 			})
 		} else {
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Message: "Internal server error",
+			})
 		}
 	}
 
@@ -254,25 +307,37 @@ func (h *UserHandler) MyProfile(c *echo.Context) error {
 	})
 }
 
-// MyBio returns the user's id and biographical data (the data used to power recommendations) for the authorized user.
-// /me/bio
+// @MyBio godoc
+// @Summary      Get current user bio
+// @Description  Get authorized user bio and activities data
+// @Tags         user
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200 {object} dto.UserBioResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      404 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /me/bio [get]
 func (h *UserHandler) MyBio(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	myID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	profile, err := h.userService.Profile(ctx, myID, myID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			return c.JSON(http.StatusNotFound, map[string]any{
-				"id":    myID,
-				"error": "User not found",
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Message: "User not found",
 			})
 		} else {
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to get user"})
+			return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Message: "Internal server error",
+			})
 		}
 	}
 
@@ -295,13 +360,22 @@ func (h *UserHandler) MyBio(c *echo.Context) error {
 		MaxRadius:       profile.MaxRadius,
 		InteractionMode: int(profile.InteractionMode),
 		Activities:      activitiesResponce,
-		// TODO: remove lat and lon from responce, added for testing
-		Lat: profile.Lat,
-		Lon: profile.Lon,
 	})
 }
 
-// UpdateProfile updates existin user profile fully or partially based on the provided data.
+// @UpdateProfile godoc
+// @Summary      Update user profile
+// @Description  Update existing user profile fields
+// @Tags         user
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.ProfileUpdateRequest true "Profile update fields"
+// @Success      200 {object} dto.OKResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /me/profile [patch]
 func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 	const op = "httpserver.handlers.UpdateProfile"
 	// log := h.log.With(slog.String("op", op))
@@ -310,15 +384,21 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 
 	userID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	var req dto.ProfileUpdateRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Invalid request body"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid request body",
+		})
 	}
 	if err := h.validator.Struct(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Invalid request body",
+		})
 	}
 
 	// 3. Map DTO into domain struct
@@ -349,72 +429,112 @@ func (h *UserHandler) UpdateProfile(c *echo.Context) error {
 	}
 
 	if err := h.userService.UpdateProfile(ctx, userID, params); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to update profile"})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Internal server error",
+		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{"status": "Profile updated successfully"})
+	return c.JSON(http.StatusOK, dto.OKResponse{
+		Message: "Profile updated successfully",
+	})
 }
 
-// UploadProfilePicture uploads, processes, and updates the profile picture for the authorized user.
-// POST /me/picture
+// @UploadProfilePicture godoc
+// @Summary      Upload profile picture
+// @Description  Upload, process, and update the profile picture for the authorized user
+// @Tags         user
+// @Security     BearerAuth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        picture formData file true "Profile picture file (max 1MB)"
+// @Success      200 {object} dto.ProfilePictureUpdatedResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      413 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /me/picture [post]
 func (h *UserHandler) UploadProfilePicture(c *echo.Context) error {
 	const op = "httpserver.handlers.UploadProfilePicture"
 	ctx := c.Request().Context()
 
 	userID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	fileHeader, err := c.FormFile("picture")
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Form field 'picture' is required"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Form field 'picture' is required",
+		})
 	}
 
 	if fileHeader.Size > maxProfilePictureSize {
-		return c.JSON(http.StatusRequestEntityTooLarge, map[string]any{"error": "File size exceeds 1MB limit"})
+		return c.JSON(http.StatusRequestEntityTooLarge, dto.ErrorResponse{
+			Message: "File size exceeds 1MB limit",
+		})
 	}
 
 	file, err := fileHeader.Open()
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": "Failed to read uploaded file"})
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Message: "Failed to read uploaded file",
+		})
 	}
 	defer file.Close()
 
 	pictureURL, err := h.userService.UpdateProfilePicture(ctx, userID, file)
 	if err != nil {
 		if errors.Is(err, imgutil.ErrUnsupportedFormat) || errors.Is(err, imgutil.ErrInvalidDimensions) {
-			return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+			return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Message: "Invalid file format or dimensions",
+			})
 		}
 		h.log.Error("failed to update profile picture", slog.String("op", op), "user_id", userID, logger.Err(err))
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to update profile picture"})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Internal server error",
+		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
-		"status":      "Profile picture updated successfully",
-		"picture_url": pictureURL,
+	return c.JSON(http.StatusOK, dto.ProfilePictureUpdatedResponse{
+		Message:    "Profile picture updated successfully",
+		PictureURL: pictureURL,
 	})
 }
 
-// DeleteProfilePicture resets the profile picture for the authorized user to the default placeholder.
-// DELETE /me/picture
+// @DeleteProfilePicture godoc
+// @Summary      Delete profile picture
+// @Description  Reset the profile picture for the authorized user to the default placeholder
+// @Tags         user
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200 {object} dto.ProfilePictureUpdatedResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      500 {object} dto.ErrorResponse
+// @Router       /me/picture [delete]
 func (h *UserHandler) DeleteProfilePicture(c *echo.Context) error {
 	const op = "httpserver.handlers.DeleteProfilePicture"
 	ctx := c.Request().Context()
 
 	userID, ok := c.Get("user_id").(int64)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]any{"error": "Unauthorized"})
+		return c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Message: "Unauthorized",
+		})
 	}
 
 	defaultURL, err := h.userService.DeleteProfilePicture(ctx, userID)
 	if err != nil {
 		h.log.Error("failed to delete profile picture", slog.String("op", op), "user_id", userID, logger.Err(err))
-		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "Failed to reset profile picture"})
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Message: "Internal server error",
+		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
-		"status":      "Profile picture removed successfully",
-		"picture_url": defaultURL,
+	return c.JSON(http.StatusOK, dto.ProfilePictureUpdatedResponse{
+		Message:    "Profile picture removed successfully",
+		PictureURL: defaultURL,
 	})
 }

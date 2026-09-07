@@ -172,8 +172,40 @@ Once the containers are healthy and running, access the services:
 
 - **Frontend Application:** `http://localhost:5173`
 - **Backend REST API:** `http://localhost:8080`
+- **Swagger API Documentation:** `http://localhost:8080/docs/index.html`
 - **MinIO Web Console:** `http://localhost:9001` (Username: `minio_admin`, Password: `minio_password`)
 - **PostgreSQL Database:** `localhost:5432`
+
+---
+
+## API Documentation (Swagger)
+
+The backend provides interactive Swagger (OpenAPI 2.0) documentation powered by `swaggo`:
+
+- **Interactive Swagger UI:** `http://localhost:8080/docs/index.html`
+- **Raw OpenAPI JSON:** `http://localhost:8080/docs/doc.json`
+
+### Authenticating in Swagger UI
+
+Protected endpoints require a valid JWT bearer token:
+
+1. In Swagger UI, execute `POST /auth/login` (e.g. using seeded test account `obiwan@matchme.com` / `12345678`).
+2. Copy the `access_token` value from the JSON response body.
+3. Click the green **Authorize** button at the top of the Swagger UI page.
+4. In the value input, enter:
+   ```text
+   Bearer <your_access_token>
+   ```
+5. Click **Authorize** and close the modal. All authenticated endpoints can now be tested directly through the Swagger interface.
+
+### Regenerating Swagger Documentation
+
+When modifying handler annotations or request/response DTOs, developers can regenerate Swagger specifications by running:
+
+```bash
+cd backend
+$(go env GOPATH)/bin/swag init -g cmd/backend/main.go -o docs/swagger # Note: (depends on the GOPATH env var)
+```
 
 ---
 
